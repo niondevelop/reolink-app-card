@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.0.0';
+const RAC_VERSION = '1.1.0';
 
 const EVT = {
   person:  { label: 'Person',    icon: 'mdi:walk',      color: '#ff5b5b', re: /person|people|human|mensch/i },
@@ -16,7 +16,8 @@ class ReolinkAppCard extends HTMLElement {
   setConfig(config) {
     if (!config.cameras || !config.cameras.length) throw new Error('Bitte "cameras" definieren');
     this._config = {
-      live_timeout: 90,
+      live_timeout: 0,
+      auto_live: true,
       default_quality: 'sd',
       ...config,
       cameras: config.cameras.map((c) => {
@@ -57,8 +58,41 @@ class ReolinkAppCard extends HTMLElement {
     this._files = null;
     this._playing = null;
     this._settingsOpen = false;
+    this._visible = false;
     if (this._built) this._rebuildCamera();
   }
+
+  connectedCallback() {
+    if (this._built) this._observe();
+  }
+
+  /* Live nur, solange die Karte sichtbar ist (schont Akku und Bandbreite) */
+  _observe() {
+    if (!this._io) {
+      this._io = new IntersectionObserver((entries) => {
+        this._visible = entries.some((e) => e.isIntersecting);
+        this._autoLive();
+      }, { threshold: 0.2 });
+    }
+    this._io.observe(this.$('stage'));
+    if (!this._onVis) {
+      this._onVis = () => this._autoLive();
+      document.addEventListener('visibilitychange', this._onVis);
+    }
+  }
+
+  get _canAutoLive() {
+    return this._config.auto_live && this._visible && !document.hidden
+      && this._mode === 'live' && !this._playing && !this._expired;
+  }
+
+  _autoLive() {
+    if (!this._built || !this._hass) return;
+    if (this._canAutoLive) { if (!this._live) this._startLive(); }
+    else if (this._live && (!this._visible || document.hidden)) this._stopLive();
+  }
+
+  _hasHd() { return !!this._st(this._cam.cam_hd); }
 
   getCardSize() { return 9; }
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
@@ -68,7 +102,9 @@ class ReolinkAppCard extends HTMLElement {
     this._hass = hass;
     if (!this._built) this._build();
     if (this._pic) this._pic.hass = hass;
+    if (this._quality === 'hd' && !this._hasHd()) { this._quality = 'sd'; this._makePic(); }
     this._update();
+    this._autoLive();
   }
 
   get _cam() { return this._config.cameras[this._idx]; }
@@ -120,8 +156,11 @@ class ReolinkAppCard extends HTMLElement {
       </ha-card>`;
     const $ = (id) => root.getElementById(id);
     this.$ = $;
-    $('bigplay').onclick = () => this._startLive();
-    $('stop').onclick = () => (this._playing ? this._stopPlayback() : this._stopLive());
+    $('bigplay').onclick = () => { this._expired = false; this._startLive(); };
+    $('stop').onclick = () => {
+      if (this._playing) this._stopPlayback();
+      else { this._expired = true; this._stopLive(); }
+    };
     $('q').onclick = () => { this._quality = this._quality === 'hd' ? 'sd' : 'hd'; this._makePic(); this._update(); };
     $('fs').onclick = () => this._fullscreen();
     $('m-live').onclick = () => this._setMode('live');
@@ -130,14 +169,18 @@ class ReolinkAppCard extends HTMLElement {
     this._renderTabs();
     this._renderFilters();
     this._makePic();
+    if (this.isConnected) this._observe();
   }
 
   _rebuildCamera() {
     this._stopLive(true);
     this._stopPlayback(true);
+    this._expired = false;
+    if (this._quality === 'hd' && !this._hasHd()) this._quality = 'sd';
     this._days = null; this._files = null; this._dayIdx = 0;
     this._renderTabs();
-    this._makePic();
+    if (this._canAutoLive) this._startLive();
+    else this._makePic();
     if (this._mode === 'play') this._loadDays();
     this._update();
   }
@@ -164,12 +207,15 @@ class ReolinkAppCard extends HTMLElement {
   _startLive() {
     if (this._playing) this._stopPlayback(true);
     this._live = true;
-    this._liveEnds = Date.now() + this._config.live_timeout * 1000;
+    const t = +this._config.live_timeout || 0;
+    this._liveEnds = t > 0 ? Date.now() + t * 1000 : 0;
     clearInterval(this._tick);
-    this._tick = setInterval(() => {
-      if (Date.now() >= this._liveEnds) this._stopLive();
-      else this._update();
-    }, 1000);
+    if (this._liveEnds) {
+      this._tick = setInterval(() => {
+        if (Date.now() >= this._liveEnds) { this._expired = true; this._stopLive(); }
+        else this._update();
+      }, 1000);
+    }
     this._makePic();
     this._update();
   }
@@ -192,6 +238,7 @@ class ReolinkAppCard extends HTMLElement {
     this._mode = m;
     if (m === 'play' && !this._days) this._loadDays();
     this._update();
+    this._autoLive();
   }
 
   /* ---------- Steuerung ---------- */
@@ -340,7 +387,7 @@ class ReolinkAppCard extends HTMLElement {
     if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
     if (!this._playing) return;
     this._playing = null; this._playUrl = null;
-    if (!silent) this._update();
+    if (!silent) { this._update(); this._autoLive(); }
   }
 
   /* ---------- Rendering ---------- */
@@ -411,9 +458,9 @@ class ReolinkAppCard extends HTMLElement {
     $('stage').classList.toggle('playing', playing);
     $('stage').classList.toggle('live', this._live);
     $('badge').innerHTML = playing ? `<ha-icon icon="mdi:history"></ha-icon>${this._playing.time}`
-      : this._live ? '<i class="rec"></i>LIVE' : (this._on(c.sleep) ? '<ha-icon icon="mdi:sleep"></ha-icon>Schlafmodus' : 'Standbild');
+      : this._live ? '<i class="rec"></i>LIVE' : (this._on(c.sleep) ? '<ha-icon icon="mdi:sleep"></ha-icon>Schlafmodus' : 'Pausiert');
     $('q').textContent = this._quality === 'hd' ? 'HD' : 'SD';
-    $('q').style.display = playing ? 'none' : '';
+    $('q').style.display = playing || !this._hasHd() ? 'none' : '';
     const bat = this._st(c.battery), wifi = this._st(c.wifi);
     let stat = '';
     if (wifi && !isNaN(+wifi.state)) stat += `<span class="pill"><ha-icon icon="mdi:wifi-strength-${Math.max(1, Math.min(4, Math.round(+wifi.state)))}"></ha-icon></span>`;
@@ -429,9 +476,10 @@ class ReolinkAppCard extends HTMLElement {
     $('det').innerHTML = active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${EVT[k].label}</span>`).join('');
 
     // Timer / Buttons
-    const left = this._live ? Math.max(0, Math.ceil((this._liveEnds - Date.now()) / 1000)) : 0;
-    $('timer').textContent = this._live ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '';
-    $('timer').style.display = this._live ? '' : 'none';
+    const timed = this._live && !!this._liveEnds;
+    const left = timed ? Math.max(0, Math.ceil((this._liveEnds - Date.now()) / 1000)) : 0;
+    $('timer').textContent = timed ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '';
+    $('timer').style.display = timed ? '' : 'none';
     $('stop').style.display = this._live || playing ? '' : 'none';
     $('bigplay').style.display = this._live || playing ? 'none' : '';
 
@@ -526,7 +574,13 @@ class ReolinkAppCard extends HTMLElement {
     list.querySelectorAll('.item').forEach((el) => { el.onclick = () => this._play(files[+el.dataset.i]); });
   }
 
-  disconnectedCallback() { clearInterval(this._tick); this._stopLive(true); }
+  disconnectedCallback() {
+    clearInterval(this._tick);
+    if (this._io) this._io.disconnect();
+    if (this._onVis) { document.removeEventListener('visibilitychange', this._onVis); this._onVis = null; }
+    this._visible = false;
+    this._stopLive(true);
+  }
 }
 
 const RAC_CSS = `
