@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.2.0';
+const RAC_VERSION = '1.2.1';
 
 const Q = {
   fluent:   { label: 'Flüssig',    icon: 'mdi:quality-low' },
@@ -645,7 +645,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .tab .tb { opacity: .75; font-size: 12px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #3ccf8e; flex: none; }
 .dot.sleep { background: #9aa4b2; } .dot.off { background: #555; } .dot.alert { background: #ff5b5b; animation: pulse 1s infinite; }
-.stage { position: relative; background: #000; aspect-ratio: 16/9; overflow: hidden; }
+.stage { position: relative; background: #000; aspect-ratio: 16/9; overflow: hidden; border-radius: 0;
+  /* Eckige Kamerabild-Fläche: Variablen wirken bis in die eingebettete Bildkarte (Shadow DOM) */
+  --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
+.stage video, .stage img { border-radius: 0; }
 .stage:fullscreen { aspect-ratio: auto; }
 .pic, .pic > * { position: absolute; inset: 0; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: #000; }
