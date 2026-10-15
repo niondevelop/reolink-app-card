@@ -5,10 +5,10 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 ## Funktionen
 
 - **Kamera-Tabs** mit Statuspunkt (online, schläft, Erkennung aktiv, offline) und Akkustand
-- **Echtes Livebild** startet automatisch, sobald die Karte sichtbar ist, und stoppt, wenn du wegscrollst, die App verlässt oder den Tab wechselst; Wechsel zwischen SD und HD (wenn die HD-Entität aktiviert ist)
+- **Echtes Livebild** startet automatisch, sobald die Karte sichtbar ist, stoppt nach 5 Minuten (einstellbar) und sofort, wenn du wegscrollst, die App verlässt oder den Tab wechselst
 - **Overlay** mit Akku, WLAN-Signal und laufenden Erkennungen (Person, Fahrzeug, Tier, Bewegung)
-- **Schnellsteuerung:** Flutlicht, Sirene (mit Rückfrage), Voralarm, manuelle Aufnahme, Foto speichern
-- **Einstellungen:** PIR, Aufzeichnung, Push-Benachrichtigungen, Tag-/Nacht-Modus
+- **Steuerleiste wie in der Reolink-App:** Sprechen (öffnet die Reolink-App), Ton-Alarm (mit Rückfrage), Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar)
+- **Einstellungen:** PIR, Aufzeichnung, Push-Benachrichtigungen, Tag-/Nacht-Modus, Voralarm
 - **Wiedergabe** der Aufnahmen über die Reolink-Medienquelle: Tagesauswahl, Filter nach Ereignistyp, farbige 24-Stunden-Zeitleiste und Ereignisliste
 - **Vollbild** für Live und Wiedergabe
 
@@ -31,7 +31,8 @@ HACS registriert die Ressource automatisch.
 
 ```yaml
 type: custom:reolink-app-card
-default_quality: sd
+default_quality: fluent
+live_timeout: 300
 cameras:
   - name: Garten Nord
     prefix: kamera_eingang
@@ -46,9 +47,10 @@ cameras:
 | Option            | Standard | Beschreibung                                                   |
 | ----------------- | -------- | -------------------------------------------------------------- |
 | `cameras`         | –        | **Pflicht.** Liste der Kameras (siehe unten)                   |
-| `default_quality` | `sd`     | Startqualität des Livebilds: `sd` oder `hd`                    |
+| `default_quality` | `fluent` | Startqualität: `fluent` (Flüssig), `balanced` (Balanciert) oder `clear` (Klar). `sd`/`hd` funktionieren weiterhin |
 | `auto_live`       | `true`   | Livebild automatisch starten, sobald die Karte sichtbar ist. Bei `false` startet es erst per Tipp |
-| `live_timeout`    | `0`      | Sekunden, nach denen das Livebild stoppt. `0` = kein Limit, solange die Karte sichtbar ist |
+| `live_timeout`    | `300`    | Sekunden, nach denen das Livebild pausiert. `0` = kein Limit, solange die Karte sichtbar ist |
+| `talk_url`        | –        | Link für den Sprechen-Button. Auf Android öffnet er ohne Angabe die Reolink-App. Auch pro Kamera möglich |
 
 ### Kamera-Optionen
 
@@ -64,8 +66,9 @@ Die Karte leitet alle Entity-IDs aus `prefix` ab. Die Standardnamen entsprechen 
 
 | Option          | Standard                                     |
 | --------------- | -------------------------------------------- |
-| `camera_sd`     | `camera.<prefix>_standardauflosung`          |
-| `camera_hd`     | `camera.<prefix>_hochauflosung`              |
+| `camera_sd`     | `camera.<prefix>_standardauflosung` (Flüssig) |
+| `camera_balanced` | `camera.<prefix>_ausgewogen` (Balanciert)  |
+| `camera_hd`     | `camera.<prefix>_hochauflosung` (Klar)       |
 | `light`         | `light.<prefix>_flutlicht`                   |
 | `siren`         | `siren.<prefix>_sirene`                      |
 | `prealarm`      | `button.<prefix>_voralarm`                   |
@@ -89,7 +92,8 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 - Das Livebild läuft über den Kamera-Stream von Home Assistant (HLS bzw. WebRTC). Akkukameras brauchen nach dem Aufwecken einige Sekunden, bis das Bild läuft.
 - Jede Minute Livebild kostet Akku. Wer sparen will, setzt `live_timeout` oder `auto_live: false`.
 - Die Wiedergabe nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
-- Die HD-Kamera-Entität ist in der Reolink-Integration standardmässig deaktiviert und muss für den HD-Modus aktiviert werden.
+- Die Stufen „Balanciert“ (Ausgewogen) und „Klar“ (Hochauflösung) sind in der Reolink-Integration standardmässig deaktiviert. Erst wenn sie aktiviert sind, lassen sie sich in der Karte auswählen.
+- **Sprechen:** Home Assistant kann bei Reolink-Akkukameras kein Gegensprechen. Der Button öffnet deshalb die Reolink-App. Reolink bietet keinen Link, der direkt eine bestimmte Kamera öffnet; die App startet mit der zuletzt genutzten Kamera. Auf iPhones gibt es keinen offiziellen Link zur App, dort lässt sich über `talk_url` ein eigener hinterlegen.
 
 ## Lizenz
 

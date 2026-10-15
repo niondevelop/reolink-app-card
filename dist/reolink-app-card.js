@@ -1,5 +1,14 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.1.0';
+const RAC_VERSION = '1.2.0';
+
+const Q = {
+  fluent:   { label: 'Flüssig',    icon: 'mdi:quality-low' },
+  balanced: { label: 'Balanciert', icon: 'mdi:quality-medium' },
+  clear:    { label: 'Klar',       icon: 'mdi:quality-high' },
+};
+const Q_ORDER = ['fluent', 'balanced', 'clear'];
+const Q_ALIAS = { sd: 'fluent', low: 'fluent', hd: 'clear', high: 'clear', medium: 'balanced' };
+const REOLINK_ANDROID = 'intent://#Intent;package=com.mcu.reolink;end';
 
 const EVT = {
   person:  { label: 'Person',    icon: 'mdi:walk',      color: '#ff5b5b', re: /person|people|human|mensch/i },
@@ -16,9 +25,9 @@ class ReolinkAppCard extends HTMLElement {
   setConfig(config) {
     if (!config.cameras || !config.cameras.length) throw new Error('Bitte "cameras" definieren');
     this._config = {
-      live_timeout: 0,
+      live_timeout: 300,
       auto_live: true,
-      default_quality: 'sd',
+      default_quality: 'fluent',
       ...config,
       cameras: config.cameras.map((c) => {
         const p = c.prefix;
@@ -27,7 +36,9 @@ class ReolinkAppCard extends HTMLElement {
           name: c.name || p,
           media_name: c.media_name || c.name || p,
           cam_sd: c.camera_sd || `camera.${ent(p, 'standardauflosung')}`,
+          cam_bal: c.camera_balanced || `camera.${ent(p, 'ausgewogen')}`,
           cam_hd: c.camera_hd || `camera.${ent(p, 'hochauflosung')}`,
+          talk_url: c.talk_url,
           light: c.light || `light.${ent(p, 'flutlicht')}`,
           siren: c.siren || `siren.${ent(p, 'sirene')}`,
           prealarm: c.prealarm || `button.${ent(p, 'voralarm')}`,
@@ -50,7 +61,8 @@ class ReolinkAppCard extends HTMLElement {
     };
     this._idx = 0;
     this._mode = 'live';
-    this._quality = this._config.default_quality;
+    this._quality = this._normQ(this._config.default_quality);
+    this._qOpen = false;
     this._live = false;
     this._filter = 'all';
     this._days = null;
@@ -92,7 +104,20 @@ class ReolinkAppCard extends HTMLElement {
     else if (this._live && (!this._visible || document.hidden)) this._stopLive();
   }
 
-  _hasHd() { return !!this._st(this._cam.cam_hd); }
+  /* ---------- Qualität ---------- */
+  _normQ(q) { q = Q_ALIAS[String(q).toLowerCase()] || String(q).toLowerCase(); return Q[q] ? q : 'fluent'; }
+  _qEntity(q, cam = this._cam) { return { fluent: cam.cam_sd, balanced: cam.cam_bal, clear: cam.cam_hd }[q]; }
+  _qAvail() { return Q_ORDER.filter((q) => this._st(this._qEntity(q))); }
+  _ensureQ() {
+    const a = this._qAvail();
+    if (a.length && !a.includes(this._quality)) { this._quality = a[0]; return true; }
+    return false;
+  }
+  _setQuality(q) {
+    this._qOpen = false;
+    if (q !== this._quality) { this._quality = q; this._makePic(); }
+    this._update();
+  }
 
   getCardSize() { return 9; }
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
@@ -102,7 +127,7 @@ class ReolinkAppCard extends HTMLElement {
     this._hass = hass;
     if (!this._built) this._build();
     if (this._pic) this._pic.hass = hass;
-    if (this._quality === 'hd' && !this._hasHd()) { this._quality = 'sd'; this._makePic(); }
+    if (this._ensureQ()) this._makePic();
     this._update();
     this._autoLive();
   }
@@ -125,7 +150,6 @@ class ReolinkAppCard extends HTMLElement {
           <div class="ov top">
             <div class="pillrow">
               <span class="pill" id="badge"></span>
-              <button class="pill btn" id="q"></button>
             </div>
             <div class="pillrow" id="stat"></div>
           </div>
@@ -143,7 +167,7 @@ class ReolinkAppCard extends HTMLElement {
           <button id="m-play">Wiedergabe</button>
         </div>
         <div id="pane-live">
-          <div class="ctrls" id="ctrls"></div>
+          <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span>Einstellungen</span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
         </div>
@@ -161,7 +185,6 @@ class ReolinkAppCard extends HTMLElement {
       if (this._playing) this._stopPlayback();
       else { this._expired = true; this._stopLive(); }
     };
-    $('q').onclick = () => { this._quality = this._quality === 'hd' ? 'sd' : 'hd'; this._makePic(); this._update(); };
     $('fs').onclick = () => this._fullscreen();
     $('m-live').onclick = () => this._setMode('live');
     $('m-play').onclick = () => this._setMode('play');
@@ -176,7 +199,8 @@ class ReolinkAppCard extends HTMLElement {
     this._stopLive(true);
     this._stopPlayback(true);
     this._expired = false;
-    if (this._quality === 'hd' && !this._hasHd()) this._quality = 'sd';
+    this._qOpen = false;
+    this._ensureQ();
     this._days = null; this._files = null; this._dayIdx = 0;
     this._renderTabs();
     if (this._canAutoLive) this._startLive();
@@ -187,7 +211,7 @@ class ReolinkAppCard extends HTMLElement {
 
   async _makePic() {
     const host = this.$('pic');
-    const entity = this._quality === 'hd' ? this._cam.cam_hd : this._cam.cam_sd;
+    const entity = this._st(this._qEntity(this._quality)) ? this._qEntity(this._quality) : this._cam.cam_sd;
     const cfg = {
       type: 'picture-entity', entity, show_name: false, show_state: false,
       camera_view: this._live ? 'live' : 'auto', fit_mode: 'contain',
@@ -249,21 +273,31 @@ class ReolinkAppCard extends HTMLElement {
   _controls() {
     const c = this._cam;
     const items = [];
-    if (this._st(c.light)) items.push({ id: 'light', icon: 'mdi:spotlight-beam', label: 'Flutlicht', on: this._on(c.light),
-      run: () => this._call('light', 'toggle', c.light) });
-    if (this._st(c.siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light', label: 'Sirene', on: this._on(c.siren), warn: true,
+    items.push({ id: 'talk', icon: 'mdi:microphone-outline', label: 'Sprechen (öffnet die Reolink-App)', run: () => this._talk() });
+    if (this._st(c.siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light-outline', label: 'Ton-Alarm', on: this._on(c.siren), warn: true,
       run: () => this._on(c.siren) ? this._call('siren', 'turn_off', c.siren)
-        : (confirm(`Sirene bei „${c.name}“ auslösen?`) && this._call('siren', 'turn_on', c.siren)) });
-    if (this._st(c.prealarm)) items.push({ id: 'pre', icon: 'mdi:bullhorn', label: 'Voralarm',
-      run: () => this._call('button', 'press', c.prealarm) });
-    if (this._st(c.manual_rec)) items.push({ id: 'rec', icon: 'mdi:record-circle-outline', label: 'Aufnahme', on: this._on(c.manual_rec), warn: true,
+        : (confirm(`Ton-Alarm bei „${c.name}“ auslösen?`) && this._call('siren', 'turn_on', c.siren)) });
+    if (this._st(c.light)) items.push({ id: 'light', icon: 'mdi:flashlight', label: 'Spotlight', on: this._on(c.light),
+      run: () => this._call('light', 'toggle', c.light) });
+    if (this._st(c.manual_rec)) items.push({ id: 'rec', icon: 'mdi:video-outline', label: 'Aufnahme', on: this._on(c.manual_rec),
       run: () => this._call('switch', 'toggle', c.manual_rec) });
-    items.push({ id: 'snap', icon: 'mdi:camera-outline', label: 'Foto', run: () => this._snapshot() });
+    items.push({ id: 'snap', icon: 'mdi:camera-outline', label: 'Schnappschuss', run: () => this._snapshot() });
+    if (this._qAvail().length) items.push({ id: 'q', icon: Q[this._quality].icon, label: `Qualität: ${Q[this._quality].label}`, on: this._qOpen,
+      run: () => { this._qOpen = !this._qOpen; this._update(); } });
     return items;
   }
 
+  /* Gegensprechen: Reolink bietet keinen Deep-Link auf eine bestimmte Kamera; die App öffnet die zuletzt genutzte */
+  _talk() {
+    const url = this._cam.talk_url || this._config.talk_url
+      || (/android/i.test(navigator.userAgent) ? REOLINK_ANDROID : null);
+    if (!url) { alert('Auf diesem Gerät ist kein Link zur Reolink-App hinterlegt (Option „talk_url“).'); return; }
+    this._stopLive();
+    window.open(url, '_blank');
+  }
+
   _snapshot() {
-    const id = this._quality === 'hd' ? this._cam.cam_hd : this._cam.cam_sd;
+    const id = this._st(this._qEntity(this._quality)) ? this._qEntity(this._quality) : this._cam.cam_sd;
     const s = this._st(id);
     if (!s) return;
     const url = this._hass.hassUrl(`/api/camera_proxy/${id}?token=${s.attributes.access_token}`);
@@ -281,6 +315,7 @@ class ReolinkAppCard extends HTMLElement {
     sw(c.rec, 'Aufzeichnung', 'mdi:sd');
     sw(c.push, 'Push-Benachrichtigungen', 'mdi:bell-ring-outline');
     if (this._st(c.daynight)) rows.push({ type: 'sel', id: c.daynight, label: 'Tag/Nacht', icon: 'mdi:theme-light-dark' });
+    if (this._st(c.prealarm)) rows.push({ type: 'btn', id: c.prealarm, label: 'Voralarm', icon: 'mdi:bullhorn-outline' });
     return rows;
   }
 
@@ -459,8 +494,6 @@ class ReolinkAppCard extends HTMLElement {
     $('stage').classList.toggle('live', this._live);
     $('badge').innerHTML = playing ? `<ha-icon icon="mdi:history"></ha-icon>${this._playing.time}`
       : this._live ? '<i class="rec"></i>LIVE' : (this._on(c.sleep) ? '<ha-icon icon="mdi:sleep"></ha-icon>Schlafmodus' : 'Pausiert');
-    $('q').textContent = this._quality === 'hd' ? 'HD' : 'SD';
-    $('q').style.display = playing || !this._hasHd() ? 'none' : '';
     const bat = this._st(c.battery), wifi = this._st(c.wifi);
     let stat = '';
     if (wifi && !isNaN(+wifi.state)) stat += `<span class="pill"><ha-icon icon="mdi:wifi-strength-${Math.max(1, Math.min(4, Math.round(+wifi.state)))}"></ha-icon></span>`;
@@ -499,14 +532,31 @@ class ReolinkAppCard extends HTMLElement {
     const sig = ctrls.map((x) => x.id).join();
     if ($('ctrls').dataset.sig !== sig) {
       $('ctrls').dataset.sig = sig;
-      $('ctrls').innerHTML = ctrls.map((x) => `<button class="ctl" data-id="${x.id}"><span class="ci"><ha-icon icon="${x.icon}"></ha-icon></span><span>${x.label}</span></button>`).join('');
+      $('ctrls').innerHTML = ctrls.map((x) => `<button class="tb" data-id="${x.id}"><ha-icon></ha-icon></button>`).join('');
       ctrls.forEach((x) => { $('ctrls').querySelector(`[data-id="${x.id}"]`).onclick = () => this._controls().find((y) => y.id === x.id).run(); });
     }
     ctrls.forEach((x) => {
       const b = $('ctrls').querySelector(`[data-id="${x.id}"]`);
-      b.classList.toggle('on', !!x.on);
+      const icon = b.querySelector('ha-icon');
+      if (icon.getAttribute('icon') !== x.icon) icon.setAttribute('icon', x.icon);
+      b.title = x.label; b.setAttribute('aria-label', x.label);
+      b.classList.toggle('on', !!x.on && !x.warn);
       b.classList.toggle('warn', !!x.on && !!x.warn);
     });
+
+    // Qualitätsmenü
+    const qm = $('qmenu');
+    qm.classList.toggle('open', this._qOpen);
+    if (this._qOpen) {
+      const avail = this._qAvail();
+      const qsig = `${this._idx}|${this._quality}|${avail.join()}`;
+      if (qm.dataset.sig !== qsig) {
+        qm.dataset.sig = qsig;
+        qm.innerHTML = Q_ORDER.map((q) => `<button class="qopt${q === this._quality ? ' sel' : ''}" data-q="${q}"${avail.includes(q) ? '' : ' disabled'}>
+          <ha-icon icon="${Q[q].icon}"></ha-icon><span>${Q[q].label}</span>${avail.includes(q) ? (q === this._quality ? '<ha-icon class="chk" icon="mdi:check"></ha-icon>' : '') : '<small>nicht aktiviert</small>'}</button>`).join('');
+        qm.querySelectorAll('.qopt:not([disabled])').forEach((el) => { el.onclick = () => this._setQuality(el.dataset.q); });
+      }
+    }
 
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
@@ -517,16 +567,18 @@ class ReolinkAppCard extends HTMLElement {
     if (box.dataset.sig !== sig2) {
       box.dataset.sig = sig2;
       box.innerHTML = rows.map((r) => `<div class="row" data-id="${r.id}"><ha-icon icon="${r.icon}"></ha-icon><span class="rl">${r.label}</span>${
-        r.type === 'sw' ? '<ha-switch></ha-switch>' : '<select></select>'}</div>`).join('');
+        r.type === 'sw' ? '<ha-switch></ha-switch>' : r.type === 'btn' ? '<button class="rowbtn">Abspielen</button>' : '<select></select>'}</div>`).join('');
       rows.forEach((r) => {
         const row = box.querySelector(`[data-id="${r.id}"]`);
         if (r.type === 'sw') row.querySelector('ha-switch').addEventListener('change', () => this._call('switch', 'toggle', r.id));
+        else if (r.type === 'btn') row.querySelector('.rowbtn').onclick = () => this._call('button', 'press', r.id);
         else row.querySelector('select').onchange = (e) => this._call('select', 'select_option', r.id, { option: e.target.value });
       });
     }
     rows.forEach((r) => {
       const row = box.querySelector(`[data-id="${r.id}"]`);
       const s = this._st(r.id);
+      if (r.type === 'btn') return;
       if (r.type === 'sw') row.querySelector('ha-switch').checked = s.state === 'on';
       else {
         const sel = row.querySelector('select');
@@ -619,11 +671,21 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .seg { display: flex; margin: 10px 10px 4px; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); }
 .seg button { flex: 1; padding: 7px; border-radius: 8px; font-weight: 600; font-size: 14px; opacity: .7; }
 .seg button.sel { background: var(--rb); opacity: 1; color: var(--ra); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
-.ctrls { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 4px; padding: 10px 6px 4px; }
-.ctl { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 12px; }
-.ci { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--secondary-background-color); transition: background .2s, color .2s; }
-.ctl.on .ci { background: var(--ra); color: #fff; }
-.ctl.warn .ci { background: #ff3b30; color: #fff; }
+.barwrap { position: relative; padding: 10px 10px 4px; }
+.bar { display: flex; justify-content: space-around; align-items: center; gap: 2px; padding: 8px 10px; border-radius: 30px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
+.tb { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #f2f2f2; transition: background .2s, color .2s; }
+.tb ha-icon { --mdc-icon-size: 24px; }
+.tb.on { background: var(--ra); color: #fff; }
+.tb.warn { background: #ff3b30; color: #fff; }
+.qmenu { position: absolute; right: 14px; bottom: calc(100% - 4px); min-width: 190px; padding: 6px; border-radius: 14px; background: #1f1f21; color: #f2f2f2; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 5; display: none; }
+.qmenu.open { display: block; }
+.qopt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 10px; font-size: 14px; text-align: left; }
+.qopt ha-icon { --mdc-icon-size: 20px; }
+.qopt.sel { color: var(--ra); }
+.qopt .chk { margin-left: auto; }
+.qopt[disabled] { opacity: .45; cursor: default; }
+.qopt small { margin-left: auto; font-size: 11px; }
+.rowbtn { padding: 6px 12px; border-radius: 8px; background: var(--secondary-background-color); font-size: 13px; }
 .more { display: flex; align-items: center; gap: 8px; width: calc(100% - 20px); margin: 6px 10px 0; padding: 8px 4px; border-top: 1px solid var(--divider-color); font-size: 14px; }
 .more span { flex: 1; text-align: left; }
 .more ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); }
