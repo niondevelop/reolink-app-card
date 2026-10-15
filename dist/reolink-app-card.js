@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.2.1';
+const RAC_VERSION = '1.2.2';
 
 const Q = {
   fluent:   { label: 'Flüssig',    icon: 'mdi:quality-low' },
@@ -8,7 +8,11 @@ const Q = {
 };
 const Q_ORDER = ['fluent', 'balanced', 'clear'];
 const Q_ALIAS = { sd: 'fluent', low: 'fluent', hd: 'clear', high: 'clear', medium: 'balanced' };
-const REOLINK_ANDROID = 'intent://#Intent;package=com.mcu.reolink;end';
+const REOLINK_PKG = 'com.mcu.reolink';
+// Companion-App: öffnet Apps über app://<paket> (https://companion.home-assistant.io/docs/integrations/android-webview)
+const REOLINK_COMPANION = `app://${REOLINK_PKG}`;
+// Chrome auf Android: vollständiger Launcher-Intent
+const REOLINK_CHROME = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${REOLINK_PKG};end`;
 
 const EVT = {
   person:  { label: 'Person',    icon: 'mdi:walk',      color: '#ff5b5b', re: /person|people|human|mensch/i },
@@ -289,11 +293,20 @@ class ReolinkAppCard extends HTMLElement {
 
   /* Gegensprechen: Reolink bietet keinen Deep-Link auf eine bestimmte Kamera; die App öffnet die zuletzt genutzte */
   _talk() {
+    const ua = navigator.userAgent;
+    const android = /android/i.test(ua);
+    const companion = android && (/Home ?Assistant/i.test(ua) || !!window.externalApp);
     const url = this._cam.talk_url || this._config.talk_url
-      || (/android/i.test(navigator.userAgent) ? REOLINK_ANDROID : null);
+      || (companion ? REOLINK_COMPANION : android ? REOLINK_CHROME : null);
     if (!url) { alert('Auf diesem Gerät ist kein Link zur Reolink-App hinterlegt (Option „talk_url“).'); return; }
     this._stopLive();
-    window.open(url, '_blank');
+    // Wie die Weblink-Karte über einen echten Link öffnen, damit die Companion-App ihn abfangen kann
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noreferrer';
+    a.style.display = 'none';
+    this.shadowRoot.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   _snapshot() {

@@ -50,7 +50,7 @@ cameras:
 | `default_quality` | `fluent` | Startqualität: `fluent` (Flüssig), `balanced` (Balanciert) oder `clear` (Klar). `sd`/`hd` funktionieren weiterhin |
 | `auto_live`       | `true`   | Livebild automatisch starten, sobald die Karte sichtbar ist. Bei `false` startet es erst per Tipp |
 | `live_timeout`    | `300`    | Sekunden, nach denen das Livebild pausiert. `0` = kein Limit, solange die Karte sichtbar ist |
-| `talk_url`        | –        | Link für den Sprechen-Button. Auf Android öffnet er ohne Angabe die Reolink-App. Auch pro Kamera möglich |
+| `talk_url`        | –        | Link für den Sprechen-Button. Ohne Angabe öffnet er auf Android die Reolink-App (Companion-App: `app://com.mcu.reolink`, Chrome: Intent-Link). Auch pro Kamera möglich |
 
 ### Kamera-Optionen
 
