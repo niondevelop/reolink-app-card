@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '2.0.0';
+const RAC_VERSION = '2.1.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
@@ -977,23 +977,39 @@ class ReolinkAppCard extends HTMLElement {
     else this._updatePlayPane();
   }
 
+  /* Kopfzeile: eigener Modus (z. B. input_select für Benachrichtigungen) oder Reolink-Szenenmodus, dazu SD-Karte */
   _updateHub() {
-    const box = this.$('hub');
-    const scene = this._config.show_hub ? this._hubE('scene') : null;
-    const storage = this._config.show_hub ? this._hubE('storage') : null;
-    const s = this._st(scene), sd = this._num(storage);
-    if (!s && sd === null) { box.style.display = 'none'; return; }
+    const box = this.$('hub'), cfg = this._config;
+    const modeId = cfg.mode_entity || null;
+    const useScene = cfg.show_hub && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
+    const scene = useScene ? this._hubE('scene') : null;
+    const storage = cfg.show_hub ? this._hubE('storage') : null;
+    const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
+    if (!m && !s && sd === null) { box.style.display = 'none'; return; }
     box.style.display = '';
-    const opts = s ? (s.attributes.options || []).filter((o) => o !== 'off') : [];
-    const icons = { disarm: 'mdi:shield-off-outline', home: 'mdi:home-outline', away: 'mdi:shield-lock-outline' };
-    const sig = `${this._lang}|${opts.join()}|${s ? s.state : ''}|${sd === null ? '' : Math.round(sd)}`;
+    const fmtOpt = (st, o) => (this._hass.formatEntityState ? this._hass.formatEntityState(st, o) : o);
+    const rows = [];
+    if (m) {
+      const icons = cfg.mode_icons || {};
+      rows.push({ id: modeId, st: m, opts: m.attributes.options || [],
+        icon: (o) => icons[o] || modeIcon(o), label: (o) => fmtOpt(m, o) });
+    }
+    if (s) {
+      const icons = { disarm: 'mdi:shield-off-outline', home: 'mdi:home-outline', away: 'mdi:shield-lock-outline' };
+      rows.push({ id: scene, st: s, opts: (s.attributes.options || []).filter((o) => o !== 'off'),
+        icon: (o) => icons[o] || 'mdi:shield-outline', label: (o) => (STR[this._lang][`scene_${o}`] ? this._t(`scene_${o}`) : fmtOpt(s, o)) });
+    }
+    const sig = `${this._lang}|${rows.map((r) => `${r.id}:${r.opts.join()}:${r.st.state}`).join('|')}|${sd === null ? '' : Math.round(sd * 10)}`;
     if (box.dataset.sig === sig) return;
     box.dataset.sig = sig;
-    box.innerHTML = `${opts.length ? `<div class="scene">${opts.map((o) => `<button data-o="${esc(o)}" class="${s.state === o ? 'sel' : ''}">
-      <ha-icon icon="${icons[o] || 'mdi:shield-outline'}"></ha-icon><span>${esc(STR[this._lang][`scene_${o}`] ? this._t(`scene_${o}`) : (this._hass.formatEntityState ? this._hass.formatEntityState(s, o) : o))}</span></button>`).join('')}</div>` : ''}
-      ${sd !== null ? `<span class="sd"><ha-icon icon="mdi:micro-sd"></ha-icon>${this._t('sd', { v: sd < 10 ? sd.toFixed(1) : Math.round(sd) })}</span>` : ''}`;
-    box.querySelectorAll('.scene button').forEach((b) => {
-      b.onclick = () => { if (b.dataset.o !== s.state) this._call('select', 'select_option', scene, { option: b.dataset.o }); };
+    box.innerHTML = rows.map((r, i) => `<div class="scene" data-r="${i}">${r.opts.map((o) => `<button data-o="${esc(o)}" class="${r.st.state === o ? 'sel' : ''}">
+      <ha-icon icon="${esc(r.icon(o))}"></ha-icon><span>${esc(r.label(o))}</span></button>`).join('')}</div>`).join('')
+      + (sd !== null ? `<span class="sd"><ha-icon icon="mdi:micro-sd"></ha-icon>${this._t('sd', { v: sd < 10 ? sd.toFixed(1) : Math.round(sd) })}</span>` : '');
+    box.querySelectorAll('.scene').forEach((row) => {
+      const r = rows[+row.dataset.r];
+      row.querySelectorAll('button').forEach((b) => {
+        b.onclick = () => { if (b.dataset.o !== r.st.state) this._call(r.id.split('.')[0], 'select_option', r.id, { option: b.dataset.o }); };
+      });
     });
   }
 
@@ -1163,6 +1179,16 @@ class ReolinkAppCard extends HTMLElement {
   }
 }
 
+/* Passendes Symbol für typische Modusnamen (deutsch und englisch) */
+function modeIcon(o) {
+  const s = String(o).toLowerCase();
+  if (/abwes|away|weg|urlaub|vacation/.test(s)) return 'mdi:shield-lock-outline';
+  if (/nacht|night|schlaf|sleep/.test(s)) return 'mdi:weather-night';
+  if (/zuhause|home|daheim/.test(s)) return 'mdi:home-outline';
+  if (/^(aus|off)$|stumm|mute|deaktiv|disarm/.test(s)) return 'mdi:bell-off-outline';
+  return 'mdi:circle-medium';
+}
+
 /* Reolink-Kameras in Home Assistant finden (für Editor und Vorschlag) */
 function detectCameras(hass) {
   if (!hass) return [];
@@ -1180,14 +1206,14 @@ function detectCameras(hass) {
 /* Visueller Editor                                                        */
 const ED_LABELS = {
   de: {
-    default_quality: 'Startqualität', live_timeout: 'Live-Limit (Sekunden, 0 = kein Limit)', auto_live: 'Live automatisch starten',
+    mode_entity: 'Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)', default_quality: 'Startqualität', live_timeout: 'Live-Limit (Sekunden, 0 = kein Limit)', auto_live: 'Live automatisch starten',
     auto_switch: 'Bei Erkennung zur Kamera springen', autoplay_next: 'Nächsten Clip automatisch abspielen',
     battery_warning: 'Akku-Warnung ab (%)', temperature_warning: 'Temperatur-Warnung ab (°C)', show_hub: 'Hub anzeigen (Szenenmodus, SD-Karte)',
     hub_prefix: 'Hub-Präfix', language: 'Sprache', prefix: 'Kamera', name: 'Anzeigename', media_name: 'Name in der Medienquelle (für Wiedergabe)',
     cameras: 'Kameras', add: 'Kamera hinzufügen', remove: 'Entfernen', up: 'Nach oben', auto: 'Automatisch', options: 'Optionen',
   },
   en: {
-    default_quality: 'Start quality', live_timeout: 'Live limit (seconds, 0 = no limit)', auto_live: 'Start live automatically',
+    mode_entity: 'Mode selector on top (e.g. an input_select for notifications)', default_quality: 'Start quality', live_timeout: 'Live limit (seconds, 0 = no limit)', auto_live: 'Start live automatically',
     auto_switch: 'Jump to camera on detection', autoplay_next: 'Autoplay next clip',
     battery_warning: 'Battery warning at (%)', temperature_warning: 'Temperature warning at (°C)', show_hub: 'Show hub (scene mode, SD card)',
     hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', name: 'Display name', media_name: 'Name in the media source (for playback)',
@@ -1221,6 +1247,7 @@ class ReolinkAppCardEditor extends HTMLElement {
     const detected = detectCameras(this._hass);
     const camOpts = detected.map((c) => ({ value: c.prefix, label: `${c.name} (${c.prefix})` }));
     const general = [
+      { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
       { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: (STR[this._l === ED_LABELS.de ? 'de' : 'en'])[Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
       { type: 'grid', name: '', schema: [
@@ -1240,7 +1267,7 @@ class ReolinkAppCardEditor extends HTMLElement {
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
     ];
-    const defaults = { default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
@@ -1297,7 +1324,7 @@ class ReolinkAppCardEditor extends HTMLElement {
     gen.data = data;
     gen.addEventListener('value-changed', (e) => {
       const v = e.detail.value, cfg = { ...this._config };
-      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === defaults[k]) delete cfg[k]; else cfg[k] = v[k]; });
+      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defaults[k]) delete cfg[k]; else cfg[k] = v[k]; });
       this._changed(cfg);
     });
     this.shadowRoot.getElementById('gen').appendChild(gen);
