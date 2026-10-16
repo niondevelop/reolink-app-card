@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.2.2';
+const RAC_VERSION = '1.2.3';
 
 const Q = {
   fluent:   { label: 'Flüssig',    icon: 'mdi:quality-low' },
@@ -509,7 +509,12 @@ class ReolinkAppCard extends HTMLElement {
       : this._live ? '<i class="rec"></i>LIVE' : (this._on(c.sleep) ? '<ha-icon icon="mdi:sleep"></ha-icon>Schlafmodus' : 'Pausiert');
     const bat = this._st(c.battery), wifi = this._st(c.wifi);
     let stat = '';
-    if (wifi && !isNaN(+wifi.state)) stat += `<span class="pill"><ha-icon icon="mdi:wifi-strength-${Math.max(1, Math.min(4, Math.round(+wifi.state)))}"></ha-icon></span>`;
+    if (wifi && !isNaN(+wifi.state)) {
+      const w = +wifi.state;
+      // Reolink liefert je nach Gerät 0–4 Balken oder dBm (negativ)
+      const bars = w < 0 ? (w >= -55 ? 4 : w >= -65 ? 3 : w >= -75 ? 2 : 1) : Math.max(1, Math.min(4, Math.round(w)));
+      stat += `<span class="pill" title="WLAN ${w < 0 ? w + ' dBm' : bars + '/4'}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
+    }
     if (bat && !isNaN(+bat.state)) {
       const v = Math.round(+bat.state), lvl = Math.max(10, Math.min(100, Math.round(v / 10) * 10));
       const charging = /charg|lade/i.test((this._st(c.battery.replace('_batterie', '_batteriestatus')) || {}).state || '');
