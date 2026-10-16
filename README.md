@@ -17,7 +17,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Echtes Livebild:** startet automatisch, sobald die Karte sichtbar ist, und pausiert nach 5 Minuten (einstellbar) oder sofort, wenn du wegscrollst oder die App verlässt.
 - **Schonende Vorschau:** Im pausierten Zustand zeigt die Karte das letzte Bild als Standbild, statt die Akkukamera ständig neu abzufragen.
 - **Steuerleiste wie in der Reolink-App:** Sprechen (öffnet die Reolink-App), Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar).
-- **Szenenmodus des Hubs:** Deaktiviert / Zuhause / Abwesend umschalten, dazu die Belegung der SD-Karte.
+- **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte.
 - **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis.
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
 - **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste.
@@ -69,7 +69,10 @@ cameras:
 | `battery_warning`         | `20`          | Akku-Warnung ab diesem Ladestand (%). `0` = aus |
 | `temperature_warning`     | `45`          | Warnung bei Batterietemperatur ab (°C). `false` = aus |
 | `temperature_low_warning` | `-10`         | Warnung bei Batterietemperatur bis (°C). `false` = aus |
-| `show_hub`                | `true`        | Szenenmodus und SD-Karte des Hubs anzeigen |
+| `mode_entity`             | –             | Eigene Modus-Auswahl oben in der Karte, z. B. ein `input_select` mit „Abwesend / Zuhause / Nacht / Aus“ für deine Benachrichtigungs-Automation. Ersetzt dort den Reolink-Szenenmodus |
+| `mode_icons`              | –             | Eigene Symbole je Option, z. B. `{ Nacht: mdi:weather-night }`. Ohne Angabe wählt die Karte passende Symbole für typische Namen |
+| `show_scene`              | `true` / `false` mit `mode_entity` | Reolink-Szenenmodus des Hubs anzeigen |
+| `show_hub`                | `true`        | Hub-Zeile (Szenenmodus und SD-Karte) anzeigen |
 | `hub_prefix`              | `reolink_hub` | Gemeinsamer Teil der Hub-Entity-IDs |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `de` oder `en` |
