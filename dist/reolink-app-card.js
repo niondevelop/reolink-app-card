@@ -1,12 +1,12 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.0.0';
+const RAC_VERSION = '1.1.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
   de: {
     live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
     start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
-    talk: 'Sprechen (öffnet die Reolink-App)', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
+    talk: 'Sprechen', talk_app: 'Sprechen (öffnet die Reolink-App)', hang_up: 'Auflegen', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
     spotlight: 'Spotlight', record: 'Aufnahme', snapshot: 'Schnappschuss', quality: 'Qualität',
     q_fluent: 'Flüssig', q_balanced: 'Balanciert', q_clear: 'Klar', not_enabled: 'nicht aktiviert',
     no_talk_url: 'Auf diesem Gerät ist kein Link zur Reolink-App hinterlegt (Option „talk_url“).',
@@ -30,11 +30,15 @@ const STR = {
     siren_event: 'Sirene bei Ereignis', prealarm_event: 'Voralarm bei Ereignis', hub_ring_event: 'Hub-Klingelton bei Ereignis',
     need_cameras: 'Bitte „cameras“ definieren', need_prefix: 'Jede Kamera braucht „prefix“',
     wifi: 'WLAN', camera: 'Kamera',
+    talking: 'Gegensprechen', talk_connecting: 'Verbinde …', talk_failed: 'Gegensprechen fehlgeschlagen',
+    talk_na_feature: 'Gegensprechen nicht verfügbar – in Home Assistant unter Einstellungen → System → Labs „Zwei-Wege-Audio“ aktivieren',
+    talk_na_https: 'Gegensprechen braucht HTTPS – Home Assistant über https:// öffnen',
+    talk_na_webrtc: 'Gegensprechen geht nur mit einem WebRTC-Stream', talk_denied: 'Kein Zugriff auf das Mikrofon – im Browser bzw. in der App erlauben',
   },
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
     start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
-    talk: 'Talk (opens the Reolink app)', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
+    talk: 'Talk', talk_app: 'Talk (opens the Reolink app)', hang_up: 'Hang up', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
     spotlight: 'Spotlight', record: 'Record', snapshot: 'Snapshot', quality: 'Quality',
     q_fluent: 'Fluent', q_balanced: 'Balanced', q_clear: 'Clear', not_enabled: 'not enabled',
     no_talk_url: 'No link to the Reolink app is configured for this device (option “talk_url”).',
@@ -58,11 +62,15 @@ const STR = {
     siren_event: 'Siren on event', prealarm_event: 'Pre-alarm on event', hub_ring_event: 'Hub ringtone on event',
     need_cameras: 'Please define “cameras”', need_prefix: 'Every camera needs a “prefix”',
     wifi: 'Wi-Fi', camera: 'Camera',
+    talking: 'Talking', talk_connecting: 'Connecting …', talk_failed: 'Two-way audio failed',
+    talk_na_feature: 'Two-way audio not available – enable “Two-way audio” in Home Assistant under Settings → System → Labs',
+    talk_na_https: 'Two-way audio needs HTTPS – open Home Assistant via https://',
+    talk_na_webrtc: 'Two-way audio only works with a WebRTC stream', talk_denied: 'No access to the microphone – allow it in your browser or app',
   },
   fr: {
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
     start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
-    talk: 'Parler (ouvre l’app Reolink)', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
+    talk: 'Parler', talk_app: 'Parler (ouvre l’app Reolink)', hang_up: 'Raccrocher', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
     spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
     q_fluent: 'Fluide', q_balanced: 'Équilibrée', q_clear: 'Nette', not_enabled: 'non activé',
     no_talk_url: 'Aucun lien vers l’app Reolink n’est configuré sur cet appareil (option « talk_url »).',
@@ -86,6 +94,10 @@ const STR = {
     siren_event: 'Sirène lors d’un événement', prealarm_event: 'Pré-alarme lors d’un événement', hub_ring_event: 'Sonnerie du hub lors d’un événement',
     need_cameras: 'Veuillez définir « cameras »', need_prefix: 'Chaque caméra a besoin d’un « prefix »',
     wifi: 'Wi-Fi', camera: 'Caméra',
+    talking: 'Interphone', talk_connecting: 'Connexion …', talk_failed: 'Échec de l’audio bidirectionnel',
+    talk_na_feature: 'Audio bidirectionnel indisponible – activez « Audio bidirectionnel » dans Home Assistant sous Paramètres → Système → Labs',
+    talk_na_https: 'L’audio bidirectionnel nécessite HTTPS – ouvrez Home Assistant via https://',
+    talk_na_webrtc: 'L’audio bidirectionnel ne fonctionne qu’avec un flux WebRTC', talk_denied: 'Pas d’accès au micro – autorisez-le dans le navigateur ou l’app',
   },
 };
 const LANGS = ['en', 'de', 'fr'];
@@ -96,6 +108,16 @@ const pickLang = (opt, hass) => {
   return LANGS.find((x) => l.startsWith(x)) || 'en';
 };
 const fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] ?? ''));
+/* Element in verschachtelten Shadow-DOMs suchen (z. B. den Kamera-Stream in der picture-entity-Karte) */
+const deepFind = (root, sel) => {
+  if (!root) return null;
+  const hit = root.querySelector && root.querySelector(sel);
+  if (hit) return hit;
+  for (const el of (root.querySelectorAll ? root.querySelectorAll('*') : [])) {
+    if (el.shadowRoot) { const r = deepFind(el.shadowRoot, sel); if (r) return r; }
+  }
+  return null;
+};
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------- Konstanten ---------- */
@@ -236,6 +258,7 @@ class ReolinkAppCard extends HTMLElement {
     this._snaps = {};
     this._prevDet = null;
     this._pics = [];
+    this._twa = {}; this._mic = 'off'; this._micReq = 0; this._streamType = null;
     if (this._built) { this._renderTabs(); this._rebuildCamera(); }
   }
 
@@ -285,9 +308,14 @@ class ReolinkAppCard extends HTMLElement {
     this._autoLive();
   }
 
-  connectedCallback() { if (this._built) this._observe(); }
+  connectedCallback() {
+    if (this._built) this._observe();
+    window.addEventListener('webrtc-stream-stopped', this._onAppStop);
+  }
 
   disconnectedCallback() {
+    window.removeEventListener('webrtc-stream-stopped', this._onAppStop);
+    this._micReset();
     clearInterval(this._tick);
     clearTimeout(this._toastT);
     if (this._io) this._io.disconnect();
@@ -361,6 +389,10 @@ class ReolinkAppCard extends HTMLElement {
           <div class="ov det" id="det"></div>
           <div class="toast" id="toast"></div>
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
+          <div class="talk" id="talk">
+            <span class="tpill"><span class="tw"><i></i><i></i><i></i><i></i></span><span id="talk-l"></span></span>
+            <button class="hang" id="hang"><ha-icon icon="mdi:phone-hangup"></ha-icon></button>
+          </div>
           <div class="ov bottom">
             <span class="pill" id="timer"></span>
             <span class="spacer"></span>
@@ -401,6 +433,10 @@ class ReolinkAppCard extends HTMLElement {
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
     $('unzoom').onclick = () => this._resetZoom();
+    $('hang').onclick = () => this._hangUp();
+    // Meldungen des Kamera-Streams von Home Assistant (WebRTC-Player in der picture-entity-Karte)
+    $('pic').addEventListener('microphone-changed', (e) => { if (!this._appSession && !this._appMic) this._setMic(e.detail.state); });
+    $('pic').addEventListener('stream-type-changed', (e) => { this._streamType = e.detail.type || null; this._update(); });
     $('prev').onload = () => { $('prev').classList.add('ok'); };
     $('prev').onerror = () => { $('prev').classList.remove('ok'); };
     const v = $('video');
@@ -459,6 +495,8 @@ class ReolinkAppCard extends HTMLElement {
     const token = (this._picToken = Symbol());
     const host = this.$('pic'), grid = this.$('grid');
     this._pics = [];
+    this._micReset();
+    this._streamType = null;
     if (!this._live) { host.innerHTML = ''; this._renderGrid([]); return; }
     if (this._grid) {
       const els = await Promise.all(this._cams.map((c) => this._liveCard(this._e('cam_sd', c))));
@@ -520,6 +558,7 @@ class ReolinkAppCard extends HTMLElement {
     clearInterval(this._tick);
     if (this._liveEnds) {
       this._tick = setInterval(() => {
+        if (this._mic !== 'off' && this._liveEnds - Date.now() < 60000) this._liveEnds = Date.now() + 60000;
         if (Date.now() >= this._liveEnds) { this._expired = true; this._stopLive(); }
         else this._update();
       }, 1000);
@@ -576,6 +615,7 @@ class ReolinkAppCard extends HTMLElement {
   _toast(t) {
     const el = this.$('toast');
     el.style.setProperty('--c', t.color);
+    el.classList.toggle('wrap', !!t.wrap);
     el.innerHTML = `<ha-icon icon="${t.icon}"></ha-icon><span>${esc(t.text)}</span>`;
     el.classList.add('show');
     clearTimeout(this._toastT);
@@ -676,7 +716,14 @@ class ReolinkAppCard extends HTMLElement {
   _controls() {
     const c = this._cam, items = [];
     const siren = this._e('siren'), light = this._e('light'), mrec = this._e('manual_rec');
-    items.push({ id: 'talk', icon: 'mdi:microphone-outline', label: this._t('talk'), run: () => this._talk() });
+    if (!this._grid) {
+      const active = this._mic !== 'off', why = active ? null : this._talkReason();
+      const legacy = why === 'feature' && this._talkLegacy();
+      items.push({ id: 'talk', icon: active ? 'mdi:phone-hangup' : 'mdi:phone', on: active, warn: active,
+        ring: this._mic === 'connecting', dis: !!why && !legacy,
+        label: active ? this._t('hang_up') : legacy ? this._t('talk_app') : this._t('talk'),
+        run: () => (legacy ? this._talk() : this._toggleTalk()) });
+    }
     if (this._st(siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light-outline', label: this._t('siren'), on: this._on(siren), warn: true,
       run: () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
         : (confirm(this._t('siren_confirm', { name: c.name })) && this._call('siren', 'turn_on', siren))) });
@@ -691,7 +738,179 @@ class ReolinkAppCard extends HTMLElement {
     return items;
   }
 
-  /* Gegensprechen: Reolink bietet keinen Deep-Link auf eine bestimmte Kamera; die App öffnet die zuletzt genutzte */
+  /* ---------- Gegensprechen über Home Assistant (Zwei-Wege-Audio, Labs-Funktion ab 2026.11) ----------
+     Das Livebild läuft über den WebRTC-Player von Home Assistant; die Karte schaltet dort nur das Mikrofon zu.
+     Ohne HTTPS sperren Browser das Mikrofon. Die Companion-App kann es dann selbst senden, sofern sie das unterstützt. */
+  get _talkEnt() { const w = this._qEntity(this._quality); return this._st(w) ? w : this._e('cam_sd'); }
+
+  get _appMic() {
+    const ext = this._hass && this._hass.auth && this._hass.auth.external;
+    return !window.isSecureContext && !!(ext && ext.config && ext.config.webrtc && ext.config.webrtc.hasCameraMicrophoneStream);
+  }
+
+  _talkLegacy() { return !!(this._cam.talk_url || this._config.talk_url); }
+
+  /* Kann die Kamera Zwei-Wege-Audio? (undefined = wird noch abgefragt; Antwort 1 Minute zwischengespeichert) */
+  _talkCaps(ent) {
+    if (!ent || !this._hass || !this._hass.callWS) return false;
+    const c = this._twa[ent];
+    if (c && (c.p || Date.now() - c.t < 60000)) return c.v;
+    this._twa[ent] = { v: c ? c.v : undefined, p: true };
+    this._hass.callWS({ type: 'camera/capabilities', entity_id: ent })
+      .then((r) => !!(r && r.two_way_audio), () => false)
+      .then((v) => { this._twa[ent] = { v, t: Date.now() }; if (!c || c.v !== v) this._update(); });
+    return c ? c.v : undefined;
+  }
+
+  /* Warum Gegensprechen gerade nicht geht – null heisst: bereit */
+  _talkReason() {
+    const caps = this._talkCaps(this._talkEnt);
+    if (caps === undefined) return 'wait';
+    if (!caps) return 'feature';
+    if (!window.isSecureContext && !this._appMic) return 'https';
+    if (this._streamType && this._streamType !== 'web_rtc') return 'webrtc';
+    return null;
+  }
+
+  async _toggleTalk() {
+    if (this._mic !== 'off') { this._hangUp(); return; }
+    const why = this._talkReason();
+    if (why) {
+      if (why !== 'wait') this._toast({ text: this._t(`talk_na_${why}`), color: '#636366', icon: 'mdi:phone-off', wrap: true });
+      return;
+    }
+    // Erst das Livebild starten (ersetzt den Player), dann das Mikrofon zuschalten
+    if (!this._live) { this._expired = false; this._startLive(); }
+    const req = ++this._micReq;
+    this._setMic('connecting');
+    if (this._appMic) { this._startAppMic(req); return; }
+    const stream = await this._findStream(req);
+    if (req !== this._micReq) return;
+    if (!stream) {
+      this._setMic('off');
+      this._toast({ text: this._t(this._streamType && this._streamType !== 'web_rtc' ? 'talk_na_webrtc' : 'talk_failed'), color: '#636366', icon: 'mdi:phone-off', wrap: true });
+      return;
+    }
+    this._micStream = stream;
+    stream.toggleMicrophone();
+  }
+
+  /* Warten, bis der WebRTC-Player von Home Assistant im Livebild bereit ist (max. 15 s) */
+  async _findStream(req) {
+    for (let n = 0; n < 75; n++) {
+      if (req !== this._micReq) return null;
+      if (this._streamType && this._streamType !== 'web_rtc') return null;
+      const s = deepFind(this.$('pic'), 'ha-camera-stream');
+      if (s && typeof s.toggleMicrophone === 'function' && s.shadowRoot && s.shadowRoot.querySelector('ha-web-rtc-player')) return s;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return null;
+  }
+
+  async _startAppMic(req) {
+    const ext = this._hass.auth.external;
+    try {
+      const r = await ext.sendMessage({ type: 'webrtc/stream/start', payload: { stream_type: 'microphone', entity_id: this._talkEnt } });
+      if (req !== this._micReq) { ext.fireMessage({ type: 'webrtc/stream/stop', payload: { session_id: r.session_id } }); return; }
+      this._appSession = r.session_id;
+      this._setMic('on');
+    } catch (e) {
+      if (req !== this._micReq) return;
+      this._setMic('off');
+      this._toast({ text: `${this._t('talk_failed')}${e && e.message ? `: ${e.message}` : ''}`, color: '#636366', icon: 'mdi:phone-off', wrap: true });
+    }
+  }
+
+  /* Die App hat die Mikrofon-Verbindung selbst beendet */
+  _onAppStop = (e) => {
+    if (!this._appSession || !e.detail || e.detail.session_id !== this._appSession) return;
+    this._appSession = null;
+    this._setMic('off');
+    if (e.detail.code && e.detail.code !== 'interrupted') {
+      this._toast({ text: `${this._t('talk_failed')}${e.detail.message ? `: ${e.detail.message}` : ''}`, color: '#636366', icon: 'mdi:phone-off', wrap: true });
+    }
+  };
+
+  _hangUp() {
+    if (this._appSession || this._appMic) { this._micReset(); return; }
+    const s = this._micStream;
+    this._micReq++;
+    this._micStream = null;
+    const p = s && s.isConnected && s.shadowRoot && s.shadowRoot.querySelector('ha-web-rtc-player');
+    if (p && (p.microphoneState === 'on' || p.microphoneState === 'connecting')) s.toggleMicrophone();
+    this._setMic('off');
+  }
+
+  /* Gegensprechen sofort beenden, z. B. wenn das Livebild stoppt oder die Kamera wechselt */
+  _micReset() {
+    this._micReq = (this._micReq || 0) + 1;
+    if (this._appSession) {
+      try { this._hass.auth.external.fireMessage({ type: 'webrtc/stream/stop', payload: { session_id: this._appSession } }); } catch (_) { /* ignorieren */ }
+      this._appSession = null;
+    }
+    this._micStream = null;
+    if (this._mic && this._mic !== 'off') this._setMic('off');
+  }
+
+  _setMic(state) {
+    if (state === 'denied') {
+      this._toast({ text: this._t('talk_denied'), color: '#636366', icon: 'mdi:microphone-off', wrap: true });
+      state = 'off';
+    }
+    const prev = this._mic;
+    this._mic = state;
+    if (state === 'on' && prev !== 'on') {
+      this._talkSince = Date.now();
+      clearInterval(this._talkTick);
+      this._talkTick = setInterval(() => this._talkLabel(), 1000);
+      this._startMeter();
+    } else if (state !== 'on') {
+      clearInterval(this._talkTick);
+      this._stopMeter();
+    }
+    if (this._built) this._update();
+  }
+
+  _talkLabel() {
+    const l = this.$('talk-l');
+    if (!l) return;
+    if (this._mic === 'connecting') { l.textContent = this._t('talk_connecting'); return; }
+    const sec = Math.max(0, Math.floor((Date.now() - (this._talkSince || Date.now())) / 1000));
+    l.textContent = `${this._t('talking')} · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
+  /* Pegelanzeige des eigenen Mikrofons */
+  _startMeter() {
+    this._stopMeter();
+    const track = this._micStream && this._micStream.microphoneTrack;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!track || !AC) return;
+    try {
+      const ctx = new AC();
+      const an = ctx.createAnalyser();
+      an.fftSize = 256;
+      ctx.createMediaStreamSource(new MediaStream([track])).connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      const stage = this.$('stage');
+      const loop = () => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) { const d = (buf[i] - 128) / 128; sum += d * d; }
+        stage.style.setProperty('--lvl', Math.min(1, Math.sqrt(sum / buf.length) * 5).toFixed(2));
+        this._meterRaf = requestAnimationFrame(loop);
+      };
+      this._meterCtx = ctx;
+      loop();
+    } catch (_) { this._stopMeter(); }
+  }
+
+  _stopMeter() {
+    cancelAnimationFrame(this._meterRaf);
+    if (this._meterCtx) { this._meterCtx.close().catch(() => {}); this._meterCtx = null; }
+    if (this._built) this.$('stage').style.removeProperty('--lvl');
+  }
+
+  /* Alternativ (Option talk_url): Reolink-App öffnen. Reolink bietet keinen Deep-Link auf eine bestimmte Kamera */
   _talk() {
     const ua = navigator.userAgent;
     const android = /android/i.test(ua);
@@ -942,6 +1161,12 @@ class ReolinkAppCard extends HTMLElement {
     $('stage').classList.toggle('playing', playing);
     $('stage').classList.toggle('live', this._live);
     $('stage').classList.toggle('gridmode', this._grid);
+    const talking = this._mic !== 'off' && !this._grid && !playing;
+    $('stage').classList.toggle('talking', talking);
+    $('talk').classList.toggle('conn', this._mic === 'connecting');
+    $('talk').classList.toggle('lvl', !!this._meterCtx);
+    $('hang').title = this._t('hang_up');
+    if (talking) this._talkLabel();
     $('stage').classList.toggle('haspic', !!this._snaps[this._idx]);
     if (this._snaps[this._idx] && $('prev').getAttribute('src') !== this._snaps[this._idx].url) $('prev').src = this._snaps[this._idx].url;
 
@@ -1079,6 +1304,8 @@ class ReolinkAppCard extends HTMLElement {
       b.title = x.label; b.setAttribute('aria-label', x.label);
       b.classList.toggle('on', !!x.on && !x.warn);
       b.classList.toggle('warn', !!x.on && !!x.warn);
+      b.classList.toggle('dis', !!x.dis);
+      b.classList.toggle('ring', !!x.ring);
     });
 
     // Qualitätsmenü
@@ -1440,6 +1667,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .stage.playing .ov.bottom { bottom: 56px; }
 .toast { position: absolute; left: 50%; top: 12px; transform: translate(-50%, -150%); display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 18px; background: var(--c, #ff5b5b); color: #fff; font-size: 13px; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,.35); transition: transform .3s, opacity .3s, visibility .3s; z-index: 4; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden; }
 .toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
+.toast.wrap { white-space: normal; width: max-content; max-width: calc(100% - 32px); text-align: left; line-height: 1.3; }
 .toast ha-icon { --mdc-icon-size: 18px; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
@@ -1454,6 +1682,25 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .tbn ha-icon { --mdc-icon-size: 24px; }
 .tbn.on { background: var(--ra); color: #fff; }
 .tbn.warn { background: #ff3b30; color: #fff; }
+.tbn.dis { opacity: .35; }
+.tbn.ring { animation: ring 1.2s ease-in-out infinite; }
+@keyframes ring { 50% { box-shadow: 0 0 0 7px rgba(255,59,48,.25); } }
+.talk { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 3; }
+.stage.talking .talk { display: block; }
+.stage.talking .bigplay { display: none !important; }
+.tpill { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.talk.conn .tpill { background: color-mix(in srgb, var(--ra) 92%, transparent); }
+.tw { display: inline-flex; align-items: center; gap: 2px; height: 16px; }
+.tw i { width: 3px; height: 5px; border-radius: 2px; background: #fff; }
+.talk:not(.lvl) .tw i { animation: tw 1s ease-in-out infinite; }
+.talk:not(.lvl) .tw i:nth-child(2) { animation-delay: .15s; } .talk:not(.lvl) .tw i:nth-child(3) { animation-delay: .3s; } .talk:not(.lvl) .tw i:nth-child(4) { animation-delay: .45s; }
+.talk.lvl .tw i { transition: height .08s; height: calc(4px + var(--lvl, 0) * 8px); }
+.talk.lvl .tw i:nth-child(2), .talk.lvl .tw i:nth-child(3) { height: calc(4px + var(--lvl, 0) * 12px); }
+@keyframes tw { 50% { height: 14px; } }
+.hang { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 58px; height: 58px; border-radius: 50%; background: #ff3b30; color: #fff; display: grid; place-items: center; pointer-events: auto; box-shadow: 0 0 0 calc(var(--lvl, 0) * 16px) rgba(255,59,48,.3), 0 4px 14px rgba(0,0,0,.4); transition: box-shadow .08s, transform .15s; }
+.hang:active { transform: translateX(-50%) scale(.94); }
+.hang ha-icon { --mdc-icon-size: 28px; }
+.talk.conn .hang { animation: ring 1.2s ease-in-out infinite; }
 .qmenu { position: absolute; right: 14px; bottom: calc(100% - 4px); min-width: 190px; padding: 6px; border-radius: 14px; background: #1f1f21; color: #f2f2f2; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 5; display: none; }
 .qmenu.open { display: block; }
 .qopt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 10px; font-size: 14px; text-align: left; }

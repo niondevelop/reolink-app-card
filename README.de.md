@@ -21,7 +21,8 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 
 - **Echtes Livebild:** startet automatisch, sobald die Karte sichtbar ist, und pausiert nach 5 Minuten (einstellbar) oder sofort, wenn du wegscrollst oder die App verlässt.
 - **Schonende Vorschau:** Im pausierten Zustand zeigt die Karte das letzte Bild als Standbild, statt die Akkukamera ständig neu abzufragen.
-- **Steuerleiste wie in der Reolink-App:** Sprechen (öffnet die Reolink-App), Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar).
+- **Gegensprechen:** direkt aus der Karte durch die Kamera sprechen, mit Hörer-Button und Gesprächsansicht wie in der Reolink-App (Labs-Funktion von Home Assistant, siehe Hinweise).
+- **Steuerleiste wie in der Reolink-App:** Sprechen, Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar).
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte.
 - **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis.
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
@@ -88,7 +89,7 @@ cameras:
 | `hub_prefix`              | `reolink_hub` | Gemeinsamer Teil der Hub-Entity-IDs |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` oder `fr` |
-| `talk_url`                | –             | Link für den Sprechen-Button (siehe Hinweise). Auch pro Kamera möglich |
+| `talk_url`                | –             | Optional: Link, den der Sprechen-Button öffnet (z. B. die Reolink-App), wenn Gegensprechen nicht verfügbar ist. Auch pro Kamera möglich |
 
 ### Kamera-Optionen
 
@@ -97,7 +98,7 @@ cameras:
 | `prefix`     | **Pflicht.** Der gemeinsame Teil der Entity-IDs, z. B. `kamera_eingang` für `camera.kamera_eingang_standardauflosung` |
 | `name`       | Angezeigter Name |
 | `media_name` | Name der Kamera in der Reolink-Medienquelle (Medien → Reolink). Nötig für die Wiedergabe, wenn er vom Gerätenamen abweicht |
-| `talk_url`   | Eigener Link für den Sprechen-Button dieser Kamera |
+| `talk_url`   | Link für den Sprechen-Button dieser Kamera, wenn Gegensprechen nicht verfügbar ist |
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |
 
 Die Karte findet die Entitäten selbst, sowohl mit deutschen als auch mit englischen Entity-IDs (z. B. `camera.<prefix>_standardauflosung` oder `camera.<prefix>_fluent`). Mit `entities` lässt sich jede einzeln setzen. Die Schlüssel sind: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` sowie die Einstellungen `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` u. a.
@@ -110,7 +111,13 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 
 - **Entitäten aktivieren:** Viele Reolink-Entitäten sind ab Werk deaktiviert, z. B. die Qualitätsstufen „Ausgewogen“ und „Hochauflösung“, die Bildeinstellungen und der SD-Sensor des Hubs. Unter *Einstellungen → Geräte & Dienste → Reolink → Gerät* lassen sie sich aktivieren; danach erscheinen sie in der Karte.
 - **Akku:** Jede Minute Livebild kostet Akku. Wer sparen will, verkürzt `live_timeout` oder setzt `auto_live: false`.
-- **Sprechen:** Home Assistant kann bei Reolink-Akkukameras kein Gegensprechen. Der Button öffnet deshalb die Reolink-App – in der Companion-App über `app://com.mcu.reolink`, in Chrome auf Android über einen Intent-Link. Reolink bietet keinen Link, der direkt eine bestimmte Kamera öffnet; die App startet mit der zuletzt genutzten Kamera. Auf iPhones gibt es keinen offiziellen Link zur App; dort lässt sich über `talk_url` ein eigener hinterlegen.
+- **Gegensprechen:** nutzt das Zwei-Wege-Audio von Home Assistant (ab 2026.11). Voraussetzungen:
+  - Unter *Einstellungen → System → Labs → Zwei-Wege-Audio* aktivieren.
+  - Die Kamera muss Gegensprechen können, und Home Assistant muss sie über RTSP streamen (Optionen der Reolink-Integration).
+  - Home Assistant über **HTTPS** öffnen (z. B. von extern über Nabu Casa oder eine eigene Domain). Browser erlauben das Mikrofon nur über HTTPS. Über reines HTTP ist der Button ausgegraut, ausser die Companion-App kann das Mikrofon selbst senden.
+  - Den Zugriff aufs Mikrofon erlauben, wenn Browser oder App fragen.
+
+  Auf den Hörer tippen, um zu sprechen; das Livebild startet bei Bedarf und bleibt während des Gesprächs an. Mit dem roten Button auflegen. Fehlt eine Voraussetzung, ist der Button ausgegraut, und ein Tipp darauf zeigt den Grund. Mit `talk_url` öffnet der Button stattdessen diesen Link, wenn Gegensprechen nicht verfügbar ist, z. B. `app://com.mcu.reolink` für die Reolink-App in der Android-Companion-App.
 - **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
 
 ## Unterstützen
