@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '2.1.0';
+const RAC_VERSION = '1.0.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
@@ -29,6 +29,7 @@ const STR = {
     fl_bright: 'Helligkeit beim Einschalten', volume: 'Lautstärke', post_rec: 'Nachaufzeichnung', rec_audio: 'Audio aufnehmen',
     siren_event: 'Sirene bei Ereignis', prealarm_event: 'Voralarm bei Ereignis', hub_ring_event: 'Hub-Klingelton bei Ereignis',
     need_cameras: 'Bitte „cameras“ definieren', need_prefix: 'Jede Kamera braucht „prefix“',
+    wifi: 'WLAN', camera: 'Kamera',
   },
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
@@ -56,7 +57,43 @@ const STR = {
     fl_bright: 'Turn-on brightness', volume: 'Volume', post_rec: 'Post-recording', rec_audio: 'Record audio',
     siren_event: 'Siren on event', prealarm_event: 'Pre-alarm on event', hub_ring_event: 'Hub ringtone on event',
     need_cameras: 'Please define “cameras”', need_prefix: 'Every camera needs a “prefix”',
+    wifi: 'Wi-Fi', camera: 'Camera',
   },
+  fr: {
+    live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
+    start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
+    talk: 'Parler (ouvre l’app Reolink)', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
+    spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
+    q_fluent: 'Fluide', q_balanced: 'Équilibrée', q_clear: 'Nette', not_enabled: 'non activé',
+    no_talk_url: 'Aucun lien vers l’app Reolink n’est configuré sur cet appareil (option « talk_url »).',
+    grid: 'Toutes les caméras', single: 'Vue unique', detected: '{type} détecté(e) · {name}',
+    evt_person: 'Personne', evt_vehicle: 'Véhicule', evt_animal: 'Animal', evt_motion: 'Mouvement', evt_other: 'Enregistrement',
+    all: 'Tous', today: 'Aujourd’hui', yesterday: 'Hier', loading: 'Chargement des enregistrements …', loading_day: 'Chargement du jour …',
+    no_rec: 'Aucun enregistrement trouvé sur la carte SD.', no_filter: 'Aucun événement pour ce filtre.', error: 'Erreur',
+    cam_not_found: 'Caméra introuvable dans la source multimédia', play_error: 'Impossible de charger l’enregistrement',
+    speed: 'Vitesse', next: 'Clip suivant', download: 'Télécharger', reset_zoom: 'Réinitialiser le zoom',
+    preview_at: 'Image {time}', bat_low: 'Batterie faible · {name} {v} %', temp_high: 'Batterie trop chaude · {name} {v} °C',
+    temp_low: 'Batterie trop froide · {name} {v} °C', sd: 'SD {v} % utilisée',
+    scene_off: 'Arrêt', scene_disarm: 'Désarmé', scene_home: 'Maison', scene_away: 'Absent',
+    g_general: 'Général', g_detect: 'Détection', g_image: 'Image', g_flood: 'Projecteur', g_audio: 'Son et enregistrement',
+    pir: 'Détection PIR', rec: 'Enregistrement', push: 'Notifications push', pir_reduce: 'Réduire les fausses alarmes PIR',
+    daynight: 'Jour/nuit', ir: 'Infrarouge la nuit', status_led: 'LED d’état', prealarm: 'Pré-alarme', play_btn: 'Lire',
+    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', restart_confirm: 'Redémarrer la caméra « {name} » ?',
+    pir_sens: 'Sensibilité PIR', ai_person: 'Sensibilité IA personne', ai_vehicle: 'Sensibilité IA véhicule',
+    ai_animal: 'Sensibilité IA animal', img_bright: 'Luminosité', img_contrast: 'Contraste', img_sat: 'Saturation',
+    img_sharp: 'Netteté', anti_flicker: 'Anti-scintillement', ir_bright: 'Luminosité infrarouge', fl_mode: 'Mode',
+    fl_bright: 'Luminosité à l’allumage', volume: 'Volume', post_rec: 'Post-enregistrement', rec_audio: 'Enregistrer le son',
+    siren_event: 'Sirène lors d’un événement', prealarm_event: 'Pré-alarme lors d’un événement', hub_ring_event: 'Sonnerie du hub lors d’un événement',
+    need_cameras: 'Veuillez définir « cameras »', need_prefix: 'Chaque caméra a besoin d’un « prefix »',
+    wifi: 'Wi-Fi', camera: 'Caméra',
+  },
+};
+const LANGS = ['en', 'de', 'fr'];
+const LOCALES = { de: 'de-CH', fr: 'fr-CH', en: undefined };
+/* Sprache wählen: Option > Sprache von Home Assistant > Englisch */
+const pickLang = (opt, hass) => {
+  const l = String((opt && opt !== 'auto' ? opt : hass && ((hass.locale && hass.locale.language) || hass.language)) || 'en').toLowerCase();
+  return LANGS.find((x) => l.startsWith(x)) || 'en';
 };
 const fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] ?? ''));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -203,12 +240,8 @@ class ReolinkAppCard extends HTMLElement {
   }
 
   /* ---------- Hilfen ---------- */
-  get _lang() {
-    const l = this._config.language && this._config.language !== 'auto' ? this._config.language
-      : (this._hass && ((this._hass.locale && this._hass.locale.language) || this._hass.language)) || 'de';
-    return String(l).toLowerCase().startsWith('de') ? 'de' : 'en';
-  }
-  _t(k, v) { return fmt((STR[this._lang] || STR.de)[k] || STR.de[k] || k, v); }
+  get _lang() { return pickLang(this._config && this._config.language, this._hass); }
+  _t(k, v) { return fmt((STR[this._lang] || STR.en)[k] || STR.en[k] || k, v); }
   get _cam() { return this._cams[this._idx]; }
   _st(id) { return this._hass && id ? this._hass.states[id] : undefined; }
   _on(id) { const s = this._st(id); return !!s && s.state === 'on'; }
@@ -236,7 +269,8 @@ class ReolinkAppCard extends HTMLElement {
   static getConfigElement() { return document.createElement('reolink-app-card-editor'); }
   static getStubConfig(hass) {
     const cams = detectCameras(hass).slice(0, 4).map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name }));
-    return { cameras: cams.length ? cams : [{ name: 'Kamera', prefix: 'kamera' }] };
+    const name = STR[pickLang('auto', hass)].camera;
+    return { cameras: cams.length ? cams : [{ name, prefix: 'camera' }] };
   }
 
   set hass(hass) {
@@ -853,7 +887,7 @@ class ReolinkAppCard extends HTMLElement {
     box.innerHTML = '';
     if (!Array.isArray(this._days)) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const loc = this._lang === 'de' ? 'de-CH' : undefined;
+    const loc = LOCALES[this._lang];
     this._days.forEach((d, i) => {
       const b = document.createElement('button');
       b.className = 'day' + (i === this._dayIdx ? ' sel' : '');
@@ -912,7 +946,7 @@ class ReolinkAppCard extends HTMLElement {
     if (this._snaps[this._idx] && $('prev').getAttribute('src') !== this._snaps[this._idx].url) $('prev').src = this._snaps[this._idx].url;
 
     const snap = this._snaps[this._idx];
-    const tm = snap ? snap.time.toLocaleTimeString(this._lang === 'de' ? 'de-CH' : undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+    const tm = snap ? snap.time.toLocaleTimeString(LOCALES[this._lang], { hour: '2-digit', minute: '2-digit' }) : '';
     $('badge').innerHTML = playing ? `<ha-icon icon="mdi:history"></ha-icon>${esc(this._playing.time)}`
       : this._live ? '<i class="rec"></i>LIVE'
         : this._on(this._e('sleep')) ? `<ha-icon icon="mdi:sleep"></ha-icon>${this._t('sleeping')}${tm ? ' · ' + tm : ''}`
@@ -924,7 +958,7 @@ class ReolinkAppCard extends HTMLElement {
       if (w !== null) {
         // Reolink liefert je nach Gerät 0–4 Balken oder dBm (negativ)
         const bars = w < 0 ? (w >= -55 ? 4 : w >= -65 ? 3 : w >= -75 ? 2 : 1) : Math.max(1, Math.min(4, Math.round(w)));
-        stat += `<span class="pill" title="WLAN ${w < 0 ? w + ' dBm' : bars + '/4'}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
+        stat += `<span class="pill" title="${this._t('wifi')} ${w < 0 ? w + ' dBm' : bars + '/4'}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
       }
       const bat = this._batteryIcon(c);
       if (bat) stat += `<span class="pill ${bat.v <= this._config.battery_warning && !bat.charging ? 'low' : ''}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</span>`;
@@ -1219,12 +1253,20 @@ const ED_LABELS = {
     hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', name: 'Display name', media_name: 'Name in the media source (for playback)',
     cameras: 'Cameras', add: 'Add camera', remove: 'Remove', up: 'Move up', auto: 'Automatic', options: 'Options',
   },
+  fr: {
+    mode_entity: 'Sélecteur de mode en haut (p. ex. un input_select pour les notifications)', default_quality: 'Qualité au démarrage', live_timeout: 'Limite du direct (secondes, 0 = sans limite)', auto_live: 'Démarrer le direct automatiquement',
+    auto_switch: 'Basculer vers la caméra lors d’une détection', autoplay_next: 'Lire automatiquement le clip suivant',
+    battery_warning: 'Alerte batterie à partir de (%)', temperature_warning: 'Alerte température à partir de (°C)', show_hub: 'Afficher le hub (mode scène, carte SD)',
+    hub_prefix: 'Préfixe du hub', language: 'Langue', prefix: 'Caméra', name: 'Nom affiché', media_name: 'Nom dans la source multimédia (pour la lecture)',
+    cameras: 'Caméras', add: 'Ajouter une caméra', remove: 'Supprimer', up: 'Monter', auto: 'Automatique', options: 'Options',
+  },
 };
 
 class ReolinkAppCardEditor extends HTMLElement {
   setConfig(config) { this._config = { ...config, cameras: [...(config.cameras || [])] }; this._render(); }
   set hass(hass) { const first = !this._hass; this._hass = hass; if (first) this._render(); else this._forms().forEach((f) => { f.hass = hass; }); }
-  get _l() { const l = (this._hass && ((this._hass.locale && this._hass.locale.language) || this._hass.language)) || 'de'; return String(l).startsWith('de') ? ED_LABELS.de : ED_LABELS.en; }
+  get _lang() { return pickLang(this._config && this._config.language, this._hass); }
+  get _l() { return ED_LABELS[this._lang]; }
   _forms() { return this.shadowRoot ? [...this.shadowRoot.querySelectorAll('ha-form')] : []; }
 
   async connectedCallback() {
@@ -1248,7 +1290,7 @@ class ReolinkAppCardEditor extends HTMLElement {
     const camOpts = detected.map((c) => ({ value: c.prefix, label: `${c.name} (${c.prefix})` }));
     const general = [
       { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
-      { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: (STR[this._l === ED_LABELS.de ? 'de' : 'en'])[Q[q].key] })) } } },
+      { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
       { type: 'grid', name: '', schema: [
         { name: 'auto_live', selector: { boolean: {} } },
@@ -1261,7 +1303,7 @@ class ReolinkAppCardEditor extends HTMLElement {
         { name: 'temperature_warning', selector: { number: { min: 20, max: 80, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
       ] },
       { name: 'hub_prefix', selector: { text: {} } },
-      { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }] } } },
+      { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' }, { value: 'fr', label: 'Français' }] } } },
     ];
     const camSchema = [
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
@@ -1464,6 +1506,6 @@ if (!customElements.get('reolink-app-card-editor')) customElements.define('reoli
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === 'reolink-app-card')) {
   window.customCards.push({ type: 'reolink-app-card', name: 'Reolink App Card', preview: false, documentationURL: 'https://github.com/niondevelop/reolink-app-card',
-    description: 'Live, Steuerung und Wiedergabe im Stil der Reolink-App / Live view, controls and playback styled like the Reolink app' });
+    description: 'Live view, controls, settings and SD card playback for Reolink cameras, styled like the Reolink app' });
 }
 console.info(`%c REOLINK-APP-CARD %c ${RAC_VERSION} `, 'background:#1e8bff;color:#fff', '');
