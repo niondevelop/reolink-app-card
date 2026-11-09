@@ -42,7 +42,7 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 ### Marketplace / HACS
 
 1. Open **Settings → Marketplace** (Home Assistant 2026.11 and later; on older versions open **HACS**)
-2. Search for “Reolink App Card” and click **Download**
+2. Search for “Reolink App Card” and select **Install**
 3. Reload your browser (in the Companion app: Settings → *Reset frontend cache*)
 
 If the card doesn't show up in the search yet, add it yourself: in the Marketplace select **Add from link** in the upper-right corner, enter `niondevelop/reolink-app-card` and select **Add** (the Marketplace asks you to connect GitHub the first time). On older versions with HACS: menu at the top right → **Custom repositories**, type **Dashboard**. Once the card is in the catalog, the Marketplace switches over on its own.

@@ -36,7 +36,7 @@ Einträge für Entitäten, die es nicht gibt oder die deaktiviert sind, blendet 
 ### Über den Marketplace bzw. HACS
 
 1. **Einstellungen → Marketplace** öffnen (ab Home Assistant 2026.11; davor in **HACS**)
-2. Nach „Reolink App Card“ suchen und **Herunterladen**
+2. Nach „Reolink App Card“ suchen und **Installieren**
 3. Browser neu laden (in der Companion-App: Einstellungen → *Frontend-Cache zurücksetzen*)
 
 Falls die Karte in der Suche noch nicht auftaucht, lässt sie sich selbst hinzufügen: im Marketplace oben rechts **Über Link hinzufügen** (*Add from link*) wählen, `niondevelop/reolink-app-card` eintragen und **Hinzufügen** (beim ersten Mal fragt der Marketplace nach einer Verbindung mit GitHub). Bei älteren Versionen mit HACS: Menü oben rechts → **Benutzerdefinierte Repositories**, Typ **Dashboard**. Sobald die Karte im Katalog ist, stellt der Marketplace von selbst um.
