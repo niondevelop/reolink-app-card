@@ -37,7 +37,7 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 
 ## Installation
 
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=niondevelop&repository=reolink-app-card&category=plugin)
+[![Open in the Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=niondevelop&repository=reolink-app-card&category=plugin)
 
 ### Marketplace / HACS
 
@@ -45,7 +45,9 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 2. Search for “Reolink App Card” and click **Download**
 3. Reload your browser (in the Companion app: Settings → *Reset frontend cache*)
 
-If the card doesn't show up in the search yet: menu at the top right → **Custom repositories**, add `https://github.com/niondevelop/reolink-app-card` with the type **Dashboard**, then download it as above.
+If the card doesn't show up in the search yet, add it yourself: in the Marketplace select **Add from link** in the upper-right corner, enter `niondevelop/reolink-app-card` and select **Add** (the Marketplace asks you to connect GitHub the first time). On older versions with HACS: menu at the top right → **Custom repositories**, type **Dashboard**. Once the card is in the catalog, the Marketplace switches over on its own.
+
+The Marketplace adds the dashboard resource for you (`/local/community/reolink-app-card/reolink-app-card.js`). If you manage resources in YAML, add it there yourself.
 
 ### Manual installation
 
