@@ -24,6 +24,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 
 - **Real live view:** starts automatically when the card becomes visible and pauses after 5 minutes (configurable), or as soon as you scroll away or leave the app.
 - **Battery-friendly preview:** while paused, the card shows the last image as a still instead of polling the battery camera all the time.
+- **Sound:** the live view starts muted; the speaker button on the video turns the camera's sound on (stays on while you switch cameras).
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear).
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.

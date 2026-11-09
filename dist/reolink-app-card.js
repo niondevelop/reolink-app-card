@@ -1,11 +1,12 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.1.0';
+const RAC_VERSION = '1.2.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
   de: {
     live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
     start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
+    sound_on: 'Ton einschalten', sound_off: 'Ton ausschalten', no_audio: 'Der Stream dieser Kamera enthält keinen Ton',
     talk: 'Sprechen', talk_app: 'Sprechen (öffnet die Reolink-App)', hang_up: 'Auflegen', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
     spotlight: 'Spotlight', record: 'Aufnahme', snapshot: 'Schnappschuss', quality: 'Qualität',
     q_fluent: 'Flüssig', q_balanced: 'Balanciert', q_clear: 'Klar', not_enabled: 'nicht aktiviert',
@@ -38,6 +39,7 @@ const STR = {
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
     start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
+    sound_on: 'Turn sound on', sound_off: 'Turn sound off', no_audio: 'This camera’s stream has no sound',
     talk: 'Talk', talk_app: 'Talk (opens the Reolink app)', hang_up: 'Hang up', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
     spotlight: 'Spotlight', record: 'Record', snapshot: 'Snapshot', quality: 'Quality',
     q_fluent: 'Fluent', q_balanced: 'Balanced', q_clear: 'Clear', not_enabled: 'not enabled',
@@ -70,6 +72,7 @@ const STR = {
   fr: {
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
     start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
+    sound_on: 'Activer le son', sound_off: 'Couper le son', no_audio: 'Le flux de cette caméra n’a pas de son',
     talk: 'Parler', talk_app: 'Parler (ouvre l’app Reolink)', hang_up: 'Raccrocher', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
     spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
     q_fluent: 'Fluide', q_balanced: 'Équilibrée', q_clear: 'Nette', not_enabled: 'non activé',
@@ -258,7 +261,7 @@ class ReolinkAppCard extends HTMLElement {
     this._snaps = {};
     this._prevDet = null;
     this._pics = [];
-    this._twa = {}; this._mic = 'off'; this._micReq = 0; this._streamType = null;
+    this._twa = {}; this._sound = false; this._mic = 'off'; this._micReq = 0; this._streamType = null;
     if (this._built) { this._renderTabs(); this._rebuildCamera(); }
   }
 
@@ -400,6 +403,7 @@ class ReolinkAppCard extends HTMLElement {
             <button class="pill btn icon" id="next"><ha-icon icon="mdi:skip-next"></ha-icon></button>
             <button class="pill btn icon" id="dl"><ha-icon icon="mdi:download"></ha-icon></button>
             <button class="pill btn icon" id="unzoom"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>
+            <button class="pill btn icon" id="snd"><ha-icon icon="mdi:volume-off"></ha-icon></button>
             <button class="pill btn icon" id="stop"><ha-icon icon="mdi:stop"></ha-icon></button>
             <button class="pill btn icon" id="fs"><ha-icon icon="mdi:fullscreen"></ha-icon></button>
           </div>
@@ -434,6 +438,14 @@ class ReolinkAppCard extends HTMLElement {
     $('dl').onclick = () => this._download();
     $('unzoom').onclick = () => this._resetZoom();
     $('hang').onclick = () => this._hangUp();
+    $('snd').onclick = () => { this._sound = !this._sound; this._sndCheck = this._sound; this._applySound(); this._update(); };
+    // Ohne Tonspur im WebRTC-Stream einmal darauf hinweisen
+    $('pic').addEventListener('streams', (e) => {
+      const src = e.composedPath()[0];
+      if (!this._sndCheck || !src || src.localName !== 'ha-web-rtc-player' || !e.detail || !e.detail.hasVideo) return;
+      this._sndCheck = false;
+      if (!e.detail.hasAudio) this._toast({ text: this._t('no_audio'), color: '#636366', icon: 'mdi:volume-off', wrap: true });
+    });
     // Meldungen des Kamera-Streams von Home Assistant (WebRTC-Player in der picture-entity-Karte)
     $('pic').addEventListener('microphone-changed', (e) => { if (!this._appSession && !this._appMic) this._setMic(e.detail.state); });
     $('pic').addEventListener('stream-type-changed', (e) => { this._streamType = e.detail.type || null; this._update(); });
@@ -512,6 +524,7 @@ class ReolinkAppCard extends HTMLElement {
       host.innerHTML = '';
       host.appendChild(el);
       this._pics = [el];
+      if (this._sound) this._applySound();
     }
   }
 
@@ -736,6 +749,35 @@ class ReolinkAppCard extends HTMLElement {
       label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
       run: () => { this._qOpen = !this._qOpen; this._update(); } });
     return items;
+  }
+
+  /* ---------- Ton des Livebilds ----------
+     Die picture-entity-Karte startet den Stream immer stumm, und der WebRTC-Player lässt die Tonspur dann ganz weg.
+     Zum Einschalten wird der Player deshalb ohne Stummschaltung neu verbunden. */
+  async _applySound() {
+    const tok = (this._sndTok = Symbol());
+    for (let n = 0; n < 75; n++) {
+      if (tok !== this._sndTok || !this._live || this._grid) return;
+      const s = deepFind(this.$('pic'), 'ha-camera-stream');
+      if (s) {
+        const want = !this._sound;
+        if (s.muted === want) return;
+        s.muted = want;
+        const p = s.shadowRoot && s.shadowRoot.querySelector('ha-web-rtc-player');
+        // Nur beim Einschalten neu verbinden, und nur wenn der Player schon ohne Ton verbunden ist
+        if (!want && p && p.entityid) {
+          const talking = this._mic !== 'off' && !this._appSession;
+          await s.updateComplete;
+          const id = p.entityid;
+          p.entityid = undefined;
+          await p.updateComplete;
+          p.entityid = id;
+          if (talking) { this._setMic('off'); setTimeout(() => this._toggleTalk(), 300); }
+        }
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
 
   /* ---------- Gegensprechen über Home Assistant (Zwei-Wege-Audio, Labs-Funktion ab 2026.11) ----------
@@ -1166,6 +1208,10 @@ class ReolinkAppCard extends HTMLElement {
     $('talk').classList.toggle('conn', this._mic === 'connecting');
     $('talk').classList.toggle('lvl', !!this._meterCtx);
     $('hang').title = this._t('hang_up');
+    $('snd').style.display = this._live && !this._grid && !playing ? '' : 'none';
+    $('snd').classList.toggle('on', this._sound);
+    $('snd').querySelector('ha-icon').setAttribute('icon', this._sound ? 'mdi:volume-high' : 'mdi:volume-off');
+    $('snd').title = this._sound ? this._t('sound_off') : this._t('sound_on');
     if (talking) this._talkLabel();
     $('stage').classList.toggle('haspic', !!this._snaps[this._idx]);
     if (this._snaps[this._idx] && $('prev').getAttribute('src') !== this._snaps[this._idx].url) $('prev').src = this._snaps[this._idx].url;
@@ -1683,6 +1729,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .tbn.on { background: var(--ra); color: #fff; }
 .tbn.warn { background: #ff3b30; color: #fff; }
 .tbn.dis { opacity: .35; }
+.pill.btn.on { background: color-mix(in srgb, var(--ra) 85%, transparent); }
 .tbn.ring { animation: ring 1.2s ease-in-out infinite; }
 @keyframes ring { 50% { box-shadow: 0 0 0 7px rgba(255,59,48,.25); } }
 .talk { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 3; }
