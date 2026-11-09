@@ -5,8 +5,12 @@
 [![HACS](https://img.shields.io/badge/HACS-Dashboard-41BDF5.svg)](https://github.com/hacs/integration)
 [![Release](https://img.shields.io/github/v/release/niondevelop/reolink-app-card)](https://github.com/niondevelop/reolink-app-card/releases)
 [![Validate](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml/badge.svg)](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 
-A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for battery-powered Reolink cameras (e.g. the Argus series) on a Reolink Hub, but it works with every camera of the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
+A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for Reolink cameras (e.g. the battery-powered Argus series) connected to a **Reolink Home Hub**, using the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
+
+> [!IMPORTANT]
+> **Requires a Reolink Home Hub.** The card only works with cameras that are connected to a Reolink Home Hub (or Home Hub Pro) and added to Home Assistant through the hub. Cameras connected directly to Home Assistant, without a hub, are not supported.
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live view">
@@ -113,6 +117,12 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 - **Battery:** every minute of live view costs battery. To save power, shorten `live_timeout` or set `auto_live: false`.
 - **Talk:** Home Assistant can't do two-way audio with Reolink battery cameras. The button therefore opens the Reolink app – in the Companion app via `app://com.mcu.reolink`, in Chrome on Android via an intent link. Reolink offers no link that opens a specific camera; the app starts with the camera used last. iPhones have no official link to the app; set your own with `talk_url`.
 - **Playback:** uses the media source of the Reolink integration and prefers the low resolution, because it loads faster and saves battery.
+
+## Support
+
+If you like the card, you can buy me a coffee. Thank you!
+
+<a href="https://buymeacoffee.com/nion_zh"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=nion_zh&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff" height="40" alt="Buy me a coffee"></a>
 
 ## License
 
