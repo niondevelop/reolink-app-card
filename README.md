@@ -24,7 +24,8 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 
 - **Real live view:** starts automatically when the card becomes visible and pauses after 5 minutes (configurable), or as soon as you scroll away or leave the app.
 - **Battery-friendly preview:** while paused, the card shows the last image as a still instead of polling the battery camera all the time.
-- **Control bar like the Reolink app:** talk (opens the Reolink app), siren, spotlight, record, snapshot and quality (fluent, balanced, clear).
+- **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
+- **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear).
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
 - **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice.
 - **All cameras at once:** grid view with every live stream; tap one to open it.
@@ -93,7 +94,7 @@ cameras:
 | `hub_prefix`              | `reolink_hub` | Common part of the hub entity IDs |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
-| `talk_url`                | –             | Link for the talk button (see notes). Can also be set per camera |
+| `talk_url`                | –             | Optional: open this link (e.g. the Reolink app) with the talk button when two-way audio is not available. Can also be set per camera |
 
 ### Camera options
 
@@ -102,7 +103,7 @@ cameras:
 | `prefix`     | **Required.** The common part of the entity IDs, e.g. `front_door` for `camera.front_door_fluent` |
 | `name`       | Display name |
 | `media_name` | Name of the camera in the Reolink media source (Media → Reolink). Needed for playback if it differs from the device name |
-| `talk_url`   | Custom link for the talk button of this camera |
+| `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
 
 The card finds the entities on its own, for both English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
@@ -115,7 +116,13 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 
 - **Enable entities:** many Reolink entities are disabled by default, e.g. the “balanced” and “clear” streams, the image settings and the SD sensor of the hub. Enable them under *Settings → Devices & services → Reolink → device*; they then appear in the card.
 - **Battery:** every minute of live view costs battery. To save power, shorten `live_timeout` or set `auto_live: false`.
-- **Talk:** Home Assistant can't do two-way audio with Reolink battery cameras. The button therefore opens the Reolink app – in the Companion app via `app://com.mcu.reolink`, in Chrome on Android via an intent link. Reolink offers no link that opens a specific camera; the app starts with the camera used last. iPhones have no official link to the app; set your own with `talk_url`.
+- **Two-way audio (talk):** uses the two-way audio of Home Assistant (2026.11 and later). Requirements:
+  - Enable it under *Settings → System → Labs → Two-way audio*.
+  - The camera must support two-way audio and Home Assistant must stream it over RTSP (Reolink integration options).
+  - Open Home Assistant over **HTTPS** (e.g. from outside via Nabu Casa or your own domain). Browsers only allow the microphone on HTTPS. Over plain HTTP the button is greyed out, unless your Companion app can send the microphone itself.
+  - Allow microphone access when your browser or app asks.
+
+  Tap the handset to talk; the live view starts if needed and stays on while you talk. Tap the red button to hang up. If a requirement is missing, the button is greyed out and tapping it tells you why. With `talk_url`, the button opens that link instead whenever two-way audio is not available, e.g. `app://com.mcu.reolink` to open the Reolink app in the Android Companion app.
 - **Playback:** uses the media source of the Reolink integration and prefers the low resolution, because it loads faster and saves battery.
 
 ## Support
