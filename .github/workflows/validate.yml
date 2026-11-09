@@ -3,20 +3,21 @@ name: Validate
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 jobs:
   hacs:
-    name: HACS-Validierung
+    name: HACS validation
     runs-on: ubuntu-latest
     steps:
       - uses: hacs/action@main
         with:
           category: plugin
-          ignore: brands
 
   syntax:
-    name: JavaScript-Syntax
+    name: JavaScript syntax and translations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,3 +25,19 @@ jobs:
         with:
           node-version: 20
       - run: node --check dist/reolink-app-card.js
+      - name: All languages have the same keys
+        run: |
+          node -e "
+          const src = require('fs').readFileSync('dist/reolink-app-card.js', 'utf8');
+          let bad = 0;
+          for (const name of ['STR', 'ED_LABELS']) {
+            const obj = eval('(' + src.match(new RegExp('const ' + name + ' = (\\\\{[\\\\s\\\\S]*?\\\\n\\\\});'))[1] + ')');
+            const base = Object.keys(obj.en);
+            for (const [lang, t] of Object.entries(obj)) {
+              const keys = Object.keys(t);
+              const miss = base.filter((k) => !keys.includes(k)), extra = keys.filter((k) => !base.includes(k));
+              if (miss.length || extra.length) { bad = 1; console.log(name, lang, 'missing:', miss, 'extra:', extra); }
+            }
+          }
+          process.exit(bad);
+          "

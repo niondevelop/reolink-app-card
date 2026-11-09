@@ -14,15 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Version im Code prüfen
+      - name: Check version in code
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           CODE=$(grep -oP "RAC_VERSION = '\K[^']+" dist/reolink-app-card.js)
           if [ "$TAG" != "$CODE" ]; then
-            echo "Tag v$TAG passt nicht zu RAC_VERSION $CODE"; exit 1
+            echo "Tag v$TAG does not match RAC_VERSION $CODE"; exit 1
           fi
 
-      - name: Release erstellen
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/reolink-app-card.js
