@@ -2,6 +2,8 @@
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md)
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
+
 Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für akkubetriebene Reolink-Kameras (z. B. Argus-Serie) am Reolink Hub, funktioniert aber mit jeder Kamera der offiziellen [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
 
 <p>
@@ -107,6 +109,12 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 - **Akku:** Jede Minute Livebild kostet Akku. Wer sparen will, verkürzt `live_timeout` oder setzt `auto_live: false`.
 - **Sprechen:** Home Assistant kann bei Reolink-Akkukameras kein Gegensprechen. Der Button öffnet deshalb die Reolink-App – in der Companion-App über `app://com.mcu.reolink`, in Chrome auf Android über einen Intent-Link. Reolink bietet keinen Link, der direkt eine bestimmte Kamera öffnet; die App startet mit der zuletzt genutzten Kamera. Auf iPhones gibt es keinen offiziellen Link zur App; dort lässt sich über `talk_url` ein eigener hinterlegen.
 - **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
+
+## Unterstützen
+
+Wenn dir die Karte gefällt, kannst du mir einen Kaffee spendieren. Danke!
+
+<a href="https://buymeacoffee.com/nion_zh"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=nion_zh&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff" height="40" alt="Buy me a coffee"></a>
 
 ## Lizenz
 

@@ -2,6 +2,8 @@
 
 [English](README.md) · [Deutsch](README.de.md) · **Français**
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
+
 Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reolink : direct, commandes, réglages et lecture des enregistrements de la carte SD dans une seule carte. Conçue pour les caméras Reolink sur batterie (p. ex. la série Argus) reliées à un Reolink Hub, elle fonctionne avec toutes les caméras de l’[intégration Reolink](https://www.home-assistant.io/integrations/reolink/) officielle.
 
 <p>
@@ -42,6 +44,12 @@ cameras:
 ```
 
 Toutes les options sont décrites dans la [documentation en anglais](README.md#card-options) ; les noms des options sont identiques.
+
+## Soutenir
+
+Si la carte vous plaît, vous pouvez m’offrir un café. Merci !
+
+<a href="https://buymeacoffee.com/nion_zh"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=nion_zh&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff" height="40" alt="Buy me a coffee"></a>
 
 ## Licence
 
