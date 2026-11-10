@@ -6,6 +6,7 @@ const STR = {
   de: {
     live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
     start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
+    ev_missing: 'Zu diesem Zeitpunkt gibt es keine Aufnahme', ev_wait: 'Aufnahme wird noch gespeichert …',
     sound_on: 'Ton einschalten', sound_off: 'Ton ausschalten', no_audio: 'Der Stream dieser Kamera enthält keinen Ton',
     talk: 'Sprechen', talk_app: 'Sprechen (öffnet die Reolink-App)', hang_up: 'Auflegen', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
     spotlight: 'Spotlight', record: 'Aufnahme', snapshot: 'Schnappschuss', quality: 'Qualität',
@@ -39,6 +40,7 @@ const STR = {
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
     start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
+    ev_missing: 'There is no recording at this time', ev_wait: 'Recording is still being saved …',
     sound_on: 'Turn sound on', sound_off: 'Turn sound off', no_audio: 'This camera’s stream has no sound',
     talk: 'Talk', talk_app: 'Talk (opens the Reolink app)', hang_up: 'Hang up', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
     spotlight: 'Spotlight', record: 'Record', snapshot: 'Snapshot', quality: 'Quality',
@@ -72,6 +74,7 @@ const STR = {
   fr: {
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
     start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
+    ev_missing: 'Aucun enregistrement à ce moment', ev_wait: 'Enregistrement en cours de sauvegarde …',
     sound_on: 'Activer le son', sound_off: 'Couper le son', no_audio: 'Le flux de cette caméra n’a pas de son',
     talk: 'Parler', talk_app: 'Parler (ouvre l’app Reolink)', hang_up: 'Raccrocher', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
     spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
@@ -408,7 +411,7 @@ class ReolinkAppCard extends HTMLElement {
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDetections();
     this._update();
@@ -417,11 +420,16 @@ class ReolinkAppCard extends HTMLElement {
 
   connectedCallback() {
     if (this._built) this._observe();
+    window.addEventListener('location-changed', this._onLink);
+    window.addEventListener('popstate', this._onLink);
+    this._onLink();
     window.addEventListener('webrtc-stream-stopped', this._onAppStop);
   }
 
   disconnectedCallback() {
     window.removeEventListener('webrtc-stream-stopped', this._onAppStop);
+    window.removeEventListener('location-changed', this._onLink);
+    window.removeEventListener('popstate', this._onLink);
     this._sndStopWait();
     this._micReset();
     clearInterval(this._tick);
@@ -448,7 +456,7 @@ class ReolinkAppCard extends HTMLElement {
   }
 
   get _canAutoLive() {
-    return this._config.auto_live && this._visible && !document.hidden
+    return (this._config.auto_live || this._linkLive) && this._visible && !document.hidden
       && this._mode === 'live' && !this._playing && !this._expired;
   }
 
@@ -669,6 +677,7 @@ class ReolinkAppCard extends HTMLElement {
 
   /* ---------- Live ---------- */
   _startLive() {
+    this._linkLive = false;
     if (this._playing) this._stopPlayback(true);
     this._live = true;
     const t = +this._config.live_timeout || 0;
@@ -875,6 +884,69 @@ class ReolinkAppCard extends HTMLElement {
       label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
       run: () => { this._qOpen = !this._qOpen; this._update(); } });
     return items;
+  }
+
+  /* ---------- Direktlink, z. B. aus einer Push-Mitteilung ----------
+     ?rac=live&rac_cam=kamera_eingang            → Kamera wählen und live starten
+     ?rac=event&rac_cam=kamera_eingang&rac_t=…   → Aufnahme zu diesem Zeitpunkt (Unix-Sekunden) abspielen */
+  _onLink = () => {
+    if (!this._built || !this._hass || !this.isConnected) return;
+    let q;
+    try { q = new URLSearchParams(window.location.search); } catch (_) { return; }
+    const mode = q.get('rac');
+    if (mode !== 'live' && mode !== 'event') return;
+    const want = String(q.get('rac_cam') || '').trim().toLowerCase();
+    const i = want ? this._cams.findIndex((c) => [c.prefix, c.entity, c.name, c.media_name].some((x) => x && String(x).toLowerCase() === want)
+      || prefixOf(want) === c.prefix || (c._devId && this._hass.entities && this._hass.entities[want] && this._hass.entities[want].device_id === c._devId)) : 0;
+    if (i < 0) return; // gehört zu einer anderen Karte auf der Seite
+    const t = +q.get('rac_t') || Math.floor(Date.now() / 1000);
+    ['rac', 'rac_cam', 'rac_t'].forEach((k) => q.delete(k));
+    const qs = q.toString();
+    try { history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`); } catch (_) { /* ignorieren */ }
+    if (this._grid) this._setGrid(false);
+    if (i !== this._idx) { this._idx = i; this._rebuildCamera(); }
+    this._expired = false;
+    try { this.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignorieren */ }
+    if (mode === 'event') {
+      this._pendingEvent = t; this._eventTries = 0;
+      this._days = null; this._files = null;
+      this._setMode('play');
+    } else {
+      this._linkLive = true;
+      this._setMode('live');
+    }
+  };
+
+  /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
+  _pickEvent() {
+    const t = this._pendingEvent;
+    if (!t || !Array.isArray(this._files) || !Array.isArray(this._days)) return;
+    const day = this._days[this._dayIdx], when = new Date(t * 1000);
+    const sameDay = day && day.date && day.date.toDateString() === when.toDateString();
+    const sec = when.getHours() * 3600 + when.getMinutes() * 60 + when.getSeconds();
+    let best = sameDay ? this._files.find((f) => f.start <= sec + 10 && f.start + Math.max(f.dur, 30) >= sec - 10) : null;
+    // Sonst: Aufnahme, die kurz vor oder bis 2 Minuten nach der Meldung beginnt
+    if (!best && sameDay) best = this._files.filter((f) => f.start >= sec - 60 && f.start <= sec + 120).sort((x, y) => Math.abs(x.start - sec) - Math.abs(y.start - sec))[0];
+    // Nach mehreren Versuchen oder bei älteren Meldungen: nächstgelegene Aufnahme innerhalb von 10 Minuten
+    const recent = Date.now() / 1000 - t < 300 && (this._eventTries || 0) < 3;
+    if (!best && sameDay && !recent) {
+      const near = this._files.map((f) => ({ f, d: Math.abs(f.start - sec) })).sort((x, y) => x.d - y.d)[0];
+      if (near && near.d <= 600) best = near.f;
+    }
+    if (best) { this._pendingEvent = null; this._filter = 'all'; this._play(best); return; }
+    // Kurz nach der Meldung nimmt die Kamera oft noch auf – etwas später nochmals nachsehen
+    if (recent) {
+      this._eventTries = (this._eventTries || 0) + 1;
+      this._toast({ text: this._t('ev_wait'), color: '#636366', icon: 'mdi:timer-sand', wrap: true });
+      clearTimeout(this._eventT);
+      this._eventT = setTimeout(async () => {
+        if (!this._pendingEvent || this._mode !== 'play') return;
+        await this._loadDays();
+      }, 15000);
+      return;
+    }
+    this._pendingEvent = null;
+    this._toast({ text: this._t('ev_missing'), color: '#636366', icon: 'mdi:filmstrip-off', wrap: true });
   }
 
   /* ---------- Ton des Livebilds ----------
@@ -1157,9 +1229,15 @@ class ReolinkAppCard extends HTMLElement {
       if (camIdx !== this._idx) return;
       this._days = days;
       this._dayIdx = 0;
+      if (this._pendingEvent) {
+        const want = new Date(this._pendingEvent * 1000).toDateString();
+        const k = days.findIndex((d) => d.date && d.date.toDateString() === want);
+        if (k >= 0) this._dayIdx = k;
+      }
       this._renderDays();
       if (days.length) await this._loadFiles();
       else this._update();
+      if (this._pendingEvent && camIdx === this._idx) this._pickEvent();
     } catch (e) {
       if (camIdx !== this._idx) return;
       this._days = { error: e.message || String(e) };
