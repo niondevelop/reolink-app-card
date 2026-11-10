@@ -35,6 +35,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Playback:** day picker, event type filter, coloured 24-hour timeline, speed (0.5× to 4×), autoplay next clip, clip download.
 - **Battery warnings** for low charge and for battery temperature that is too high or too low.
 - **Visual editor:** cameras are detected automatically and can be added with one click.
+- **Card suggestions:** under *Add to dashboard* on a Reolink camera (or the hub), the card shows up under the community suggestions, ready configured.
 - **English, German and French,** following the Home Assistant language.
 
 Entries for entities that don't exist or are disabled are hidden automatically.
@@ -67,10 +68,10 @@ The easiest way is the visual editor: add card → “Reolink App Card”. Or in
 type: custom:reolink-app-card
 cameras:
   - name: Front door
-    prefix: front_door
+    entity: camera.front_door_fluent
     media_name: Front Door
   - name: Garden
-    prefix: kamera_garten
+    entity: camera.kamera_garten_fluent
     media_name: Garden
 ```
 
@@ -93,7 +94,7 @@ cameras:
 | `mode_icons`              | –             | Custom icons per option, e.g. `{ Night: mdi:weather-night }`. Without it, the card picks fitting icons for common names |
 | `show_scene`              | `true` / `false` with `mode_entity` | Show the Reolink scene mode of the hub |
 | `show_hub`                | `true`        | Show the hub row (scene mode and SD card) |
-| `hub_prefix`              | `reolink_hub` | Common part of the hub entity IDs |
+| `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
 | `talk_url`                | –             | Optional: open this link (e.g. the Reolink app) with the talk button when two-way audio is not available. Can also be set per camera |
@@ -102,7 +103,8 @@ cameras:
 
 | Option       | Description |
 | ------------ | ----------- |
-| `prefix`     | **Required.** The common part of the entity IDs, e.g. `front_door` for `camera.front_door_fluent` |
+| `entity`     | **Required** (or `prefix`). Any camera stream of the camera, e.g. `camera.front_door_fluent`. The card finds all other entities of the camera from it |
+| `prefix`     | Alternative to `entity`: the common part of the entity IDs, e.g. `front_door` for `camera.front_door_fluent` |
 | `name`       | Display name |
 | `media_name` | Name of the camera in the Reolink media source (Media → Reolink). Needed for playback if it differs from the device name |
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |

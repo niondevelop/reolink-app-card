@@ -26,6 +26,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Bascule automatique** vers la caméra qui détecte une personne, un véhicule ou un animal.
 - **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures et filtres.
 - **Alertes batterie** et **éditeur visuel** qui détecte les caméras automatiquement.
+- **Suggestions de carte :** via *Ajouter au tableau de bord* sur une caméra Reolink (ou le hub), la carte apparaît dans les suggestions de la communauté, déjà configurée.
 - **Anglais, allemand et français,** selon la langue de Home Assistant (option `language: fr` pour forcer le français).
 
 ## Installation
@@ -45,7 +46,7 @@ type: custom:reolink-app-card
 language: fr
 cameras:
   - name: Entrée
-    prefix: entree
+    entity: camera.entree_fluent
 ```
 
 Toutes les options sont décrites dans la [documentation en anglais](README.md#card-options) ; les noms des options sont identiques.

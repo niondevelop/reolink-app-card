@@ -32,6 +32,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp, farbige 24-Stunden-Zeitleiste, Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen.
 - **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur.
 - **Visueller Editor:** Kameras werden automatisch erkannt und lassen sich per Klick hinzufügen.
+- **Kartenvorschläge:** Bei *Zum Dashboard hinzufügen* an einer Reolink-Kamera (oder am Hub) erscheint die Karte unter den Community-Vorschlägen, fertig eingerichtet.
 - **Englisch, Deutsch und Französisch,** passend zur Sprache von Home Assistant.
 
 Einträge für Entitäten, die es nicht gibt oder die deaktiviert sind, blendet die Karte automatisch aus.
@@ -62,10 +63,10 @@ Am einfachsten über den visuellen Editor: Karte hinzufügen → „Reolink App 
 type: custom:reolink-app-card
 cameras:
   - name: Eingang
-    prefix: kamera_eingang
+    entity: camera.kamera_eingang_standardauflosung
     media_name: Kamera Eingang
   - name: Garten
-    prefix: kamera_garten
+    entity: camera.kamera_garten_standardauflosung
     media_name: Kamera Garten
 ```
 
@@ -88,7 +89,7 @@ cameras:
 | `mode_icons`              | –             | Eigene Symbole je Option, z. B. `{ Nacht: mdi:weather-night }`. Ohne Angabe wählt die Karte passende Symbole für typische Namen |
 | `show_scene`              | `true` / `false` mit `mode_entity` | Reolink-Szenenmodus des Hubs anzeigen |
 | `show_hub`                | `true`        | Hub-Zeile (Szenenmodus und SD-Karte) anzeigen |
-| `hub_prefix`              | `reolink_hub` | Gemeinsamer Teil der Hub-Entity-IDs |
+| `hub_prefix`              | automatisch   | Gemeinsamer Teil der Hub-Entity-IDs. Nur nötig, wenn der Hub nicht automatisch gefunden wird |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` oder `fr` |
 | `talk_url`                | –             | Optional: Link, den der Sprechen-Button öffnet (z. B. die Reolink-App), wenn Gegensprechen nicht verfügbar ist. Auch pro Kamera möglich |
@@ -97,7 +98,8 @@ cameras:
 
 | Option       | Beschreibung |
 | ------------ | ------------ |
-| `prefix`     | **Pflicht.** Der gemeinsame Teil der Entity-IDs, z. B. `kamera_eingang` für `camera.kamera_eingang_standardauflosung` |
+| `entity`     | **Pflicht** (oder `prefix`). Ein beliebiger Stream der Kamera, z. B. `camera.kamera_eingang_standardauflosung`. Daraus findet die Karte alle weiteren Entitäten der Kamera |
+| `prefix`     | Alternative zu `entity`: der gemeinsame Teil der Entity-IDs, z. B. `kamera_eingang` für `camera.kamera_eingang_standardauflosung` |
 | `name`       | Angezeigter Name |
 | `media_name` | Name der Kamera in der Reolink-Medienquelle (Medien → Reolink). Nötig für die Wiedergabe, wenn er vom Gerätenamen abweicht |
 | `talk_url`   | Link für den Sprechen-Button dieser Kamera, wenn Gegensprechen nicht verfügbar ist |
