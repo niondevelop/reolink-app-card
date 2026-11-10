@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.2.2';
+const RAC_VERSION = '0.1.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
