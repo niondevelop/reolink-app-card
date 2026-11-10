@@ -3,11 +3,15 @@
 [English](README.md) · **Deutsch** · [Français](README.fr.md)
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#bekannte-einschränkungen)
 
 Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für Reolink-Kameras (z. B. die akkubetriebene Argus-Serie) an einem **Reolink Home Hub**, über die offizielle [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
 
 > [!IMPORTANT]
 > **Nur mit Reolink Home Hub.** Die Karte funktioniert nur mit Kameras, die an einem Reolink Home Hub (oder Home Hub Pro) angemeldet sind und über den Hub in Home Assistant eingebunden wurden. Kameras, die ohne Hub direkt in Home Assistant eingebunden sind, werden nicht unterstützt.
+
+> [!WARNING]
+> **Alpha – noch in Entwicklung.** Die Karte läuft täglich bei einer Installation (Reolink Home Hub mit zwei Argus-Akkukameras), aber vieles ist neu und manches nur in einem nachgebauten Home Assistant getestet. Rechne mit Fehlern und Änderungen zwischen den Versionen und verlass dich nicht als einzige Alarmierung darauf. Siehe [Bekannte Einschränkungen](#bekannte-einschränkungen), und [melde Probleme](https://github.com/niondevelop/reolink-app-card/issues) gern.
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live-Ansicht">
@@ -15,7 +19,24 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/settings.png" width="260" alt="Einstellungen">
 </p>
 
-<sub>Screenshots mit einem gezeichneten Demo-Bild statt einer echten Kamera.</sub>
+<sub>Screenshots mit einem gerenderten Demo-Bild statt einer echten Kamera.</sub>
+
+## Inhalt
+
+- [Funktionen](#funktionen)
+- [Installation](#installation)
+  - [Über den Marketplace bzw. HACS](#über-den-marketplace-bzw-hacs)
+  - [Manuelle Installation](#manuelle-installation)
+- [Konfiguration](#konfiguration)
+  - [Karten-Optionen](#karten-optionen)
+  - [Kamera-Optionen](#kamera-optionen)
+  - [Aus einer Mitteilung öffnen](#aus-einer-mitteilung-öffnen)
+  - [Kamera-Modus und Blueprints](#kamera-modus-und-blueprints)
+  - [Farbe anpassen](#farbe-anpassen)
+- [Hinweise](#hinweise)
+- [Bekannte Einschränkungen](#bekannte-einschränkungen)
+- [Unterstützen](#unterstützen)
+- [Lizenz](#lizenz)
 
 ## Funktionen
 
@@ -243,6 +264,21 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 
   Auf den Hörer tippen, um zu sprechen; das Livebild startet bei Bedarf und bleibt während des Gesprächs an. Mit dem roten Button auflegen. Fehlt eine Voraussetzung, ist der Button ausgegraut, und ein Tipp darauf zeigt den Grund. Mit `talk_url` öffnet der Button stattdessen diesen Link, wenn Gegensprechen nicht verfügbar ist, z. B. `app://com.mcu.reolink` für die Reolink-App in der Android-Companion-App.
 - **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
+
+## Bekannte Einschränkungen
+
+Das ist eine Alpha-Version. Was wie getestet ist:
+
+- **Mit echter Hardware nur bei einer Installation getestet:** Reolink Home Hub mit zwei Argus-Akkukameras, Android-Companion-App, Home Assistant 2026.11. Andere Modelle, ein NVR oder mehrere Hubs sind nicht getestet.
+- **Nur in einem nachgebauten Home Assistant getestet, nicht mit echten Geräten:** die Klingel-Ansicht in der Karte, Schwenken & Neigen (PTZ), französische oder umbenannte Entity-IDs, die iPhone-App und das Senden des Mikrofons durch die Companion-App über reines HTTP.
+- **Gegensprechen** ist eine Labs-Funktion (Vorschau) von Home Assistant. Bei manchen Reolink-Modellen gibt es bekannte Probleme damit (kein Ton bei der Kamera oder ein Echo). Im Browser braucht es HTTPS.
+- **Ton im Livebild:** Beim Einschalten verbindet sich der Stream kurz neu. Hat der WebRTC-Stream der Kamera keine Tonspur, gibt es keinen Ton.
+- **Blueprints:** Vorlagen und Bedingungen sind an einem echten Home Assistant geprüft, als vollständige Automation sind sie aber noch nicht gelaufen.
+- **Links und Knöpfe in Mitteilungen** sind mit der Android-Companion-App getestet, iPhones nicht.
+- **Home-Assistant-Updates:** Die Karte baut auf Teilen des Home-Assistant-Frontends auf (dem Kamera-Player). Ein Update von Home Assistant kann Livebild, Ton oder Gegensprechen stören, bis die Karte angepasst ist.
+- **Akku:** Livebild, Ton und Gegensprechen wecken Akkukameras und kosten Akku.
+
+Ein Problem gefunden? [Eröffne gern ein Issue](https://github.com/niondevelop/reolink-app-card/issues) mit Kameramodell, Home-Assistant-Version und was passiert ist.
 
 ## Unterstützen
 
