@@ -1,11 +1,14 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.1.0';
+const RAC_VERSION = '1.2.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
   de: {
     live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
     start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
+    ring_title: 'Es klingelt', answer: 'Annehmen', decline: 'Ablehnen', ptz: 'Schwenken & Neigen', ptz_presets: 'Positionen', zoom_in: 'Heranzoomen', zoom_out: 'Wegzoomen', ptz_stop: 'Stopp',
+    ev_missing: 'Zu diesem Zeitpunkt gibt es keine Aufnahme', ev_wait: 'Aufnahme wird noch gespeichert …',
+    sound_on: 'Ton einschalten', sound_off: 'Ton ausschalten', no_audio: 'Der Stream dieser Kamera enthält keinen Ton',
     talk: 'Sprechen', talk_app: 'Sprechen (öffnet die Reolink-App)', hang_up: 'Auflegen', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
     spotlight: 'Spotlight', record: 'Aufnahme', snapshot: 'Schnappschuss', quality: 'Qualität',
     q_fluent: 'Flüssig', q_balanced: 'Balanciert', q_clear: 'Klar', not_enabled: 'nicht aktiviert',
@@ -22,13 +25,13 @@ const STR = {
     g_general: 'Allgemein', g_detect: 'Erkennung', g_image: 'Bild', g_flood: 'Flutlicht', g_audio: 'Ton & Aufnahme',
     pir: 'PIR-Erkennung', rec: 'Aufzeichnung', push: 'Push-Benachrichtigungen', pir_reduce: 'PIR-Fehlalarme reduzieren',
     daynight: 'Tag/Nacht', ir: 'Infrarotlicht nachts', status_led: 'Status-LED', prealarm: 'Voralarm', play_btn: 'Abspielen',
-    restart: 'Kamera neu starten', restart_btn: 'Neu starten', restart_confirm: 'Kamera „{name}“ neu starten?',
+    restart: 'Kamera neu starten', restart_btn: 'Neu starten', cancel: 'Abbrechen', siren_btn: 'Auslösen', restart_confirm: 'Kamera „{name}“ neu starten?',
     pir_sens: 'PIR-Empfindlichkeit', ai_person: 'KI-Empfindlichkeit Person', ai_vehicle: 'KI-Empfindlichkeit Fahrzeug',
     ai_animal: 'KI-Empfindlichkeit Tier', img_bright: 'Helligkeit', img_contrast: 'Kontrast', img_sat: 'Sättigung',
     img_sharp: 'Schärfe', anti_flicker: 'Anti-Flimmer', ir_bright: 'Infrarot-Helligkeit', fl_mode: 'Modus',
     fl_bright: 'Helligkeit beim Einschalten', volume: 'Lautstärke', post_rec: 'Nachaufzeichnung', rec_audio: 'Audio aufnehmen',
     siren_event: 'Sirene bei Ereignis', prealarm_event: 'Voralarm bei Ereignis', hub_ring_event: 'Hub-Klingelton bei Ereignis',
-    need_cameras: 'Bitte „cameras“ definieren', need_prefix: 'Jede Kamera braucht „prefix“',
+    need_cameras: 'Bitte „cameras“ definieren', need_prefix: 'Jede Kamera braucht „entity“ (oder „prefix“)',
     wifi: 'WLAN', camera: 'Kamera',
     talking: 'Gegensprechen', talk_connecting: 'Verbinde …', talk_failed: 'Gegensprechen fehlgeschlagen',
     talk_na_feature: 'Gegensprechen nicht verfügbar – in Home Assistant unter Einstellungen → System → Labs „Zwei-Wege-Audio“ aktivieren',
@@ -38,6 +41,9 @@ const STR = {
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
     start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
+    ring_title: 'Someone is ringing', answer: 'Answer', decline: 'Decline', ptz: 'Pan & tilt', ptz_presets: 'Positions', zoom_in: 'Zoom in', zoom_out: 'Zoom out', ptz_stop: 'Stop',
+    ev_missing: 'There is no recording at this time', ev_wait: 'Recording is still being saved …',
+    sound_on: 'Turn sound on', sound_off: 'Turn sound off', no_audio: 'This camera’s stream has no sound',
     talk: 'Talk', talk_app: 'Talk (opens the Reolink app)', hang_up: 'Hang up', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
     spotlight: 'Spotlight', record: 'Record', snapshot: 'Snapshot', quality: 'Quality',
     q_fluent: 'Fluent', q_balanced: 'Balanced', q_clear: 'Clear', not_enabled: 'not enabled',
@@ -54,13 +60,13 @@ const STR = {
     g_general: 'General', g_detect: 'Detection', g_image: 'Image', g_flood: 'Floodlight', g_audio: 'Audio & recording',
     pir: 'PIR detection', rec: 'Recording', push: 'Push notifications', pir_reduce: 'Reduce PIR false alarms',
     daynight: 'Day/night', ir: 'Infrared at night', status_led: 'Status LED', prealarm: 'Pre-alarm', play_btn: 'Play',
-    restart: 'Restart camera', restart_btn: 'Restart', restart_confirm: 'Restart camera “{name}”?',
+    restart: 'Restart camera', restart_btn: 'Restart', cancel: 'Cancel', siren_btn: 'Sound it', restart_confirm: 'Restart camera “{name}”?',
     pir_sens: 'PIR sensitivity', ai_person: 'AI sensitivity person', ai_vehicle: 'AI sensitivity vehicle',
     ai_animal: 'AI sensitivity animal', img_bright: 'Brightness', img_contrast: 'Contrast', img_sat: 'Saturation',
     img_sharp: 'Sharpness', anti_flicker: 'Anti-flicker', ir_bright: 'Infrared brightness', fl_mode: 'Mode',
     fl_bright: 'Turn-on brightness', volume: 'Volume', post_rec: 'Post-recording', rec_audio: 'Record audio',
     siren_event: 'Siren on event', prealarm_event: 'Pre-alarm on event', hub_ring_event: 'Hub ringtone on event',
-    need_cameras: 'Please define “cameras”', need_prefix: 'Every camera needs a “prefix”',
+    need_cameras: 'Please define “cameras”', need_prefix: 'Every camera needs an “entity” (or “prefix”)',
     wifi: 'Wi-Fi', camera: 'Camera',
     talking: 'Talking', talk_connecting: 'Connecting …', talk_failed: 'Two-way audio failed',
     talk_na_feature: 'Two-way audio not available – enable “Two-way audio” in Home Assistant under Settings → System → Labs',
@@ -70,6 +76,9 @@ const STR = {
   fr: {
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
     start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
+    ring_title: 'On sonne', answer: 'Répondre', decline: 'Refuser', ptz: 'Orientation', ptz_presets: 'Positions', zoom_in: 'Zoom avant', zoom_out: 'Zoom arrière', ptz_stop: 'Arrêt',
+    ev_missing: 'Aucun enregistrement à ce moment', ev_wait: 'Enregistrement en cours de sauvegarde …',
+    sound_on: 'Activer le son', sound_off: 'Couper le son', no_audio: 'Le flux de cette caméra n’a pas de son',
     talk: 'Parler', talk_app: 'Parler (ouvre l’app Reolink)', hang_up: 'Raccrocher', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
     spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
     q_fluent: 'Fluide', q_balanced: 'Équilibrée', q_clear: 'Nette', not_enabled: 'non activé',
@@ -86,13 +95,13 @@ const STR = {
     g_general: 'Général', g_detect: 'Détection', g_image: 'Image', g_flood: 'Projecteur', g_audio: 'Son et enregistrement',
     pir: 'Détection PIR', rec: 'Enregistrement', push: 'Notifications push', pir_reduce: 'Réduire les fausses alarmes PIR',
     daynight: 'Jour/nuit', ir: 'Infrarouge la nuit', status_led: 'LED d’état', prealarm: 'Pré-alarme', play_btn: 'Lire',
-    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', restart_confirm: 'Redémarrer la caméra « {name} » ?',
+    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', cancel: 'Annuler', siren_btn: 'Déclencher', restart_confirm: 'Redémarrer la caméra « {name} » ?',
     pir_sens: 'Sensibilité PIR', ai_person: 'Sensibilité IA personne', ai_vehicle: 'Sensibilité IA véhicule',
     ai_animal: 'Sensibilité IA animal', img_bright: 'Luminosité', img_contrast: 'Contraste', img_sat: 'Saturation',
     img_sharp: 'Netteté', anti_flicker: 'Anti-scintillement', ir_bright: 'Luminosité infrarouge', fl_mode: 'Mode',
     fl_bright: 'Luminosité à l’allumage', volume: 'Volume', post_rec: 'Post-enregistrement', rec_audio: 'Enregistrer le son',
     siren_event: 'Sirène lors d’un événement', prealarm_event: 'Pré-alarme lors d’un événement', hub_ring_event: 'Sonnerie du hub lors d’un événement',
-    need_cameras: 'Veuillez définir « cameras »', need_prefix: 'Chaque caméra a besoin d’un « prefix »',
+    need_cameras: 'Veuillez définir « cameras »', need_prefix: 'Chaque caméra a besoin d’une « entity » (ou d’un « prefix »)',
     wifi: 'Wi-Fi', camera: 'Caméra',
     talking: 'Interphone', talk_connecting: 'Connexion …', talk_failed: 'Échec de l’audio bidirectionnel',
     talk_na_feature: 'Audio bidirectionnel indisponible – activez « Audio bidirectionnel » dans Home Assistant sous Paramètres → Système → Labs',
@@ -109,6 +118,7 @@ const pickLang = (opt, hass) => {
 };
 const fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] ?? ''));
 /* Element in verschachtelten Shadow-DOMs suchen (z. B. den Kamera-Stream in der picture-entity-Karte) */
+const SND_EVENTS = ['pointerup', 'click', 'keydown'];
 const deepFind = (root, sel) => {
   if (!root) return null;
   const hit = root.querySelector && root.querySelector(sel);
@@ -127,6 +137,7 @@ const Q = {
   clear: { key: 'q_clear', icon: 'mdi:quality-high' },
 };
 const Q_ORDER = ['fluent', 'balanced', 'clear'];
+const Q_STORE = 'reolink-app-card:quality';
 const Q_ALIAS = { sd: 'fluent', low: 'fluent', hd: 'clear', high: 'clear', medium: 'balanced' };
 const REOLINK_PKG = 'com.mcu.reolink';
 // Companion-App: öffnet Apps über app://<paket> (https://companion.home-assistant.io/docs/integrations/android-webview)
@@ -190,7 +201,33 @@ const ENT = {
   det_vehicle: ['binary_sensor', 'fahrzeug', 'vehicle'],
   det_animal: ['binary_sensor', 'tier', 'animal', 'pet'],
   det_motion: ['binary_sensor', 'bewegung', 'motion'],
+  visitor: ['binary_sensor', 'besucher', 'visitor'],
+  ptz_left: ['button', 'ptz_links', 'ptz_left'],
+  ptz_right: ['button', 'ptz_rechts', 'ptz_right'],
+  ptz_up: ['button', 'ptz_hoch', 'ptz_up'],
+  ptz_down: ['button', 'ptz_runter', 'ptz_down'],
+  ptz_stop: ['button', 'ptz_stopp', 'ptz_stop'],
+  ptz_zoom_in: ['button', 'ptz_hineinzoomen', 'ptz_zoom_in'],
+  ptz_zoom_out: ['button', 'ptz_herauszoomen', 'ptz_zoom_out'],
+  ptz_preset: ['select', 'ptz_voreinstellung', 'ptz_preset'],
 };
+/* Interne Schlüssel (translation_key) der Reolink-Integration – unabhängig von Sprache und Umbenennungen */
+const TK = {
+  cam_sd: 'sub', cam_bal: 'ext', cam_hd: 'main', snap: 'snapshots_sub',
+  light: 'floodlight', status_led: 'status_led', siren: 'siren', prealarm: 'pre_siren',
+  manual_rec: 'manual_record', rec: 'record', pir: 'pir_enabled', pir_reduce: 'pir_reduce_alarm', push: 'push_notifications',
+  ir: 'ir_lights', rec_audio: 'record_audio', siren_event: 'siren_on_event', prealarm_event: 'pre_siren_on_event', hub_ring_event: 'hub_ringtone_on_event',
+  daynight: 'day_night_mode', anti_flicker: 'anti_flicker', fl_mode: 'floodlight_mode', post_rec: 'post_rec_time',
+  pir_sens: 'pir_sensitivity', ai_person: 'ai_person_sensitivity', ai_vehicle: 'ai_vehicle_sensitivity', ai_animal: ['ai_animal_sensitivity', 'ai_pet_sensitivity'],
+  img_bright: 'image_brightness', img_contrast: 'image_contrast', img_sat: 'image_saturation', img_sharp: 'image_sharpness',
+  ir_bright: 'ir_brightness', fl_bright: 'floodlight_brightness', volume: 'volume',
+  battery_state: 'battery_state', battery_temp: 'battery_temperature', wifi: 'wifi_signal', sleep: 'sleep',
+  det_person: 'person', det_vehicle: 'vehicle', det_animal: ['animal', 'pet'], visitor: 'visitor',
+  ptz_left: 'ptz_left', ptz_right: 'ptz_right', ptz_up: 'ptz_up', ptz_down: 'ptz_down', ptz_stop: 'ptz_stop',
+  ptz_zoom_in: 'ptz_zoom_in', ptz_zoom_out: 'ptz_zoom_out', ptz_preset: 'ptz_preset',
+};
+/* Entitäten ohne internen Schlüssel: über die Geräteklasse finden */
+const DC = { battery: 'battery', det_motion: 'motion', restart: 'restart' };
 const HUB_ENT = {
   scene: ['select', 'szenenmodus', 'scene_mode'],
   storage: ['sensor', 'sd_0_speicher', 'sd_0_storage'],
@@ -232,22 +269,26 @@ const SETTINGS = [
 class ReolinkAppCard extends HTMLElement {
   setConfig(config) {
     if (!config || !Array.isArray(config.cameras) || !config.cameras.length) throw new Error(STR.de.need_cameras);
-    if (config.cameras.some((c) => !c || !c.prefix)) throw new Error(STR.de.need_prefix);
+    if (config.cameras.some((c) => !c || !(c.prefix || c.entity))) throw new Error(STR[pickLang(config.language)].need_prefix);
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
-      default_quality: 'fluent', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
-      hub_prefix: 'reolink_hub', show_hub: true, alert_seconds: 8, language: 'auto',
+      default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
+      hub_prefix: 'reolink_hub', show_hub: true, alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
       ...config,
     };
     this._cams = config.cameras.map((c) => {
       const over = { ...(c.entities || {}) };
       Object.entries(LEGACY).forEach(([k, v]) => { if (c[k]) over[v] = c[k]; });
-      return { prefix: c.prefix, name: c.name || c.prefix, media_name: c.media_name || c.name || c.prefix, talk_url: c.talk_url, over };
+      const prefix = c.prefix || prefixOf(c.entity) || String(c.entity).split('.').pop();
+      return { prefix, entity: c.entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, over };
     });
     this._idx = 0;
     this._mode = 'live';
     this._grid = false;
-    this._quality = this._normQ(this._config.default_quality);
+    // Zuletzt auf diesem Gerät gewählte Qualität hat Vorrang vor der Startqualität
+    let saved = null;
+    try { saved = localStorage.getItem(Q_STORE); } catch (_) { /* privater Modus o. ä. */ }
+    this._quality = this._normQ(saved && Q[saved] ? saved : this._config.default_quality);
     this._qOpen = false;
     this._live = false;
     this._filter = 'all';
@@ -258,7 +299,8 @@ class ReolinkAppCard extends HTMLElement {
     this._snaps = {};
     this._prevDet = null;
     this._pics = [];
-    this._twa = {}; this._mic = 'off'; this._micReq = 0; this._streamType = null;
+    this._watch = null; this._hubAuto = undefined;
+    this._twa = {}; this._sound = this._config.audio === 'auto'; this._sndCheck = this._sound; this._mic = 'off'; this._micReq = 0; this._streamType = null;
     if (this._built) { this._renderTabs(); this._rebuildCamera(); }
   }
 
@@ -270,19 +312,89 @@ class ReolinkAppCard extends HTMLElement {
   _on(id) { const s = this._st(id); return !!s && s.state === 'on'; }
   _num(id) { const s = this._st(id); return s && s.state !== '' && !isNaN(+s.state) ? +s.state : null; }
 
-  /* Entity einer Kamera auflösen: Überschreibung > deutsch > englisch > Alternativen */
+  /* Entity einer Kamera auflösen: Überschreibung > Geräteregister (interner Schlüssel) > Namensendungen deutsch/englisch */
   _e(key, cam = this._cam) {
     if (cam.over[key]) return cam.over[key];
     const [domain, ...suf] = ENT[key];
+    const dev = this._devIndex(cam);
+    if (dev) {
+      for (const tk of [].concat(TK[key] || [])) { const id = dev[`${domain}:${tk}`]; if (id) return id; }
+      if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
+    }
     for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id)) return id; }
     return `${domain}.${cam.prefix}_${suf[0]}`;
+  }
+
+  /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
+  _devIndex(cam) {
+    const reg = this._hass && this._hass.entities;
+    if (!reg) return null;
+    if (cam._reg === reg) return cam._dev;
+    cam._reg = reg; cam._dev = null; cam._devId = null;
+    const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).map((x) => `camera.${cam.prefix}_${x}`))];
+    const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
+    if (!hit) return null;
+    cam._devId = reg[hit].device_id;
+    const idx = {};
+    Object.keys(reg).forEach((id) => {
+      const r = reg[id];
+      if (r.device_id !== cam._devId) return;
+      const domain = id.split('.')[0];
+      if (r.translation_key) idx[`${domain}:${r.translation_key}`] = id;
+      const st = this._hass.states[id], dc = st && st.attributes.device_class;
+      if (dc && !idx[`${domain}:dc:${dc}`]) idx[`${domain}:dc:${dc}`] = id;
+    });
+    cam._dev = idx;
+    // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)
+    const dev = this._hass.devices && this._hass.devices[cam._devId];
+    const devName = dev && (dev.name_by_user || dev.name);
+    if (devName) { if (!cam.nameSet) cam.name = devName; if (!cam.mediaSet) cam.media_name = devName; }
+    return idx;
   }
   _hubE(key) {
     const over = (this._config.hub_entities || {})[key];
     if (over) return over;
     const [domain, ...suf] = HUB_ENT[key];
-    for (const s of suf) { const id = `${domain}.${this._config.hub_prefix}_${s}`; if (this._st(id)) return id; }
+    for (const pre of [this._config.hub_prefix, this._hubPrefix()]) {
+      if (!pre) continue;
+      for (const s of suf) { const id = `${domain}.${pre}_${s}`; if (this._st(id)) return id; }
+    }
     return null;
+  }
+
+  /* Hub automatisch finden: Entität des Szenenmodus bzw. der SD-Karte (einmal suchen, dann merken) */
+  _hubPrefix() {
+    if (this._hubAuto !== undefined && (this._hubAuto || Date.now() - this._hubTry < 60000)) return this._hubAuto;
+    this._hubTry = Date.now();
+    this._hubAuto = findHubPrefix(this._hass);
+    if (this._hubAuto) this._watch = null;
+    return this._hubAuto;
+  }
+
+  /* Alle Entitäten, deren Änderung die Karte betrifft (alle Namensvarianten aller Kameras und des Hubs) */
+  _watchIds() {
+    if (this._watch) return this._watch;
+    const ids = new Set();
+    const reg = this._hass && this._hass.entities;
+    this._cams.forEach((cam) => {
+      Object.values(cam.over).forEach((id) => ids.add(id));
+      if (this._devIndex(cam)) Object.keys(reg).forEach((id) => { if (reg[id].device_id === cam._devId) ids.add(id); });
+      Object.values(ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${cam.prefix}_${x}`)));
+    });
+    [this._config.hub_prefix, this._hubAuto].filter(Boolean).forEach((pre) => Object.values(HUB_ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${pre}_${x}`))));
+    Object.values(this._config.hub_entities || {}).forEach((id) => ids.add(id));
+    if (this._config.mode_entity) ids.add(this._config.mode_entity);
+    this._cams.forEach((cam) => { if (typeof cam.doorbell === 'string') ids.add(cam.doorbell); });
+    this._watch = [...ids];
+    return this._watch;
+  }
+
+  /* Hat sich seit dem letzten Mal etwas geändert, das die Karte betrifft? */
+  _relevantChange(old, hass) {
+    if (!old || old.language !== hass.language || old.locale !== hass.locale || old.themes !== hass.themes) return true;
+    if (old.entities !== hass.entities) { this._watch = null; return true; }
+    if (old.states === hass.states) return false;
+    return this._watchIds().some((id) => old.states[id] !== hass.states[id]);
   }
   _det(cam) { return DET.filter((k) => this._on(this._e(`det_${k}`, cam))); }
 
@@ -297,12 +409,15 @@ class ReolinkAppCard extends HTMLElement {
   }
 
   set hass(hass) {
-    const first = !this._hass;
+    const old = this._hass, first = !old;
     this._hass = hass;
+    // Home Assistant setzt hass bei jeder Zustandsänderung im ganzen System neu – nur reagieren, wenn es die Karte betrifft
+    if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
+    this._checkDoorbell(old, hass);
     this._checkDetections();
     this._update();
     this._autoLive();
@@ -310,11 +425,18 @@ class ReolinkAppCard extends HTMLElement {
 
   connectedCallback() {
     if (this._built) this._observe();
+    window.addEventListener('location-changed', this._onLink);
+    window.addEventListener('popstate', this._onLink);
+    this._onLink();
     window.addEventListener('webrtc-stream-stopped', this._onAppStop);
   }
 
   disconnectedCallback() {
     window.removeEventListener('webrtc-stream-stopped', this._onAppStop);
+    window.removeEventListener('location-changed', this._onLink);
+    this._endRing(false);
+    window.removeEventListener('popstate', this._onLink);
+    this._sndStopWait();
     this._micReset();
     clearInterval(this._tick);
     clearTimeout(this._toastT);
@@ -340,7 +462,7 @@ class ReolinkAppCard extends HTMLElement {
   }
 
   get _canAutoLive() {
-    return this._config.auto_live && this._visible && !document.hidden
+    return (this._config.auto_live || this._linkLive) && this._visible && !document.hidden
       && this._mode === 'live' && !this._playing && !this._expired;
   }
 
@@ -362,6 +484,7 @@ class ReolinkAppCard extends HTMLElement {
   _setQuality(q) {
     this._qOpen = false;
     if (q !== this._quality) { this._quality = q; if (this._live) this._makePic(); }
+    try { localStorage.setItem(Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     this._update();
   }
 
@@ -389,9 +512,15 @@ class ReolinkAppCard extends HTMLElement {
           <div class="ov det" id="det"></div>
           <div class="toast" id="toast"></div>
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
+          <div class="ring" id="ring">
+            <div class="rhead"><span class="rbell"><ha-icon icon="mdi:doorbell-video"></ha-icon></span><b id="ring-t"></b><span id="ring-n"></span></div>
+            <div class="rbtns">
+              <button class="rb no" id="ring-no"><span><ha-icon icon="mdi:phone-hangup"></ha-icon></span><small id="ring-no-l"></small></button>
+              <button class="rb yes" id="ring-yes"><span><ha-icon icon="mdi:phone"></ha-icon></span><small id="ring-yes-l"></small></button>
+            </div>
+          </div>
           <div class="talk" id="talk">
             <span class="tpill"><span class="tw"><i></i><i></i><i></i><i></i></span><span id="talk-l"></span></span>
-            <button class="hang" id="hang"><ha-icon icon="mdi:phone-hangup"></ha-icon></button>
           </div>
           <div class="ov bottom">
             <span class="pill" id="timer"></span>
@@ -400,6 +529,7 @@ class ReolinkAppCard extends HTMLElement {
             <button class="pill btn icon" id="next"><ha-icon icon="mdi:skip-next"></ha-icon></button>
             <button class="pill btn icon" id="dl"><ha-icon icon="mdi:download"></ha-icon></button>
             <button class="pill btn icon" id="unzoom"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>
+            <button class="pill btn icon" id="snd"><ha-icon icon="mdi:volume-off"></ha-icon></button>
             <button class="pill btn icon" id="stop"><ha-icon icon="mdi:stop"></ha-icon></button>
             <button class="pill btn icon" id="fs"><ha-icon icon="mdi:fullscreen"></ha-icon></button>
           </div>
@@ -407,9 +537,11 @@ class ReolinkAppCard extends HTMLElement {
         <div class="seg"><button id="m-live"></button><button id="m-play"></button></div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
+          <div class="ptz" id="ptz"></div>
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="more-l"></span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
         </div>
+        <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
           <div class="filters" id="filters"></div>
@@ -433,8 +565,17 @@ class ReolinkAppCard extends HTMLElement {
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
     $('unzoom').onclick = () => this._resetZoom();
-    $('hang').onclick = () => this._hangUp();
+    $('snd').onclick = () => { this._sound = !this._sound; this._sndCheck = this._sound; this._applySound(); this._update(); };
+    // Ohne Tonspur im WebRTC-Stream einmal darauf hinweisen
+    $('pic').addEventListener('streams', (e) => {
+      const src = e.composedPath()[0];
+      if (!this._sndCheck || !src || src.localName !== 'ha-web-rtc-player' || !e.detail || !e.detail.hasVideo) return;
+      this._sndCheck = false;
+      if (!e.detail.hasAudio) this._toast({ text: this._t('no_audio'), color: '#636366', icon: 'mdi:volume-off', wrap: true });
+    });
     // Meldungen des Kamera-Streams von Home Assistant (WebRTC-Player in der picture-entity-Karte)
+    $('ring-yes').onclick = () => this._endRing(true);
+    $('ring-no').onclick = () => this._endRing(false);
     $('pic').addEventListener('microphone-changed', (e) => { if (!this._appSession && !this._appMic) this._setMic(e.detail.state); });
     $('pic').addEventListener('stream-type-changed', (e) => { this._streamType = e.detail.type || null; this._update(); });
     $('prev').onload = () => { $('prev').classList.add('ok'); };
@@ -465,6 +606,8 @@ class ReolinkAppCard extends HTMLElement {
   }
 
   _rebuildCamera() {
+    if (this._ring && this._ring.idx !== this._idx) this._endRing(false);
+    this._ptzOpen = false;
     const wasLive = this._live;
     this._stopLive(true);
     this._stopPlayback(true);
@@ -512,6 +655,7 @@ class ReolinkAppCard extends HTMLElement {
       host.innerHTML = '';
       host.appendChild(el);
       this._pics = [el];
+      if (this._sound) this._applySound();
     }
   }
 
@@ -551,6 +695,7 @@ class ReolinkAppCard extends HTMLElement {
 
   /* ---------- Live ---------- */
   _startLive() {
+    this._linkLive = false;
     if (this._playing) this._stopPlayback(true);
     this._live = true;
     const t = +this._config.live_timeout || 0;
@@ -560,7 +705,7 @@ class ReolinkAppCard extends HTMLElement {
       this._tick = setInterval(() => {
         if (this._mic !== 'off' && this._liveEnds - Date.now() < 60000) this._liveEnds = Date.now() + 60000;
         if (Date.now() >= this._liveEnds) { this._expired = true; this._stopLive(); }
-        else this._update();
+        else this._updateTimer();
       }, 1000);
     }
     this._makePic();
@@ -609,6 +754,27 @@ class ReolinkAppCard extends HTMLElement {
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
       if (i !== this._idx && !this._grid) { this._idx = i; this._expired = false; this._rebuildCamera(); }
       else if (!this._live && this._visible && !document.hidden) { this._expired = false; this._startLive(); }
+    });
+  }
+
+  /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
+  _ask(text, okLabel, danger) {
+    const $ = this.$, box = $('dlg');
+    if (this._askDone) this._askDone(false);
+    $('dtext').textContent = text;
+    $('dno').textContent = this._t('cancel');
+    $('dyes').textContent = okLabel;
+    $('dyes').classList.toggle('danger', !!danger);
+    box.classList.add('show');
+    return new Promise((resolve) => {
+      const done = (v) => { box.classList.remove('show'); this._askDone = null; document.removeEventListener('keydown', key, true); resolve(v); };
+      const key = (e) => { if (e.key === 'Escape') done(false); else if (e.key === 'Enter') done(true); };
+      this._askDone = done;
+      $('dno').onclick = () => done(false);
+      $('dyes').onclick = () => done(true);
+      box.onclick = (e) => { if (e.target === box) done(false); };
+      document.addEventListener('keydown', key, true);
+      $('dyes').focus();
     });
   }
 
@@ -725,17 +891,247 @@ class ReolinkAppCard extends HTMLElement {
         run: () => (legacy ? this._talk() : this._toggleTalk()) });
     }
     if (this._st(siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light-outline', label: this._t('siren'), on: this._on(siren), warn: true,
-      run: () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
-        : (confirm(this._t('siren_confirm', { name: c.name })) && this._call('siren', 'turn_on', siren))) });
+      run: async () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
+        : ((await this._ask(this._t('siren_confirm', { name: c.name }), this._t('siren_btn'), true)) && this._call('siren', 'turn_on', siren))) });
     if (this._st(light)) items.push({ id: 'light', icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light),
       run: () => this._call('light', 'toggle', light) });
     if (this._st(mrec)) items.push({ id: 'rec', icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec),
       run: () => this._call('switch', 'toggle', mrec) });
     items.push({ id: 'snap', icon: 'mdi:camera-outline', label: this._t('snapshot'), run: () => this._snapshot() });
+    if (!this._grid && this._hasPtz()) items.push({ id: 'ptz', icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
+      run: () => { this._ptzOpen = !this._ptzOpen; this._qOpen = false; this._update(); } });
     if (this._qAvail().length && !this._grid) items.push({ id: 'q', icon: Q[this._quality].icon,
       label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
-      run: () => { this._qOpen = !this._qOpen; this._update(); } });
+      run: () => { this._qOpen = !this._qOpen; this._ptzOpen = false; this._update(); } });
     return items;
+  }
+
+  /* ---------- Klingel ----------
+     Auslöser pro Kamera (Option doorbell): Besucher-Sensor einer Reolink-Klingel oder ein beliebiger Taster/Schalter/Sensor.
+     Ohne Angabe wird der Besucher-Sensor der Kamera genommen, falls vorhanden; doorbell: false schaltet es ab. */
+  _bellId(cam) {
+    if (cam.doorbell === false) return null;
+    if (typeof cam.doorbell === 'string') return cam.doorbell;
+    const v = this._e('visitor', cam);
+    return this._st(v) ? v : null;
+  }
+
+  _checkDoorbell(old, hass) {
+    if (!old) return;
+    this._cams.forEach((cam, i) => {
+      const id = this._bellId(cam);
+      if (!id) return;
+      const o = old.states[id], n = hass.states[id];
+      if (!o || !n || o === n || ['unavailable', 'unknown'].includes(n.state)) return;
+      const domain = id.split('.')[0];
+      // An/Aus-Entitäten klingeln beim Einschalten, Ereignisse und Taster bei jeder neuen Auslösung, Sensoren bei jeder Änderung
+      const rang = ['binary_sensor', 'input_boolean', 'switch', 'light'].includes(domain) ? o.state !== 'on' && n.state === 'on' : n.state !== o.state;
+      if (rang) this._startRing(i);
+    });
+  }
+
+  _startRing(i) {
+    const again = this._ring && this._ring.idx === i;
+    if (this._ring && !again) this._endRing(false);
+    if (!again) {
+      if (this._grid) this._setGrid(false);
+      if (this._mode !== 'live') this._setMode('live');
+      if (i !== this._idx) { this._idx = i; this._rebuildCamera(); }
+      // Livebild nur während des Klingelns und nur, wenn die Karte sichtbar ist (Akku)
+      const startLive = !this._live && this._visible && !document.hidden;
+      if (startLive) { this._expired = false; this._startLive(); } else if (!this._live) this._loadSnap(i, true);
+      this._ring = { idx: i, startedLive: startLive };
+      if (this._config.doorbell_sound !== false) { this._ringTone(); this._ringToneT = setInterval(() => this._ringTone(), 3000); }
+    }
+    clearTimeout(this._ringT);
+    this._ringT = setTimeout(() => this._endRing(false), (+this._config.doorbell_timeout || 30) * 1000);
+    this._update();
+  }
+
+  _endRing(answer) {
+    const r = this._ring;
+    clearTimeout(this._ringT); clearInterval(this._ringToneT);
+    if (!r) return;
+    this._ring = null;
+    if (answer) {
+      this._expired = false;
+      if (!this._live) this._startLive();
+      if (this._mic === 'off') this._toggleTalk();
+    } else if (r.startedLive && this._live && this._mic === 'off') this._stopLive();
+    if (this._built) this._update();
+  }
+
+  /* Kurzer Ding-Dong über den Lautsprecher des Geräts (Browser erlauben Ton erst nach einer Interaktion) */
+  _ringTone() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = this._ringCtx || (this._ringCtx = new AC());
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      const now = ctx.currentTime;
+      [[880, 0], [659, 0.45]].forEach(([f, d]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, now + d);
+        g.gain.exponentialRampToValueAtTime(0.3, now + d + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + d + 0.9);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + d); o.stop(now + d + 1);
+      });
+    } catch (_) { /* ohne Ton weiter */ }
+  }
+
+  /* ---------- Schwenken & Neigen (PTZ) ---------- */
+  _hasPtz(cam = this._cam) { return ['ptz_left', 'ptz_right', 'ptz_up', 'ptz_down'].some((k) => this._st(this._e(k, cam))); }
+
+  _press(id) { if (this._st(id)) this._call('button', 'press', id); }
+
+  /* Gedrückt halten bewegt, Loslassen stoppt (mindestens 250 ms, damit ein kurzer Tipp sichtbar etwas bewegt) */
+  _bindHold(btn, key) {
+    let since = 0, active = false;
+    const stop = () => {
+      if (!active) return;
+      active = false;
+      const wait = Math.max(0, 250 - (Date.now() - since));
+      setTimeout(() => this._press(this._e('ptz_stop')), wait);
+    };
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); active = true; since = Date.now(); try { btn.setPointerCapture(e.pointerId); } catch (_) { /* ignorieren */ } this._press(this._e(key)); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) => btn.addEventListener(t, stop));
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  _updatePtz() {
+    const box = this.$('ptz');
+    const show = this._ptzOpen && !this._grid && this._mode === 'live' && this._hasPtz();
+    box.classList.toggle('open', !!show);
+    if (!show) return;
+    const preset = this._e('ptz_preset'), ps = this._st(preset);
+    const opts = ps && Array.isArray(ps.attributes.options) ? ps.attributes.options : [];
+    const has = (k) => !!this._st(this._e(k));
+    const sig = `${this._idx}|${this._lang}|${opts.join(',')}|${['ptz_up', 'ptz_down', 'ptz_left', 'ptz_right', 'ptz_zoom_in', 'ptz_zoom_out'].map(has).join()}`;
+    if (box.dataset.sig !== sig) {
+      box.dataset.sig = sig;
+      const dir = (k, icon, cls) => (has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(this._t('ptz'))}"><ha-icon icon="${icon}"></ha-icon></button>` : '');
+      box.innerHTML = `<div class="pwrap">
+          <div class="pad">${dir('ptz_up', 'mdi:chevron-up', 'u')}${dir('ptz_left', 'mdi:chevron-left', 'l')}<button class="pd c" id="pstop" title="${esc(this._t('ptz_stop'))}"><ha-icon icon="mdi:stop"></ha-icon></button>${dir('ptz_right', 'mdi:chevron-right', 'r')}${dir('ptz_down', 'mdi:chevron-down', 'd')}</div>
+          <div class="pzoom">${has('ptz_zoom_in') ? `<button class="pz" data-k="ptz_zoom_in" title="${esc(this._t('zoom_in'))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button>` : ''}${has('ptz_zoom_out') ? `<button class="pz" data-k="ptz_zoom_out" title="${esc(this._t('zoom_out'))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ''}</div>
+        </div>
+        ${opts.length ? `<div class="pre"><small>${esc(this._t('ptz_presets'))}</small><div class="chips">${opts.map((o) => `<button class="chip" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>` : ''}`;
+      box.querySelectorAll('[data-k]').forEach((b) => this._bindHold(b, b.dataset.k));
+      const st = box.querySelector('#pstop');
+      if (st) st.onclick = () => this._press(this._e('ptz_stop'));
+      box.querySelectorAll('.chip').forEach((b) => { b.onclick = () => this._call('select', 'select_option', preset, { option: b.dataset.o }); });
+    }
+    box.querySelectorAll('.chip').forEach((b) => b.classList.toggle('sel', !!ps && ps.state === b.dataset.o));
+  }
+
+  /* ---------- Direktlink, z. B. aus einer Push-Mitteilung ----------
+     ?rac=live&rac_cam=kamera_eingang            → Kamera wählen und live starten
+     ?rac=event&rac_cam=kamera_eingang&rac_t=…   → Aufnahme zu diesem Zeitpunkt (Unix-Sekunden) abspielen */
+  _onLink = () => {
+    if (!this._built || !this._hass || !this.isConnected) return;
+    let q;
+    try { q = new URLSearchParams(window.location.search); } catch (_) { return; }
+    const mode = q.get('rac');
+    if (mode !== 'live' && mode !== 'event') return;
+    const want = String(q.get('rac_cam') || '').trim().toLowerCase();
+    const i = want ? this._cams.findIndex((c) => [c.prefix, c.entity, c.name, c.media_name].some((x) => x && String(x).toLowerCase() === want)
+      || prefixOf(want) === c.prefix || (c._devId && this._hass.entities && this._hass.entities[want] && this._hass.entities[want].device_id === c._devId)) : 0;
+    if (i < 0) return; // gehört zu einer anderen Karte auf der Seite
+    const t = +q.get('rac_t') || Math.floor(Date.now() / 1000);
+    ['rac', 'rac_cam', 'rac_t'].forEach((k) => q.delete(k));
+    const qs = q.toString();
+    try { history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`); } catch (_) { /* ignorieren */ }
+    if (this._grid) this._setGrid(false);
+    if (i !== this._idx) { this._idx = i; this._rebuildCamera(); }
+    this._expired = false;
+    try { this.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignorieren */ }
+    if (mode === 'event') {
+      this._pendingEvent = t; this._eventTries = 0;
+      this._days = null; this._files = null;
+      this._setMode('play');
+    } else {
+      this._linkLive = true;
+      this._setMode('live');
+    }
+  };
+
+  /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
+  _pickEvent() {
+    const t = this._pendingEvent;
+    if (!t || !Array.isArray(this._files) || !Array.isArray(this._days)) return;
+    const day = this._days[this._dayIdx], when = new Date(t * 1000);
+    const sameDay = day && day.date && day.date.toDateString() === when.toDateString();
+    const sec = when.getHours() * 3600 + when.getMinutes() * 60 + when.getSeconds();
+    let best = sameDay ? this._files.find((f) => f.start <= sec + 10 && f.start + Math.max(f.dur, 30) >= sec - 10) : null;
+    // Sonst: Aufnahme, die kurz vor oder bis 2 Minuten nach der Meldung beginnt
+    if (!best && sameDay) best = this._files.filter((f) => f.start >= sec - 60 && f.start <= sec + 120).sort((x, y) => Math.abs(x.start - sec) - Math.abs(y.start - sec))[0];
+    // Nach mehreren Versuchen oder bei älteren Meldungen: nächstgelegene Aufnahme innerhalb von 10 Minuten
+    const recent = Date.now() / 1000 - t < 300 && (this._eventTries || 0) < 3;
+    if (!best && sameDay && !recent) {
+      const near = this._files.map((f) => ({ f, d: Math.abs(f.start - sec) })).sort((x, y) => x.d - y.d)[0];
+      if (near && near.d <= 600) best = near.f;
+    }
+    if (best) { this._pendingEvent = null; this._filter = 'all'; this._play(best); return; }
+    // Kurz nach der Meldung nimmt die Kamera oft noch auf – etwas später nochmals nachsehen
+    if (recent) {
+      this._eventTries = (this._eventTries || 0) + 1;
+      this._toast({ text: this._t('ev_wait'), color: '#636366', icon: 'mdi:timer-sand', wrap: true });
+      clearTimeout(this._eventT);
+      this._eventT = setTimeout(async () => {
+        if (!this._pendingEvent || this._mode !== 'play') return;
+        await this._loadDays();
+      }, 15000);
+      return;
+    }
+    this._pendingEvent = null;
+    this._toast({ text: this._t('ev_missing'), color: '#636366', icon: 'mdi:filmstrip-off', wrap: true });
+  }
+
+  /* ---------- Ton des Livebilds ----------
+     Die picture-entity-Karte startet den Stream immer stumm, und der WebRTC-Player lässt die Tonspur dann ganz weg.
+     Zum Einschalten wird der Player deshalb ohne Stummschaltung neu verbunden. */
+  async _applySound() {
+    const tok = (this._sndTok = Symbol());
+    // Browser spielen Ton erst nach einer Interaktion mit der Seite ab, sonst bliebe das Livebild schwarz
+    const ua = navigator.userActivation;
+    if (this._sound && ua && !ua.hasBeenActive) {
+      if (!this._sndWait) {
+        // Auf Touchgeräten zählt erst das Loslassen als Interaktion, darum auf pointerup/click/keydown warten
+        this._sndWait = () => { this._sndStopWait(); setTimeout(() => { if (this._sound) this._applySound(); }, 0); };
+        SND_EVENTS.forEach((t) => window.addEventListener(t, this._sndWait, true));
+      }
+      return;
+    }
+    for (let n = 0; n < 100; n++) {
+      if (tok !== this._sndTok || !this._live || this._grid) return;
+      const s = deepFind(this.$('pic'), 'ha-camera-stream');
+      if (s) {
+        const want = !this._sound;
+        if (s.muted === want) return;
+        s.muted = want;
+        const p = s.shadowRoot && s.shadowRoot.querySelector('ha-web-rtc-player');
+        // Nur beim Einschalten neu verbinden, und nur wenn der Player schon ohne Ton verbunden ist
+        if (!want && p && p.entityid) {
+          const talking = this._mic !== 'off' && !this._appSession;
+          await s.updateComplete;
+          const id = p.entityid;
+          p.entityid = undefined;
+          await p.updateComplete;
+          p.entityid = id;
+          if (talking) { this._setMic('off'); setTimeout(() => this._toggleTalk(), 300); }
+        }
+        return;
+      }
+      // Anfangs schnell nachsehen, damit der Player möglichst gleich mit Ton startet statt neu zu verbinden
+      await new Promise((r) => setTimeout(r, n < 40 ? 25 : 200));
+    }
+  }
+
+  _sndStopWait() {
+    if (!this._sndWait) return;
+    SND_EVENTS.forEach((t) => window.removeEventListener(t, this._sndWait, true));
+    this._sndWait = null;
   }
 
   /* ---------- Gegensprechen über Home Assistant (Zwei-Wege-Audio, Labs-Funktion ab 2026.11) ----------
@@ -891,12 +1287,11 @@ class ReolinkAppCard extends HTMLElement {
       an.fftSize = 256;
       ctx.createMediaStreamSource(new MediaStream([track])).connect(an);
       const buf = new Uint8Array(an.fftSize);
-      const stage = this.$('stage');
       const loop = () => {
         an.getByteTimeDomainData(buf);
         let sum = 0;
         for (let i = 0; i < buf.length; i++) { const d = (buf[i] - 128) / 128; sum += d * d; }
-        stage.style.setProperty('--lvl', Math.min(1, Math.sqrt(sum / buf.length) * 5).toFixed(2));
+        this.style.setProperty('--lvl', Math.min(1, Math.sqrt(sum / buf.length) * 5).toFixed(2));
         this._meterRaf = requestAnimationFrame(loop);
       };
       this._meterCtx = ctx;
@@ -907,7 +1302,7 @@ class ReolinkAppCard extends HTMLElement {
   _stopMeter() {
     cancelAnimationFrame(this._meterRaf);
     if (this._meterCtx) { this._meterCtx.close().catch(() => {}); this._meterCtx = null; }
-    if (this._built) this.$('stage').style.removeProperty('--lvl');
+    this.style.removeProperty('--lvl');
   }
 
   /* Alternativ (Option talk_url): Reolink-App öffnen. Reolink bietet keinen Deep-Link auf eine bestimmte Kamera */
@@ -917,7 +1312,7 @@ class ReolinkAppCard extends HTMLElement {
     const companion = android && (/Home ?Assistant/i.test(ua) || !!window.externalApp);
     const url = this._cam.talk_url || this._config.talk_url
       || (companion ? REOLINK_COMPANION : android ? REOLINK_CHROME : null);
-    if (!url) { alert(this._t('no_talk_url')); return; }
+    if (!url) { this._toast({ text: this._t('no_talk_url'), color: '#636366', icon: 'mdi:link-off', wrap: true }); return; }
     this._stopLive();
     this._openLink(url);
   }
@@ -973,9 +1368,15 @@ class ReolinkAppCard extends HTMLElement {
       if (camIdx !== this._idx) return;
       this._days = days;
       this._dayIdx = 0;
+      if (this._pendingEvent) {
+        const want = new Date(this._pendingEvent * 1000).toDateString();
+        const k = days.findIndex((d) => d.date && d.date.toDateString() === want);
+        if (k >= 0) this._dayIdx = k;
+      }
       this._renderDays();
       if (days.length) await this._loadFiles();
       else this._update();
+      if (this._pendingEvent && camIdx === this._idx) this._pickEvent();
     } catch (e) {
       if (camIdx !== this._idx) return;
       this._days = { error: e.message || String(e) };
@@ -1040,7 +1441,7 @@ class ReolinkAppCard extends HTMLElement {
       if (p && p.catch) p.catch(() => {});
     } catch (e) {
       this._playing = null;
-      alert(`${this._t('play_error')}: ${e.message || e}`);
+      this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
     this._update();
   }
@@ -1135,6 +1536,14 @@ class ReolinkAppCard extends HTMLElement {
     return !camSt || camSt.state === 'unavailable' ? 'off' : this._det(cam).length ? 'alert' : this._on(this._e('sleep', cam)) ? 'sleep' : 'on';
   }
 
+  _updateTimer() {
+    const t = this.$('timer'), timed = this._live && !!this._liveEnds;
+    const left = timed ? Math.max(0, Math.ceil((this._liveEnds - Date.now()) / 1000)) : 0;
+    const txt = timed ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '';
+    if (t.textContent !== txt) t.textContent = txt;
+    t.style.display = timed ? '' : 'none';
+  }
+
   _update() {
     if (!this._built || !this._hass) return;
     const $ = this.$, c = this._cam, root = this.shadowRoot;
@@ -1161,11 +1570,23 @@ class ReolinkAppCard extends HTMLElement {
     $('stage').classList.toggle('playing', playing);
     $('stage').classList.toggle('live', this._live);
     $('stage').classList.toggle('gridmode', this._grid);
+    const ringing = !!this._ring && !playing;
+    $('stage').classList.toggle('ringing', ringing);
+    if (ringing) {
+      $('ring-t').textContent = this._t('ring_title');
+      $('ring-n').textContent = this._cams[this._ring.idx].name;
+      $('ring-yes-l').textContent = this._t('answer');
+      $('ring-no-l').textContent = this._t('decline');
+    }
+    this._updatePtz();
     const talking = this._mic !== 'off' && !this._grid && !playing;
     $('stage').classList.toggle('talking', talking);
     $('talk').classList.toggle('conn', this._mic === 'connecting');
     $('talk').classList.toggle('lvl', !!this._meterCtx);
-    $('hang').title = this._t('hang_up');
+    $('snd').style.display = this._live && !this._grid && !playing ? '' : 'none';
+    $('snd').classList.toggle('on', this._sound);
+    $('snd').querySelector('ha-icon').setAttribute('icon', this._sound ? 'mdi:volume-high' : 'mdi:volume-off');
+    $('snd').title = this._sound ? this._t('sound_off') : this._t('sound_on');
     if (talking) this._talkLabel();
     $('stage').classList.toggle('haspic', !!this._snaps[this._idx]);
     if (this._snaps[this._idx] && $('prev').getAttribute('src') !== this._snaps[this._idx].url) $('prev').src = this._snaps[this._idx].url;
@@ -1202,10 +1623,7 @@ class ReolinkAppCard extends HTMLElement {
       cell.classList.toggle('alert', this._det(cam).length > 0);
     });
 
-    const timed = this._live && !!this._liveEnds;
-    const left = timed ? Math.max(0, Math.ceil((this._liveEnds - Date.now()) / 1000)) : 0;
-    $('timer').textContent = timed ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '';
-    $('timer').style.display = timed ? '' : 'none';
+    this._updateTimer();
     $('stop').style.display = this._live || playing ? '' : 'none';
     $('stop').title = this._t('stop_live');
     $('fs').title = this._t('fullscreen');
@@ -1294,7 +1712,14 @@ class ReolinkAppCard extends HTMLElement {
     const sig = ctrls.map((x) => x.id).join();
     if ($('ctrls').dataset.sig !== sig) {
       $('ctrls').dataset.sig = sig;
-      $('ctrls').innerHTML = ctrls.map((x) => `<button class="tbn" data-id="${x.id}"><ha-icon></ha-icon></button>`).join('');
+      const btn = (x) => `<button class="tbn${x.id === 'talk' ? ' big' : ''}" data-id="${x.id}"><ha-icon></ha-icon></button>`;
+      const mid = ctrls.find((x) => x.id === 'talk'), rest = ctrls.filter((x) => x !== mid);
+      // Hörer in die Mitte, die übrigen Buttons links und rechts davon verteilt
+      const half = Math.ceil(rest.length / 2);
+      $('ctrls').classList.toggle('split', !!mid);
+      $('ctrls').innerHTML = mid
+        ? `<div class="side">${rest.slice(0, half).map(btn).join('')}</div>${btn(mid)}<div class="side">${rest.slice(half).map(btn).join('')}</div>`
+        : ctrls.map(btn).join('');
       ctrls.forEach((x) => { $('ctrls').querySelector(`[data-id="${x.id}"]`).onclick = () => this._controls().find((y) => y.id === x.id).run(); });
     }
     ctrls.forEach((x) => {
@@ -1366,8 +1791,8 @@ class ReolinkAppCard extends HTMLElement {
       const want = e.target.checked;
       this._call(domain, want ? 'turn_on' : 'turn_off', it.id);
     });
-    else if (it.type === 'btn') row.querySelector('.rowbtn').onclick = () => {
-      if (it.confirmKey && !confirm(this._t(it.confirmKey, { name: this._cam.name }))) return;
+    else if (it.type === 'btn') row.querySelector('.rowbtn').onclick = async () => {
+      if (it.confirmKey && !(await this._ask(this._t(it.confirmKey, { name: this._cam.name }), this._t('restart_btn'), true))) return;
       this._call('button', 'press', it.id);
     };
     else if (it.type === 'sel') row.querySelector('select').onchange = (e) => this._call('select', 'select_option', it.id, { option: e.target.value });
@@ -1450,17 +1875,61 @@ function modeIcon(o) {
   return 'mdi:circle-medium';
 }
 
-/* Reolink-Kameras in Home Assistant finden (für Editor und Vorschlag) */
+/* Gemeinsamen Teil der Entity-IDs aus einer Kamera-Entität ableiten, z. B. camera.kamera_eingang_standardauflosung → kamera_eingang */
+const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))$/;
+function prefixOf(entityId) {
+  const m = String(entityId || '').match(/^camera\.(.+)$/);
+  return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, '') : null;
+}
+
+/* Reolink-Kameras in Home Assistant finden (für Editor und Vorschläge); nutzt das Geräte-Register, wenn vorhanden */
 function detectCameras(hass) {
   if (!hass) return [];
   const out = [];
   Object.keys(hass.states).forEach((id) => {
     const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)$/);
-    if (!m || /_(schnappschusse_in|snapshots)$/.test(m[1])) return;
-    const fn = String(hass.states[id].attributes.friendly_name || m[1]);
-    out.push({ prefix: m[1], name: fn.replace(/\s*(Standardauflösung|Fluent)$/i, '').trim() || m[1] });
+    if (!m) return;
+    const reg = hass.entities && hass.entities[id];
+    if (reg && reg.platform && reg.platform !== 'reolink') return;
+    const dev = reg && reg.device_id && hass.devices ? hass.devices[reg.device_id] : null;
+    const fn = String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, '').trim();
+    const name = (dev && (dev.name_by_user || dev.name)) || fn || m[1];
+    out.push({ prefix: m[1], name, entity: id, device_id: reg ? reg.device_id : undefined });
   });
   return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/* Hub finden: Szenenmodus- oder SD-Karten-Entität, die keiner Kamera gehört */
+function findHubPrefix(hass) {
+  if (!hass) return null;
+  for (const id of Object.keys(hass.states)) {
+    const m = id.match(/^select\.(.+)_(szenenmodus|scene_mode)$/) || id.match(/^sensor\.(.+)_sd_0_(speicher|storage)$/);
+    if (!m) continue;
+    const reg = hass.entities && hass.entities[id];
+    if (reg && reg.platform && reg.platform !== 'reolink') continue;
+    return m[1];
+  }
+  return null;
+}
+
+/* Vorschlag für „Zur Übersicht hinzufügen“: zu jeder Entität einer Reolink-Kamera (oder des Hubs) */
+function cardSuggestion(hass, entityId) {
+  const cams = detectCameras(hass);
+  if (!cams.length || !entityId) return null;
+  const obj = entityId.split('.')[1] || '';
+  const reg = hass.entities && hass.entities[entityId];
+  const dev = reg && reg.device_id;
+  const hit = cams.find((c) => (dev && c.device_id === dev) || obj === c.prefix || obj.startsWith(`${c.prefix}_`));
+  const hub = findHubPrefix(hass);
+  const hubDev = hub && hass.entities && Object.keys(hass.entities).some((id) => hass.entities[id].device_id === dev && (id.split('.')[1] || '').startsWith(`${hub}_`));
+  const isHub = !hit && hub && (obj.startsWith(`${hub}_`) || hubDev);
+  if (!hit && !isHub) return null;
+  const t = STR[pickLang('auto', hass)];
+  const conf = (list) => ({ type: 'custom:reolink-app-card', cameras: list.map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name })) });
+  const out = [];
+  if (hit) out.push({ label: `Reolink App Card – ${hit.name}`, config: conf([hit]) });
+  if (cams.length > 1 || isHub) out.push({ label: `Reolink App Card – ${t.grid}`, config: conf(cams) });
+  return out;
 }
 
 /* ======================================================================= */
@@ -1470,22 +1939,25 @@ const ED_LABELS = {
     mode_entity: 'Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)', default_quality: 'Startqualität', live_timeout: 'Live-Limit (Sekunden, 0 = kein Limit)', auto_live: 'Live automatisch starten',
     auto_switch: 'Bei Erkennung zur Kamera springen', autoplay_next: 'Nächsten Clip automatisch abspielen',
     battery_warning: 'Akku-Warnung ab (%)', temperature_warning: 'Temperatur-Warnung ab (°C)', show_hub: 'Hub anzeigen (Szenenmodus, SD-Karte)',
-    hub_prefix: 'Hub-Präfix', language: 'Sprache', prefix: 'Kamera', name: 'Anzeigename', media_name: 'Name in der Medienquelle (für Wiedergabe)',
+    hub_prefix: 'Hub-Präfix', language: 'Sprache', prefix: 'Kamera', doorbell: 'Klingel-Auslöser (optional, z. B. Taster oder Besucher-Sensor)', doorbell_timeout: 'Klingeln anzeigen für (Sekunden)', doorbell_sound: 'Klingelton abspielen', name: 'Anzeigename', media_name: 'Name in der Medienquelle (für Wiedergabe)',
     cameras: 'Kameras', add: 'Kamera hinzufügen', remove: 'Entfernen', up: 'Nach oben', auto: 'Automatisch', options: 'Optionen',
+    audio: 'Audioausgabe', audio_auto: 'Automatisch (Ton an, sobald das Livebild läuft)', audio_manual: 'Manuell (mit dem Lautsprecher-Button)',
   },
   en: {
     mode_entity: 'Mode selector on top (e.g. an input_select for notifications)', default_quality: 'Start quality', live_timeout: 'Live limit (seconds, 0 = no limit)', auto_live: 'Start live automatically',
     auto_switch: 'Jump to camera on detection', autoplay_next: 'Autoplay next clip',
     battery_warning: 'Battery warning at (%)', temperature_warning: 'Temperature warning at (°C)', show_hub: 'Show hub (scene mode, SD card)',
-    hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', name: 'Display name', media_name: 'Name in the media source (for playback)',
+    hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', doorbell: 'Doorbell trigger (optional, e.g. a button or visitor sensor)', doorbell_timeout: 'Show ringing for (seconds)', doorbell_sound: 'Play ring tone', name: 'Display name', media_name: 'Name in the media source (for playback)',
     cameras: 'Cameras', add: 'Add camera', remove: 'Remove', up: 'Move up', auto: 'Automatic', options: 'Options',
+    audio: 'Audio output', audio_auto: 'Automatic (sound on as soon as the live view runs)', audio_manual: 'Manual (with the speaker button)',
   },
   fr: {
     mode_entity: 'Sélecteur de mode en haut (p. ex. un input_select pour les notifications)', default_quality: 'Qualité au démarrage', live_timeout: 'Limite du direct (secondes, 0 = sans limite)', auto_live: 'Démarrer le direct automatiquement',
     auto_switch: 'Basculer vers la caméra lors d’une détection', autoplay_next: 'Lire automatiquement le clip suivant',
     battery_warning: 'Alerte batterie à partir de (%)', temperature_warning: 'Alerte température à partir de (°C)', show_hub: 'Afficher le hub (mode scène, carte SD)',
-    hub_prefix: 'Préfixe du hub', language: 'Langue', prefix: 'Caméra', name: 'Nom affiché', media_name: 'Nom dans la source multimédia (pour la lecture)',
+    hub_prefix: 'Préfixe du hub', language: 'Langue', prefix: 'Caméra', doorbell: 'Déclencheur de sonnette (facultatif, p. ex. bouton ou capteur visiteur)', doorbell_timeout: 'Afficher la sonnerie pendant (secondes)', doorbell_sound: 'Jouer une sonnerie', name: 'Nom affiché', media_name: 'Nom dans la source multimédia (pour la lecture)',
     cameras: 'Caméras', add: 'Ajouter une caméra', remove: 'Supprimer', up: 'Monter', auto: 'Automatique', options: 'Options',
+    audio: 'Sortie audio', audio_auto: 'Automatique (son activé dès que le direct démarre)', audio_manual: 'Manuelle (avec le bouton haut-parleur)',
   },
 };
 
@@ -1514,9 +1986,15 @@ class ReolinkAppCardEditor extends HTMLElement {
     if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
     const L = this._l;
     const detected = detectCameras(this._hass);
-    const camOpts = detected.map((c) => ({ value: c.prefix, label: `${c.name} (${c.prefix})` }));
+    // Nur den Namen zeigen; den technischen Teil der Entity-IDs nur, wenn zwei Kameras gleich heissen
+    const camOpts = detected.map((c) => ({ value: c.prefix, label: detected.filter((d) => d.name === c.name).length > 1 ? `${c.name} (${c.prefix})` : c.name }));
     const general = [
       { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
+      { type: 'grid', name: '', schema: [
+        { name: 'doorbell_timeout', selector: { number: { min: 10, max: 120, step: 5, mode: 'box', unit_of_measurement: 's' } } },
+        { name: 'doorbell_sound', selector: { boolean: {} } },
+      ] },
+      { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
       { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
       { type: 'grid', name: '', schema: [
@@ -1529,14 +2007,14 @@ class ReolinkAppCardEditor extends HTMLElement {
         { name: 'battery_warning', selector: { number: { min: 0, max: 100, step: 5, mode: 'box', unit_of_measurement: '%' } } },
         { name: 'temperature_warning', selector: { number: { min: 20, max: 80, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
       ] },
-      { name: 'hub_prefix', selector: { text: {} } },
       { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' }, { value: 'fr', label: 'Français' }] } } },
     ];
     const camSchema = [
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
+      { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
     ];
-    const defaults = { mode_entity: '', default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
@@ -1603,7 +2081,15 @@ class ReolinkAppCardEditor extends HTMLElement {
 /* ======================================================================= */
 const RAC_CSS = `
 :host { --ra: var(--reolink-accent, #1e8bff); --rb: var(--ha-card-background, var(--card-background-color)); }
-ha-card { overflow: hidden; padding-bottom: 8px; }
+ha-card { overflow: hidden; padding-bottom: 8px; position: relative; }
+.dlg { position: absolute; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+.dlg.show { display: flex; }
+.dbox { width: 100%; max-width: 320px; padding: 18px 16px 14px; border-radius: 18px; background: #2c2c2e; color: #f2f2f2; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.dtext { font-size: 15px; line-height: 1.4; text-align: center; margin-bottom: 16px; }
+.dbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dbtns button { padding: 11px; border-radius: 12px; font-size: 15px; font-weight: 600; background: #3a3a3c; color: #f2f2f2; }
+.dbtns button.danger { background: #ff3b30; color: #fff; }
+.dbtns button:not(.danger)#dyes { background: var(--ra); color: #fff; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
@@ -1678,17 +2164,55 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .seg button.sel { background: var(--rb); opacity: 1; color: var(--ra); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .barwrap { position: relative; padding: 10px 10px 4px; }
 .bar { display: flex; justify-content: space-around; align-items: center; gap: 2px; padding: 8px 10px; border-radius: 30px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
+.bar.split { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; }
+.bar .side { display: flex; justify-content: space-around; align-items: center; gap: 2px; min-width: 0; }
+.tbn.big { width: 58px; height: 58px; margin: -8px 0; border-radius: 50%; background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: background .2s, box-shadow .08s, transform .15s; }
+.tbn.big ha-icon { --mdc-icon-size: 28px; }
+.tbn.big:active { transform: scale(.94); }
+.tbn.big.warn { border-color: transparent; box-shadow: 0 0 0 calc(var(--lvl, 0) * 12px) rgba(255,59,48,.3), 0 2px 8px rgba(0,0,0,.35); }
 .tbn { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #f2f2f2; transition: background .2s, color .2s; }
 .tbn ha-icon { --mdc-icon-size: 24px; }
 .tbn.on { background: var(--ra); color: #fff; }
 .tbn.warn { background: #ff3b30; color: #fff; }
 .tbn.dis { opacity: .35; }
+.pill.btn.on { background: color-mix(in srgb, var(--ra) 85%, transparent); }
 .tbn.ring { animation: ring 1.2s ease-in-out infinite; }
 @keyframes ring { 50% { box-shadow: 0 0 0 7px rgba(255,59,48,.25); } }
 .talk { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 3; }
+.ring { position: absolute; inset: 0; z-index: 6; display: none; flex-direction: column; justify-content: space-between; align-items: center; padding: 18px 12px 16px; color: #fff;
+  background: linear-gradient(rgba(0,0,0,.72), rgba(0,0,0,.15) 45%, rgba(0,0,0,.72)); }
+.stage.ringing .ring { display: flex; }
+.stage.ringing .bigplay, .stage.ringing .ov, .stage.ringing .talk { display: none !important; }
+.rhead { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.rhead b { font-size: 18px; } .rhead span:last-child { font-size: 14px; opacity: .85; }
+.rbell { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.16); animation: ring 1.2s ease-in-out infinite; }
+.rbell ha-icon { --mdc-icon-size: 26px; }
+.rbtns { display: flex; gap: 64px; }
+.rb { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; font-size: 13px; font-weight: 600; }
+.rb > span { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.4); transition: transform .15s; }
+.rb:active > span { transform: scale(.93); }
+.rb ha-icon { --mdc-icon-size: 30px; }
+.rb.no > span { background: #ff3b30; }
+.rb.yes > span { background: #34c759; animation: answer 1.4s ease-in-out infinite; }
+@keyframes answer { 50% { box-shadow: 0 0 0 10px rgba(52,199,89,.25), 0 4px 14px rgba(0,0,0,.4); } }
+.ptz { display: none; padding: 4px 10px 6px; }
+.ptz.open { display: block; }
+.pwrap { display: flex; align-items: center; justify-content: center; gap: 28px; }
+.pad { display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 4px; padding: 6px; border-radius: 50%; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
+.pd, .pz { display: grid; place-items: center; color: #f2f2f2; border-radius: 50%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pd:active, .pz:active { background: var(--ra); color: #fff; }
+.pd ha-icon { --mdc-icon-size: 30px; }
+.pd.u { grid-area: 1 / 2; } .pd.l { grid-area: 2 / 1; } .pd.c { grid-area: 2 / 2; background: #2c2c2e; } .pd.r { grid-area: 2 / 3; } .pd.d { grid-area: 3 / 2; }
+.pd.c ha-icon { --mdc-icon-size: 20px; }
+.pzoom { display: flex; flex-direction: column; gap: 10px; }
+.pz { width: 48px; height: 48px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
+.pre { margin-top: 10px; } .pre small { display: block; margin: 0 2px 6px; opacity: .7; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 12px; border-radius: 16px; background: #2c2c2e; color: #f2f2f2; font-size: 13px; }
+.chip.sel { background: var(--ra); color: #fff; }
 .stage.talking .talk { display: block; }
 .stage.talking .bigplay { display: none !important; }
-.tpill { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.tpill { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
 .talk.conn .tpill { background: color-mix(in srgb, var(--ra) 92%, transparent); }
 .tw { display: inline-flex; align-items: center; gap: 2px; height: 16px; }
 .tw i { width: 3px; height: 5px; border-radius: 2px; background: #fff; }
@@ -1697,10 +2221,6 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .talk.lvl .tw i { transition: height .08s; height: calc(4px + var(--lvl, 0) * 8px); }
 .talk.lvl .tw i:nth-child(2), .talk.lvl .tw i:nth-child(3) { height: calc(4px + var(--lvl, 0) * 12px); }
 @keyframes tw { 50% { height: 14px; } }
-.hang { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 58px; height: 58px; border-radius: 50%; background: #ff3b30; color: #fff; display: grid; place-items: center; pointer-events: auto; box-shadow: 0 0 0 calc(var(--lvl, 0) * 16px) rgba(255,59,48,.3), 0 4px 14px rgba(0,0,0,.4); transition: box-shadow .08s, transform .15s; }
-.hang:active { transform: translateX(-50%) scale(.94); }
-.hang ha-icon { --mdc-icon-size: 28px; }
-.talk.conn .hang { animation: ring 1.2s ease-in-out infinite; }
 .qmenu { position: absolute; right: 14px; bottom: calc(100% - 4px); min-width: 190px; padding: 6px; border-radius: 14px; background: #1f1f21; color: #f2f2f2; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 5; display: none; }
 .qmenu.open { display: block; }
 .qopt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 10px; font-size: 14px; text-align: left; }
@@ -1753,6 +2273,7 @@ if (!customElements.get('reolink-app-card-editor')) customElements.define('reoli
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === 'reolink-app-card')) {
   window.customCards.push({ type: 'reolink-app-card', name: 'Reolink App Card', preview: false, documentationURL: 'https://github.com/niondevelop/reolink-app-card',
+    getEntitySuggestion: (hass, entityId) => cardSuggestion(hass, entityId),
     description: 'Live view, controls, settings and SD card playback for Reolink cameras, styled like the Reolink app' });
 }
 console.info(`%c REOLINK-APP-CARD %c ${RAC_VERSION} `, 'background:#1e8bff;color:#fff', '');
