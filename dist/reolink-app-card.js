@@ -1868,10 +1868,10 @@ class ReolinkAppCard extends HTMLElement {
 /* Passendes Symbol für typische Modusnamen (deutsch und englisch) */
 function modeIcon(o) {
   const s = String(o).toLowerCase();
-  if (/abwes|away|weg|urlaub|vacation/.test(s)) return 'mdi:shield-lock-outline';
-  if (/nacht|night|schlaf|sleep/.test(s)) return 'mdi:weather-night';
-  if (/zuhause|home|daheim/.test(s)) return 'mdi:home-outline';
-  if (/^(aus|off)$|stumm|mute|deaktiv|disarm/.test(s)) return 'mdi:bell-off-outline';
+  if (/abwes|away|weg|urlaub|vacation|absent|vacances/.test(s)) return 'mdi:shield-lock-outline';
+  if (/nacht|night|schlaf|sleep|nuit/.test(s)) return 'mdi:weather-night';
+  if (/zuhause|home|daheim|maison/.test(s)) return 'mdi:home-outline';
+  if (/^(aus|off|arr[eê]t)$|stumm|mute|deaktiv|disarm|silence/.test(s)) return 'mdi:bell-off-outline';
   return 'mdi:circle-medium';
 }
 

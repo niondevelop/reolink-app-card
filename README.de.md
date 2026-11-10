@@ -209,6 +209,21 @@ Hinweise:
 - Ein eigener `tag` pro Kamera sorgt dafür, dass beide Mitteilungen bleiben, statt sich gegenseitig zu ersetzen; mit `channel: Alarm` und `importance: max` lässt sich Alarm-Mitteilungen unter Android ein eigener Ton geben.
 - Die Schnappschuss-Entität (`..._schnappschusse_in_standardauflosung`) ist in der Reolink-Integration ab Werk deaktiviert; auf der Geräteseite aktivieren oder stattdessen die Stream-Entität nehmen.
 
+### Kamera-Modus und Blueprints
+
+Die Karte kann oben einen eigenen Modus zeigen, z. B. **Abwesend / Zuhause / Nacht / Aus**, und deine Automationen entscheiden, was in welchem Modus passiert. Zwei Blueprints machen das Einrichten einfach:
+
+1. **Modus-Helfer anlegen:** *Einstellungen → Geräte & Dienste → Helfer → Helfer erstellen → Dropdown*, Name z. B. „Kamera-Modus“, Optionen `Abwesend`, `Zuhause`, `Nacht`, `Aus`.
+2. **In der Karte anzeigen:** im Karten-Editor unter *Optionen → Modus-Auswahl oben*, oder `mode_entity: input_select.kamera_modus` in YAML. Für diese Namen wählt die Karte passende Symbole; eigene lassen sich mit `mode_icons` setzen.
+3. **Blueprints importieren** und daraus je eine Automation erstellen:
+
+| Blueprint | Was er macht | |
+| --------- | ------------ | - |
+| Kamera-Benachrichtigung nach Modus | Erkennt eine Kamera etwas (z. B. eine Person), kommt eine Mitteilung mit Bild und den Knöpfen **Live** und **Aufnahme**, aber nur in den gewählten Modi, z. B. Abwesend und Nacht. Eine Automation pro Kamera | [![Blueprint Kamera-Benachrichtigung importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_notification_by_mode.yaml) |
+| Kamera-Modus automatisch | **Abwesend**, wenn alle weg sind, **Zuhause** oder **Nacht** beim Heimkommen, und Zuhause ↔ Nacht zu den eingestellten Nachtzeiten | [![Blueprint Kamera-Modus importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_mode_automatic.yaml) |
+
+Beide brauchen Home Assistant 2026.7 oder neuer. Die Blueprints sind auf Englisch voreingestellt (*Away / Home / Night*); bei einem deutschen Helfer im Blueprint die Namen `Abwesend`, `Zuhause` und `Nacht` eintragen und bei den Knöpfen z. B. „Aufnahme“ statt „Recording“. Der Modus **Aus** wird nie automatisch gesetzt; ihn wählst du in der Karte, wenn du keine Mitteilungen willst.
+
 ### Farbe anpassen
 
 Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff`) und lässt sich im Theme setzen.

@@ -212,6 +212,21 @@ Notes:
 - A separate `tag` per camera keeps both notifications instead of replacing one with the other; `channel: Alarm` with `importance: max` lets you give alarm notifications their own sound on Android.
 - The snapshot entity (`..._snapshots_fluent`) is disabled by default in the Reolink integration; enable it on the device page, or use the stream entity instead.
 
+### Camera mode and blueprints
+
+The card can show your own mode at the top, e.g. **Away / Home / Night / Off**, and your automations decide what happens in each mode. Two blueprints make this easy to set up:
+
+1. **Create the mode helper:** *Settings → Devices & services → Helpers → Create helper → Dropdown*, name it e.g. "Camera mode", options `Away`, `Home`, `Night`, `Off`.
+2. **Show it in the card:** in the card editor under *Options → Mode selector on top*, or `mode_entity: input_select.camera_mode` in YAML. The card picks fitting icons for these names; set your own with `mode_icons`.
+3. **Import the blueprints** and create an automation from each:
+
+| Blueprint | What it does | |
+| --------- | ------------ | - |
+| Camera notification by mode | When a camera detects something (e.g. a person), it sends a notification with a snapshot and the buttons **Live** and **Recording**, but only in the modes you choose, e.g. Away and Night. One automation per camera | [![Import camera notification blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_notification_by_mode.yaml) |
+| Camera mode automatic | **Away** when everybody has left, **Home** or **Night** when somebody comes home, and Home ↔ Night at the night times you set | [![Import camera mode blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_mode_automatic.yaml) |
+
+Both need Home Assistant 2026.7 or later. If your helper uses other names (e.g. German *Abwesend / Zuhause / Nacht*), enter them in the blueprint. The mode **Off** is never set automatically; choose it in the card when you want no notifications.
+
 ### Accent colour
 
 The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8bff`) and can be set in your theme.
