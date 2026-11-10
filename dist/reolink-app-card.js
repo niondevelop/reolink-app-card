@@ -394,7 +394,6 @@ class ReolinkAppCard extends HTMLElement {
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
           <div class="talk" id="talk">
             <span class="tpill"><span class="tw"><i></i><i></i><i></i><i></i></span><span id="talk-l"></span></span>
-            <button class="hang" id="hang"><ha-icon icon="mdi:phone-hangup"></ha-icon></button>
           </div>
           <div class="ov bottom">
             <span class="pill" id="timer"></span>
@@ -437,7 +436,6 @@ class ReolinkAppCard extends HTMLElement {
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
     $('unzoom').onclick = () => this._resetZoom();
-    $('hang').onclick = () => this._hangUp();
     $('snd').onclick = () => { this._sound = !this._sound; this._sndCheck = this._sound; this._applySound(); this._update(); };
     // Ohne Tonspur im WebRTC-Stream einmal darauf hinweisen
     $('pic').addEventListener('streams', (e) => {
@@ -933,12 +931,11 @@ class ReolinkAppCard extends HTMLElement {
       an.fftSize = 256;
       ctx.createMediaStreamSource(new MediaStream([track])).connect(an);
       const buf = new Uint8Array(an.fftSize);
-      const stage = this.$('stage');
       const loop = () => {
         an.getByteTimeDomainData(buf);
         let sum = 0;
         for (let i = 0; i < buf.length; i++) { const d = (buf[i] - 128) / 128; sum += d * d; }
-        stage.style.setProperty('--lvl', Math.min(1, Math.sqrt(sum / buf.length) * 5).toFixed(2));
+        this.style.setProperty('--lvl', Math.min(1, Math.sqrt(sum / buf.length) * 5).toFixed(2));
         this._meterRaf = requestAnimationFrame(loop);
       };
       this._meterCtx = ctx;
@@ -949,7 +946,7 @@ class ReolinkAppCard extends HTMLElement {
   _stopMeter() {
     cancelAnimationFrame(this._meterRaf);
     if (this._meterCtx) { this._meterCtx.close().catch(() => {}); this._meterCtx = null; }
-    if (this._built) this.$('stage').style.removeProperty('--lvl');
+    this.style.removeProperty('--lvl');
   }
 
   /* Alternativ (Option talk_url): Reolink-App öffnen. Reolink bietet keinen Deep-Link auf eine bestimmte Kamera */
@@ -1207,7 +1204,6 @@ class ReolinkAppCard extends HTMLElement {
     $('stage').classList.toggle('talking', talking);
     $('talk').classList.toggle('conn', this._mic === 'connecting');
     $('talk').classList.toggle('lvl', !!this._meterCtx);
-    $('hang').title = this._t('hang_up');
     $('snd').style.display = this._live && !this._grid && !playing ? '' : 'none';
     $('snd').classList.toggle('on', this._sound);
     $('snd').querySelector('ha-icon').setAttribute('icon', this._sound ? 'mdi:volume-high' : 'mdi:volume-off');
@@ -1340,7 +1336,14 @@ class ReolinkAppCard extends HTMLElement {
     const sig = ctrls.map((x) => x.id).join();
     if ($('ctrls').dataset.sig !== sig) {
       $('ctrls').dataset.sig = sig;
-      $('ctrls').innerHTML = ctrls.map((x) => `<button class="tbn" data-id="${x.id}"><ha-icon></ha-icon></button>`).join('');
+      const btn = (x) => `<button class="tbn${x.id === 'talk' ? ' big' : ''}" data-id="${x.id}"><ha-icon></ha-icon></button>`;
+      const mid = ctrls.find((x) => x.id === 'talk'), rest = ctrls.filter((x) => x !== mid);
+      // Hörer in die Mitte, die übrigen Buttons links und rechts davon verteilt
+      const half = Math.ceil(rest.length / 2);
+      $('ctrls').classList.toggle('split', !!mid);
+      $('ctrls').innerHTML = mid
+        ? `<div class="side">${rest.slice(0, half).map(btn).join('')}</div>${btn(mid)}<div class="side">${rest.slice(half).map(btn).join('')}</div>`
+        : ctrls.map(btn).join('');
       ctrls.forEach((x) => { $('ctrls').querySelector(`[data-id="${x.id}"]`).onclick = () => this._controls().find((y) => y.id === x.id).run(); });
     }
     ctrls.forEach((x) => {
@@ -1724,6 +1727,12 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .seg button.sel { background: var(--rb); opacity: 1; color: var(--ra); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .barwrap { position: relative; padding: 10px 10px 4px; }
 .bar { display: flex; justify-content: space-around; align-items: center; gap: 2px; padding: 8px 10px; border-radius: 30px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
+.bar.split { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; }
+.bar .side { display: flex; justify-content: space-around; align-items: center; gap: 2px; min-width: 0; }
+.tbn.big { width: 58px; height: 58px; margin: -8px 0; border-radius: 50%; background: #2c2c2e; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: background .2s, box-shadow .08s, transform .15s; }
+.tbn.big ha-icon { --mdc-icon-size: 28px; }
+.tbn.big:active { transform: scale(.94); }
+.tbn.big.warn { border-color: transparent; box-shadow: 0 0 0 calc(var(--lvl, 0) * 12px) rgba(255,59,48,.3), 0 2px 8px rgba(0,0,0,.35); }
 .tbn { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #f2f2f2; transition: background .2s, color .2s; }
 .tbn ha-icon { --mdc-icon-size: 24px; }
 .tbn.on { background: var(--ra); color: #fff; }
@@ -1735,7 +1744,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .talk { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 3; }
 .stage.talking .talk { display: block; }
 .stage.talking .bigplay { display: none !important; }
-.tpill { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.tpill { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
 .talk.conn .tpill { background: color-mix(in srgb, var(--ra) 92%, transparent); }
 .tw { display: inline-flex; align-items: center; gap: 2px; height: 16px; }
 .tw i { width: 3px; height: 5px; border-radius: 2px; background: #fff; }
@@ -1744,10 +1753,6 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .talk.lvl .tw i { transition: height .08s; height: calc(4px + var(--lvl, 0) * 8px); }
 .talk.lvl .tw i:nth-child(2), .talk.lvl .tw i:nth-child(3) { height: calc(4px + var(--lvl, 0) * 12px); }
 @keyframes tw { 50% { height: 14px; } }
-.hang { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 58px; height: 58px; border-radius: 50%; background: #ff3b30; color: #fff; display: grid; place-items: center; pointer-events: auto; box-shadow: 0 0 0 calc(var(--lvl, 0) * 16px) rgba(255,59,48,.3), 0 4px 14px rgba(0,0,0,.4); transition: box-shadow .08s, transform .15s; }
-.hang:active { transform: translateX(-50%) scale(.94); }
-.hang ha-icon { --mdc-icon-size: 28px; }
-.talk.conn .hang { animation: ring 1.2s ease-in-out infinite; }
 .qmenu { position: absolute; right: 14px; bottom: calc(100% - 4px); min-width: 190px; padding: 6px; border-radius: 14px; background: #1f1f21; color: #f2f2f2; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 5; display: none; }
 .qmenu.open { display: block; }
 .qopt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border-radius: 10px; font-size: 14px; text-align: left; }
