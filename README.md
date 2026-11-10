@@ -75,10 +75,8 @@ type: custom:reolink-app-card
 cameras:
   - name: Front door
     entity: camera.front_door_fluent
-    media_name: Front Door
   - name: Garden
-    entity: camera.kamera_garten_fluent
-    media_name: Garden
+    entity: camera.garden_fluent
 ```
 
 ### Card options
@@ -152,6 +150,67 @@ data:
 ```
 
 On iPhones use `url` instead of `clickAction`; the `actions` work the same way.
+
+#### Full example: alarm notification with camera images
+
+When the alarm goes off, every camera sends its own notification with a current snapshot and the buttons **Live** and **Recording**. Tapping the notification itself opens the camera live. Replace the entity IDs, the notify action of your phone and the dashboard path (here `/dashboard-cameras/cameras`) with your own; for a second phone, copy the two actions and change the notify action.
+
+```yaml
+alias: Alarm notification with camera images
+description: Sends one notification per camera with a snapshot and buttons for live view and recording.
+triggers:
+  - trigger: state
+    entity_id: alarm_control_panel.home_alarm
+    to: triggered
+actions:
+  - action: notify.mobile_app_my_phone
+    data:
+      title: "🚨 Alarm triggered"
+      message: "Front door · {{ now().strftime('%H:%M') }}"
+      data:
+        image: /api/camera_proxy/camera.front_door_snapshots_fluent
+        clickAction: "/dashboard-cameras/cameras?rac=live&rac_cam=front_door"
+        tag: alarm-front-door
+        group: alarm
+        channel: Alarm
+        importance: max
+        priority: high
+        ttl: 0
+        actions:
+          - action: URI
+            title: Live
+            uri: "/dashboard-cameras/cameras?rac=live&rac_cam=front_door"
+          - action: URI
+            title: Recording
+            uri: "/dashboard-cameras/cameras?rac=event&rac_cam=front_door&rac_t={{ as_timestamp(now()) | int }}"
+  - action: notify.mobile_app_my_phone
+    data:
+      title: "🚨 Alarm triggered"
+      message: "Garden · {{ now().strftime('%H:%M') }}"
+      data:
+        image: /api/camera_proxy/camera.garden_snapshots_fluent
+        clickAction: "/dashboard-cameras/cameras?rac=live&rac_cam=garden"
+        tag: alarm-garden
+        group: alarm
+        channel: Alarm
+        importance: max
+        priority: high
+        ttl: 0
+        actions:
+          - action: URI
+            title: Live
+            uri: "/dashboard-cameras/cameras?rac=live&rac_cam=garden"
+          - action: URI
+            title: Recording
+            uri: "/dashboard-cameras/cameras?rac=event&rac_cam=garden&rac_t={{ as_timestamp(now()) | int }}"
+mode: single
+max_exceeded: silent
+```
+
+Notes:
+- `rac_cam` takes the camera's `prefix` as in the card config (here `front_door` and `garden`), a camera entity or the camera name.
+- A separate `tag` per camera keeps both notifications instead of replacing one with the other; `channel: Alarm` with `importance: max` lets you give alarm notifications their own sound on Android.
+- The snapshot entity (`..._snapshots_fluent`) is disabled by default in the Reolink integration; enable it on the device page, or use the stream entity instead.
 
 ### Accent colour
 

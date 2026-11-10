@@ -72,10 +72,8 @@ type: custom:reolink-app-card
 cameras:
   - name: Eingang
     entity: camera.kamera_eingang_standardauflosung
-    media_name: Kamera Eingang
   - name: Garten
     entity: camera.kamera_garten_standardauflosung
-    media_name: Kamera Garten
 ```
 
 ### Karten-Optionen
@@ -149,6 +147,67 @@ data:
 ```
 
 Auf iPhones statt `clickAction` die Angabe `url` verwenden; die `actions` funktionieren gleich.
+
+#### Vollständiges Beispiel: Alarm-Mitteilung mit Kamerabildern
+
+Löst die Alarmanlage aus, schickt jede Kamera eine eigene Mitteilung mit aktuellem Bild und den Knöpfen **Live** und **Aufnahme**. Ein Tipp auf die Mitteilung selbst öffnet die Kamera live. Entity-IDs, die Mitteilungs-Aktion deines Handys und den Dashboard-Pfad (hier `/dashboard-kameras/kameras`) durch deine eigenen ersetzen; für ein zweites Handy die beiden Aktionen kopieren und die Mitteilungs-Aktion anpassen.
+
+```yaml
+alias: Alarm-Mitteilung mit Kamerabildern
+description: Schickt pro Kamera eine Mitteilung mit Bild und Knöpfen für Livebild und Aufnahme.
+triggers:
+  - trigger: state
+    entity_id: alarm_control_panel.alarmanlage
+    to: triggered
+actions:
+  - action: notify.mobile_app_mein_handy
+    data:
+      title: "🚨 Alarm ausgelöst"
+      message: "Eingang · {{ now().strftime('%H:%M') }}"
+      data:
+        image: /api/camera_proxy/camera.kamera_eingang_schnappschusse_in_standardauflosung
+        clickAction: "/dashboard-kameras/kameras?rac=live&rac_cam=kamera_eingang"
+        tag: alarm-eingang
+        group: alarm
+        channel: Alarm
+        importance: max
+        priority: high
+        ttl: 0
+        actions:
+          - action: URI
+            title: Live
+            uri: "/dashboard-kameras/kameras?rac=live&rac_cam=kamera_eingang"
+          - action: URI
+            title: Aufnahme
+            uri: "/dashboard-kameras/kameras?rac=event&rac_cam=kamera_eingang&rac_t={{ as_timestamp(now()) | int }}"
+  - action: notify.mobile_app_mein_handy
+    data:
+      title: "🚨 Alarm ausgelöst"
+      message: "Garten · {{ now().strftime('%H:%M') }}"
+      data:
+        image: /api/camera_proxy/camera.kamera_garten_schnappschusse_in_standardauflosung
+        clickAction: "/dashboard-kameras/kameras?rac=live&rac_cam=kamera_garten"
+        tag: alarm-garten
+        group: alarm
+        channel: Alarm
+        importance: max
+        priority: high
+        ttl: 0
+        actions:
+          - action: URI
+            title: Live
+            uri: "/dashboard-kameras/kameras?rac=live&rac_cam=kamera_garten"
+          - action: URI
+            title: Aufnahme
+            uri: "/dashboard-kameras/kameras?rac=event&rac_cam=kamera_garten&rac_t={{ as_timestamp(now()) | int }}"
+mode: single
+max_exceeded: silent
+```
+
+Hinweise:
+- `rac_cam` nimmt den `prefix` der Kamera wie in der Kartenkonfiguration (hier `kamera_eingang` und `kamera_garten`), eine Kamera-Entität oder den Kameranamen.
+- Ein eigener `tag` pro Kamera sorgt dafür, dass beide Mitteilungen bleiben, statt sich gegenseitig zu ersetzen; mit `channel: Alarm` und `importance: max` lässt sich Alarm-Mitteilungen unter Android ein eigener Ton geben.
+- Die Schnappschuss-Entität (`..._schnappschusse_in_standardauflosung`) ist in der Reolink-Integration ab Werk deaktiviert; auf der Geräteseite aktivieren oder stattdessen die Stream-Entität nehmen.
 
 ### Farbe anpassen
 
