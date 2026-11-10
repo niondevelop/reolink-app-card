@@ -23,7 +23,7 @@ const STR = {
     g_general: 'Allgemein', g_detect: 'Erkennung', g_image: 'Bild', g_flood: 'Flutlicht', g_audio: 'Ton & Aufnahme',
     pir: 'PIR-Erkennung', rec: 'Aufzeichnung', push: 'Push-Benachrichtigungen', pir_reduce: 'PIR-Fehlalarme reduzieren',
     daynight: 'Tag/Nacht', ir: 'Infrarotlicht nachts', status_led: 'Status-LED', prealarm: 'Voralarm', play_btn: 'Abspielen',
-    restart: 'Kamera neu starten', restart_btn: 'Neu starten', restart_confirm: 'Kamera „{name}“ neu starten?',
+    restart: 'Kamera neu starten', restart_btn: 'Neu starten', cancel: 'Abbrechen', siren_btn: 'Auslösen', restart_confirm: 'Kamera „{name}“ neu starten?',
     pir_sens: 'PIR-Empfindlichkeit', ai_person: 'KI-Empfindlichkeit Person', ai_vehicle: 'KI-Empfindlichkeit Fahrzeug',
     ai_animal: 'KI-Empfindlichkeit Tier', img_bright: 'Helligkeit', img_contrast: 'Kontrast', img_sat: 'Sättigung',
     img_sharp: 'Schärfe', anti_flicker: 'Anti-Flimmer', ir_bright: 'Infrarot-Helligkeit', fl_mode: 'Modus',
@@ -56,7 +56,7 @@ const STR = {
     g_general: 'General', g_detect: 'Detection', g_image: 'Image', g_flood: 'Floodlight', g_audio: 'Audio & recording',
     pir: 'PIR detection', rec: 'Recording', push: 'Push notifications', pir_reduce: 'Reduce PIR false alarms',
     daynight: 'Day/night', ir: 'Infrared at night', status_led: 'Status LED', prealarm: 'Pre-alarm', play_btn: 'Play',
-    restart: 'Restart camera', restart_btn: 'Restart', restart_confirm: 'Restart camera “{name}”?',
+    restart: 'Restart camera', restart_btn: 'Restart', cancel: 'Cancel', siren_btn: 'Sound it', restart_confirm: 'Restart camera “{name}”?',
     pir_sens: 'PIR sensitivity', ai_person: 'AI sensitivity person', ai_vehicle: 'AI sensitivity vehicle',
     ai_animal: 'AI sensitivity animal', img_bright: 'Brightness', img_contrast: 'Contrast', img_sat: 'Saturation',
     img_sharp: 'Sharpness', anti_flicker: 'Anti-flicker', ir_bright: 'Infrared brightness', fl_mode: 'Mode',
@@ -89,7 +89,7 @@ const STR = {
     g_general: 'Général', g_detect: 'Détection', g_image: 'Image', g_flood: 'Projecteur', g_audio: 'Son et enregistrement',
     pir: 'Détection PIR', rec: 'Enregistrement', push: 'Notifications push', pir_reduce: 'Réduire les fausses alarmes PIR',
     daynight: 'Jour/nuit', ir: 'Infrarouge la nuit', status_led: 'LED d’état', prealarm: 'Pré-alarme', play_btn: 'Lire',
-    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', restart_confirm: 'Redémarrer la caméra « {name} » ?',
+    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', cancel: 'Annuler', siren_btn: 'Déclencher', restart_confirm: 'Redémarrer la caméra « {name} » ?',
     pir_sens: 'Sensibilité PIR', ai_person: 'Sensibilité IA personne', ai_vehicle: 'Sensibilité IA véhicule',
     ai_animal: 'Sensibilité IA animal', img_bright: 'Luminosité', img_contrast: 'Contraste', img_sat: 'Saturation',
     img_sharp: 'Netteté', anti_flicker: 'Anti-scintillement', ir_bright: 'Luminosité infrarouge', fl_mode: 'Mode',
@@ -131,6 +131,7 @@ const Q = {
   clear: { key: 'q_clear', icon: 'mdi:quality-high' },
 };
 const Q_ORDER = ['fluent', 'balanced', 'clear'];
+const Q_STORE = 'reolink-app-card:quality';
 const Q_ALIAS = { sd: 'fluent', low: 'fluent', hd: 'clear', high: 'clear', medium: 'balanced' };
 const REOLINK_PKG = 'com.mcu.reolink';
 // Companion-App: öffnet Apps über app://<paket> (https://companion.home-assistant.io/docs/integrations/android-webview)
@@ -194,7 +195,33 @@ const ENT = {
   det_vehicle: ['binary_sensor', 'fahrzeug', 'vehicle'],
   det_animal: ['binary_sensor', 'tier', 'animal', 'pet'],
   det_motion: ['binary_sensor', 'bewegung', 'motion'],
+  visitor: ['binary_sensor', 'besucher', 'visitor'],
+  ptz_left: ['button', 'ptz_links', 'ptz_left'],
+  ptz_right: ['button', 'ptz_rechts', 'ptz_right'],
+  ptz_up: ['button', 'ptz_hoch', 'ptz_up'],
+  ptz_down: ['button', 'ptz_runter', 'ptz_down'],
+  ptz_stop: ['button', 'ptz_stopp', 'ptz_stop'],
+  ptz_zoom_in: ['button', 'ptz_hineinzoomen', 'ptz_zoom_in'],
+  ptz_zoom_out: ['button', 'ptz_herauszoomen', 'ptz_zoom_out'],
+  ptz_preset: ['select', 'ptz_voreinstellung', 'ptz_preset'],
 };
+/* Interne Schlüssel (translation_key) der Reolink-Integration – unabhängig von Sprache und Umbenennungen */
+const TK = {
+  cam_sd: 'sub', cam_bal: 'ext', cam_hd: 'main', snap: 'snapshots_sub',
+  light: 'floodlight', status_led: 'status_led', siren: 'siren', prealarm: 'pre_siren',
+  manual_rec: 'manual_record', rec: 'record', pir: 'pir_enabled', pir_reduce: 'pir_reduce_alarm', push: 'push_notifications',
+  ir: 'ir_lights', rec_audio: 'record_audio', siren_event: 'siren_on_event', prealarm_event: 'pre_siren_on_event', hub_ring_event: 'hub_ringtone_on_event',
+  daynight: 'day_night_mode', anti_flicker: 'anti_flicker', fl_mode: 'floodlight_mode', post_rec: 'post_rec_time',
+  pir_sens: 'pir_sensitivity', ai_person: 'ai_person_sensitivity', ai_vehicle: 'ai_vehicle_sensitivity', ai_animal: ['ai_animal_sensitivity', 'ai_pet_sensitivity'],
+  img_bright: 'image_brightness', img_contrast: 'image_contrast', img_sat: 'image_saturation', img_sharp: 'image_sharpness',
+  ir_bright: 'ir_brightness', fl_bright: 'floodlight_brightness', volume: 'volume',
+  battery_state: 'battery_state', battery_temp: 'battery_temperature', wifi: 'wifi_signal', sleep: 'sleep',
+  det_person: 'person', det_vehicle: 'vehicle', det_animal: ['animal', 'pet'], visitor: 'visitor',
+  ptz_left: 'ptz_left', ptz_right: 'ptz_right', ptz_up: 'ptz_up', ptz_down: 'ptz_down', ptz_stop: 'ptz_stop',
+  ptz_zoom_in: 'ptz_zoom_in', ptz_zoom_out: 'ptz_zoom_out', ptz_preset: 'ptz_preset',
+};
+/* Entitäten ohne internen Schlüssel: über die Geräteklasse finden */
+const DC = { battery: 'battery', det_motion: 'motion', restart: 'restart' };
 const HUB_ENT = {
   scene: ['select', 'szenenmodus', 'scene_mode'],
   storage: ['sensor', 'sd_0_speicher', 'sd_0_storage'],
@@ -236,7 +263,7 @@ const SETTINGS = [
 class ReolinkAppCard extends HTMLElement {
   setConfig(config) {
     if (!config || !Array.isArray(config.cameras) || !config.cameras.length) throw new Error(STR.de.need_cameras);
-    if (config.cameras.some((c) => !c || !(c.prefix || prefixOf(c.entity)))) throw new Error(STR[pickLang(config.language)].need_prefix);
+    if (config.cameras.some((c) => !c || !(c.prefix || c.entity))) throw new Error(STR[pickLang(config.language)].need_prefix);
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
       default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
@@ -246,13 +273,16 @@ class ReolinkAppCard extends HTMLElement {
     this._cams = config.cameras.map((c) => {
       const over = { ...(c.entities || {}) };
       Object.entries(LEGACY).forEach(([k, v]) => { if (c[k]) over[v] = c[k]; });
-      const prefix = c.prefix || prefixOf(c.entity);
-      return { prefix, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, over };
+      const prefix = c.prefix || prefixOf(c.entity) || String(c.entity).split('.').pop();
+      return { prefix, entity: c.entity, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, over };
     });
     this._idx = 0;
     this._mode = 'live';
     this._grid = false;
-    this._quality = this._normQ(this._config.default_quality);
+    // Zuletzt auf diesem Gerät gewählte Qualität hat Vorrang vor der Startqualität
+    let saved = null;
+    try { saved = localStorage.getItem(Q_STORE); } catch (_) { /* privater Modus o. ä. */ }
+    this._quality = this._normQ(saved && Q[saved] ? saved : this._config.default_quality);
     this._qOpen = false;
     this._live = false;
     this._filter = 'all';
@@ -276,12 +306,44 @@ class ReolinkAppCard extends HTMLElement {
   _on(id) { const s = this._st(id); return !!s && s.state === 'on'; }
   _num(id) { const s = this._st(id); return s && s.state !== '' && !isNaN(+s.state) ? +s.state : null; }
 
-  /* Entity einer Kamera auflösen: Überschreibung > deutsch > englisch > Alternativen */
+  /* Entity einer Kamera auflösen: Überschreibung > Geräteregister (interner Schlüssel) > Namensendungen deutsch/englisch */
   _e(key, cam = this._cam) {
     if (cam.over[key]) return cam.over[key];
     const [domain, ...suf] = ENT[key];
+    const dev = this._devIndex(cam);
+    if (dev) {
+      for (const tk of [].concat(TK[key] || [])) { const id = dev[`${domain}:${tk}`]; if (id) return id; }
+      if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
+    }
     for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id)) return id; }
     return `${domain}.${cam.prefix}_${suf[0]}`;
+  }
+
+  /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
+  _devIndex(cam) {
+    const reg = this._hass && this._hass.entities;
+    if (!reg) return null;
+    if (cam._reg === reg) return cam._dev;
+    cam._reg = reg; cam._dev = null; cam._devId = null;
+    const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).map((x) => `camera.${cam.prefix}_${x}`))];
+    const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
+    if (!hit) return null;
+    cam._devId = reg[hit].device_id;
+    const idx = {};
+    Object.keys(reg).forEach((id) => {
+      const r = reg[id];
+      if (r.device_id !== cam._devId) return;
+      const domain = id.split('.')[0];
+      if (r.translation_key) idx[`${domain}:${r.translation_key}`] = id;
+      const st = this._hass.states[id], dc = st && st.attributes.device_class;
+      if (dc && !idx[`${domain}:dc:${dc}`]) idx[`${domain}:dc:${dc}`] = id;
+    });
+    cam._dev = idx;
+    // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)
+    const dev = this._hass.devices && this._hass.devices[cam._devId];
+    const devName = dev && (dev.name_by_user || dev.name);
+    if (devName) { if (!cam.nameSet) cam.name = devName; if (!cam.mediaSet) cam.media_name = devName; }
+    return idx;
   }
   _hubE(key) {
     const over = (this._config.hub_entities || {})[key];
@@ -307,8 +369,10 @@ class ReolinkAppCard extends HTMLElement {
   _watchIds() {
     if (this._watch) return this._watch;
     const ids = new Set();
+    const reg = this._hass && this._hass.entities;
     this._cams.forEach((cam) => {
       Object.values(cam.over).forEach((id) => ids.add(id));
+      if (this._devIndex(cam)) Object.keys(reg).forEach((id) => { if (reg[id].device_id === cam._devId) ids.add(id); });
       Object.values(ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${cam.prefix}_${x}`)));
     });
     [this._config.hub_prefix, this._hubAuto].filter(Boolean).forEach((pre) => Object.values(HUB_ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${pre}_${x}`))));
@@ -321,6 +385,7 @@ class ReolinkAppCard extends HTMLElement {
   /* Hat sich seit dem letzten Mal etwas geändert, das die Karte betrifft? */
   _relevantChange(old, hass) {
     if (!old || old.language !== hass.language || old.locale !== hass.locale || old.themes !== hass.themes) return true;
+    if (old.entities !== hass.entities) { this._watch = null; return true; }
     if (old.states === hass.states) return false;
     return this._watchIds().some((id) => old.states[id] !== hass.states[id]);
   }
@@ -343,7 +408,7 @@ class ReolinkAppCard extends HTMLElement {
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDetections();
     this._update();
@@ -405,6 +470,7 @@ class ReolinkAppCard extends HTMLElement {
   _setQuality(q) {
     this._qOpen = false;
     if (q !== this._quality) { this._quality = q; if (this._live) this._makePic(); }
+    try { localStorage.setItem(Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     this._update();
   }
 
@@ -453,6 +519,7 @@ class ReolinkAppCard extends HTMLElement {
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="more-l"></span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
         </div>
+        <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
           <div class="filters" id="filters"></div>
@@ -663,6 +730,27 @@ class ReolinkAppCard extends HTMLElement {
     });
   }
 
+  /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
+  _ask(text, okLabel, danger) {
+    const $ = this.$, box = $('dlg');
+    if (this._askDone) this._askDone(false);
+    $('dtext').textContent = text;
+    $('dno').textContent = this._t('cancel');
+    $('dyes').textContent = okLabel;
+    $('dyes').classList.toggle('danger', !!danger);
+    box.classList.add('show');
+    return new Promise((resolve) => {
+      const done = (v) => { box.classList.remove('show'); this._askDone = null; document.removeEventListener('keydown', key, true); resolve(v); };
+      const key = (e) => { if (e.key === 'Escape') done(false); else if (e.key === 'Enter') done(true); };
+      this._askDone = done;
+      $('dno').onclick = () => done(false);
+      $('dyes').onclick = () => done(true);
+      box.onclick = (e) => { if (e.target === box) done(false); };
+      document.addEventListener('keydown', key, true);
+      $('dyes').focus();
+    });
+  }
+
   _toast(t) {
     const el = this.$('toast');
     el.style.setProperty('--c', t.color);
@@ -776,8 +864,8 @@ class ReolinkAppCard extends HTMLElement {
         run: () => (legacy ? this._talk() : this._toggleTalk()) });
     }
     if (this._st(siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light-outline', label: this._t('siren'), on: this._on(siren), warn: true,
-      run: () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
-        : (confirm(this._t('siren_confirm', { name: c.name })) && this._call('siren', 'turn_on', siren))) });
+      run: async () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
+        : ((await this._ask(this._t('siren_confirm', { name: c.name }), this._t('siren_btn'), true)) && this._call('siren', 'turn_on', siren))) });
     if (this._st(light)) items.push({ id: 'light', icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light),
       run: () => this._call('light', 'toggle', light) });
     if (this._st(mrec)) items.push({ id: 'rec', icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec),
@@ -1013,7 +1101,7 @@ class ReolinkAppCard extends HTMLElement {
     const companion = android && (/Home ?Assistant/i.test(ua) || !!window.externalApp);
     const url = this._cam.talk_url || this._config.talk_url
       || (companion ? REOLINK_COMPANION : android ? REOLINK_CHROME : null);
-    if (!url) { alert(this._t('no_talk_url')); return; }
+    if (!url) { this._toast({ text: this._t('no_talk_url'), color: '#636366', icon: 'mdi:link-off', wrap: true }); return; }
     this._stopLive();
     this._openLink(url);
   }
@@ -1136,7 +1224,7 @@ class ReolinkAppCard extends HTMLElement {
       if (p && p.catch) p.catch(() => {});
     } catch (e) {
       this._playing = null;
-      alert(`${this._t('play_error')}: ${e.message || e}`);
+      this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
     this._update();
   }
@@ -1477,8 +1565,8 @@ class ReolinkAppCard extends HTMLElement {
       const want = e.target.checked;
       this._call(domain, want ? 'turn_on' : 'turn_off', it.id);
     });
-    else if (it.type === 'btn') row.querySelector('.rowbtn').onclick = () => {
-      if (it.confirmKey && !confirm(this._t(it.confirmKey, { name: this._cam.name }))) return;
+    else if (it.type === 'btn') row.querySelector('.rowbtn').onclick = async () => {
+      if (it.confirmKey && !(await this._ask(this._t(it.confirmKey, { name: this._cam.name }), this._t('restart_btn'), true))) return;
       this._call('button', 'press', it.id);
     };
     else if (it.type === 'sel') row.querySelector('select').onchange = (e) => this._call('select', 'select_option', it.id, { option: e.target.value });
@@ -1762,7 +1850,15 @@ class ReolinkAppCardEditor extends HTMLElement {
 /* ======================================================================= */
 const RAC_CSS = `
 :host { --ra: var(--reolink-accent, #1e8bff); --rb: var(--ha-card-background, var(--card-background-color)); }
-ha-card { overflow: hidden; padding-bottom: 8px; }
+ha-card { overflow: hidden; padding-bottom: 8px; position: relative; }
+.dlg { position: absolute; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
+.dlg.show { display: flex; }
+.dbox { width: 100%; max-width: 320px; padding: 18px 16px 14px; border-radius: 18px; background: #2c2c2e; color: #f2f2f2; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.dtext { font-size: 15px; line-height: 1.4; text-align: center; margin-bottom: 16px; }
+.dbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dbtns button { padding: 11px; border-radius: 12px; font-size: 15px; font-weight: 600; background: #3a3a3c; color: #f2f2f2; }
+.dbtns button.danger { background: #ff3b30; color: #fff; }
+.dbtns button:not(.danger)#dyes { background: var(--ra); color: #fff; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
