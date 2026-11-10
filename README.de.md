@@ -124,6 +124,7 @@ Diese Angaben an den Dashboard-Link deiner Mitteilung hängen:
 | ------ | --------- |
 | `rac=live` | Kamera wählen und das Livebild starten |
 | `rac=event` | Die Aufnahme zum Zeitpunkt der Mitteilung abspielen |
+| `rac=talk` | Livebild starten und gleich das Gegensprechen einschalten, z. B. für einen Knopf **Annehmen** |
 | `rac_cam` | Die Kamera: ihre Entität, `prefix` oder ihr Name |
 | `rac_t` | Zeitpunkt als Unix-Zeitstempel (für `rac=event`; Standard: jetzt) |
 

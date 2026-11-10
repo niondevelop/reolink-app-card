@@ -127,6 +127,7 @@ Add these parameters to the dashboard link of your notification:
 | --------- | ------- |
 | `rac=live` | Select the camera and start the live view |
 | `rac=event` | Play the recording at the time of the notification |
+| `rac=talk` | Start the live view and turn on two-way audio right away, e.g. for an **Answer** button |
 | `rac_cam` | The camera: its entity, `prefix` or name |
 | `rac_t` | Time of the event as Unix timestamp (for `rac=event`; default: now) |
 
