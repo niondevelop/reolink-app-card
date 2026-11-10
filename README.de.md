@@ -128,6 +128,8 @@ Diese Angaben an den Dashboard-Link deiner Mitteilung hängen:
 | `rac_cam` | Die Kamera: ihre Entität, `prefix` oder ihr Name |
 | `rac_t` | Zeitpunkt als Unix-Zeitstempel (für `rac=event`; Standard: jetzt) |
 
+Wird die Karte über einen solchen Link geöffnet, löst sie das Ereignis `reolink_app_card` mit `action` (`live`, `event` oder `talk`) und `camera` (dem Präfix) aus. Eine Automation kann darauf warten, z. B. damit eine Anruf-Mitteilung aufhört zu klingeln, sobald du angenommen hast (nur für Home-Assistant-Benutzer mit Administratorrechten).
+
 Speichert die Kamera die Aufnahme noch, versucht es die Karte einige Minuten lang erneut. Beispiel für die Android-Companion-App, mit zwei Knöpfen:
 
 ```yaml

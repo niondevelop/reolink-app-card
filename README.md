@@ -131,6 +131,8 @@ Add these parameters to the dashboard link of your notification:
 | `rac_cam` | The camera: its entity, `prefix` or name |
 | `rac_t` | Time of the event as Unix timestamp (for `rac=event`; default: now) |
 
+When the card is opened through such a link, it fires the event `reolink_app_card` with `action` (`live`, `event` or `talk`) and `camera` (the prefix). An automation can wait for it, e.g. to stop a call-like notification from ringing once you answered (only for Home Assistant users with admin rights).
+
 If the camera is still saving the recording, the card tries again for a few minutes. Example for the Android Companion app, with two buttons:
 
 ```yaml

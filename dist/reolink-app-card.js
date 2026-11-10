@@ -1044,6 +1044,12 @@ class ReolinkAppCard extends HTMLElement {
     ['rac', 'rac_cam', 'rac_t'].forEach((k) => q.delete(k));
     const qs = q.toString();
     try { history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`); } catch (_) { /* ignorieren */ }
+    // Home Assistant mitteilen, dass die Mitteilung beantwortet wurde (z. B. damit ein „Anruf“ aufhört zu klingeln).
+    // Ereignisse dürfen nur Administratoren auslösen; sonst wird es still übersprungen.
+    try {
+      const r = this._hass.callWS({ type: 'fire_event', event_type: 'reolink_app_card', event_data: { action: mode, camera: this._cams[i].prefix } });
+      if (r && r.catch) r.catch(() => {});
+    } catch (_) { /* ignorieren */ }
     if (this._grid) this._setGrid(false);
     if (i !== this._idx) { this._idx = i; this._rebuildCamera(); }
     this._expired = false;
@@ -1881,6 +1887,8 @@ class ReolinkAppCard extends HTMLElement {
 /* Passendes Symbol für typische Modusnamen (deutsch und englisch) */
 function modeIcon(o) {
   const s = String(o).toLowerCase();
+  if (/klingel|ring|doorbell|sonnette|sonner/.test(s)) return 'mdi:doorbell';
+  if (/unscharf|disarm|deaktiv|d[eé]sarm/.test(s)) return 'mdi:shield-off-outline';
   if (/abwes|away|weg|urlaub|vacation|absent|vacances/.test(s)) return 'mdi:shield-lock-outline';
   if (/nacht|night|schlaf|sleep|nuit/.test(s)) return 'mdi:weather-night';
   if (/zuhause|home|daheim|maison/.test(s)) return 'mdi:home-outline';
