@@ -3,17 +3,29 @@
 [English](README.md) · [Deutsch](README.de.md) · **Français**
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
+[![Statut : alpha](https://img.shields.io/badge/statut-alpha-orange)](README.md#known-limitations)
 
 Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reolink : direct, commandes, réglages et lecture des enregistrements de la carte SD dans une seule carte. Conçue pour les caméras Reolink (p. ex. la série Argus sur batterie) reliées à un **Reolink Home Hub**, via l’[intégration Reolink](https://www.home-assistant.io/integrations/reolink/) officielle.
 
 > [!IMPORTANT]
 > **Nécessite un Reolink Home Hub.** La carte fonctionne uniquement avec des caméras reliées à un Reolink Home Hub (ou Home Hub Pro) et ajoutées à Home Assistant via le hub. Les caméras ajoutées directement à Home Assistant, sans hub, ne sont pas prises en charge.
 
+> [!WARNING]
+> **Alpha – encore en développement.** La carte est utilisée au quotidien sur une seule installation (Reolink Home Hub avec deux caméras Argus sur batterie), mais beaucoup de parties sont nouvelles et certaines n’ont été testées que dans un Home Assistant simulé. Attendez-vous à des bugs et à des changements, et ne l’utilisez pas comme seule alarme. Voir les [limitations connues](README.md#known-limitations) (en anglais) et [signalez les problèmes](https://github.com/niondevelop/reolink-app-card/issues).
+
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Direct">
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/playback.png" width="260" alt="Lecture">
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/settings.png" width="260" alt="Réglages">
 </p>
+
+## Sommaire
+
+- [Fonctions](#fonctions)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Soutenir](#soutenir)
+- [Licence](#licence)
 
 ## Fonctions
 
@@ -25,7 +37,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Orientation (PTZ) :** croix directionnelle, zoom et positions enregistrées pour les caméras motorisées.
 - **Ouverture depuis une notification :** `?rac=live&rac_cam=<caméra>` ouvre le direct, `?rac=event&rac_cam=<caméra>&rac_t=<horodatage>` lit l’enregistrement correspondant (voir la [documentation en anglais](README.md#open-from-a-notification), avec un exemple complet d’automatisation d’alarme).
 - **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette), mémorisée sur chaque appareil.
-- **Sélecteur de mode :** mode scène du hub (désarmé / maison / absent) ou votre propre mode (`mode_entity`), plus l’occupation de la carte SD.
+- **Sélecteur de mode :** mode scène du hub (désarmé / maison / absent) ou votre propre mode (`mode_entity`), plus l’occupation de la carte SD — avec deux blueprints prêts à importer pour les notifications et le changement de mode automatique (voir la [documentation en anglais](README.md#camera-mode-and-blueprints)).
 - **Bascule automatique** vers la caméra qui détecte une personne, un véhicule ou un animal.
 - **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures et filtres.
 - **Alertes batterie** et **éditeur visuel** qui détecte les caméras automatiquement.

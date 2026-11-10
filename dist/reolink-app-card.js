@@ -1,5 +1,5 @@
 /* Reolink App Card – Live, Steuerung & Wiedergabe im Stil der Reolink-App */
-const RAC_VERSION = '1.2.0';
+const RAC_VERSION = '0.1.0';
 
 /* ---------- Sprache ---------- */
 const STR = {
@@ -696,6 +696,7 @@ class ReolinkAppCard extends HTMLElement {
   /* ---------- Live ---------- */
   _startLive() {
     this._linkLive = false;
+    if (this._linkTalk) { this._linkTalk = false; setTimeout(() => this._talkWhenReady(), 0); }
     if (this._playing) this._stopPlayback(true);
     this._live = true;
     const t = +this._config.live_timeout || 0;
@@ -1027,13 +1028,14 @@ class ReolinkAppCard extends HTMLElement {
 
   /* ---------- Direktlink, z. B. aus einer Push-Mitteilung ----------
      ?rac=live&rac_cam=kamera_eingang            → Kamera wählen und live starten
-     ?rac=event&rac_cam=kamera_eingang&rac_t=…   → Aufnahme zu diesem Zeitpunkt (Unix-Sekunden) abspielen */
+     ?rac=event&rac_cam=kamera_eingang&rac_t=…   → Aufnahme zu diesem Zeitpunkt (Unix-Sekunden) abspielen
+     ?rac=talk&rac_cam=kamera_eingang            → live starten und gleich das Gegensprechen einschalten (z. B. „Annehmen“) */
   _onLink = () => {
     if (!this._built || !this._hass || !this.isConnected) return;
     let q;
     try { q = new URLSearchParams(window.location.search); } catch (_) { return; }
     const mode = q.get('rac');
-    if (mode !== 'live' && mode !== 'event') return;
+    if (!['live', 'event', 'talk'].includes(mode)) return;
     const want = String(q.get('rac_cam') || '').trim().toLowerCase();
     const i = want ? this._cams.findIndex((c) => [c.prefix, c.entity, c.name, c.media_name].some((x) => x && String(x).toLowerCase() === want)
       || prefixOf(want) === c.prefix || (c._devId && this._hass.entities && this._hass.entities[want] && this._hass.entities[want].device_id === c._devId)) : 0;
@@ -1042,6 +1044,12 @@ class ReolinkAppCard extends HTMLElement {
     ['rac', 'rac_cam', 'rac_t'].forEach((k) => q.delete(k));
     const qs = q.toString();
     try { history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`); } catch (_) { /* ignorieren */ }
+    // Home Assistant mitteilen, dass die Mitteilung beantwortet wurde (z. B. damit ein „Anruf“ aufhört zu klingeln).
+    // Ereignisse dürfen nur Administratoren auslösen; sonst wird es still übersprungen.
+    try {
+      const r = this._hass.callWS({ type: 'fire_event', event_type: 'reolink_app_card', event_data: { action: mode, camera: this._cams[i].prefix } });
+      if (r && r.catch) r.catch(() => {});
+    } catch (_) { /* ignorieren */ }
     if (this._grid) this._setGrid(false);
     if (i !== this._idx) { this._idx = i; this._rebuildCamera(); }
     this._expired = false;
@@ -1052,9 +1060,20 @@ class ReolinkAppCard extends HTMLElement {
       this._setMode('play');
     } else {
       this._linkLive = true;
+      this._linkTalk = mode === 'talk';
+      if (this._linkTalk && this._live) { this._linkTalk = false; this._talkWhenReady(); }
       this._setMode('live');
     }
   };
+
+  /* Gegensprechen einschalten, sobald bekannt ist, ob es geht (Abfrage bei Home Assistant läuft evtl. noch) */
+  async _talkWhenReady() {
+    for (let n = 0; n < 40; n++) {
+      if (!this._live || this._mic !== 'off') return;
+      if (this._talkReason() !== 'wait') { this._toggleTalk(); return; }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
 
   /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
   _pickEvent() {
@@ -1868,10 +1887,12 @@ class ReolinkAppCard extends HTMLElement {
 /* Passendes Symbol für typische Modusnamen (deutsch und englisch) */
 function modeIcon(o) {
   const s = String(o).toLowerCase();
-  if (/abwes|away|weg|urlaub|vacation/.test(s)) return 'mdi:shield-lock-outline';
-  if (/nacht|night|schlaf|sleep/.test(s)) return 'mdi:weather-night';
-  if (/zuhause|home|daheim/.test(s)) return 'mdi:home-outline';
-  if (/^(aus|off)$|stumm|mute|deaktiv|disarm/.test(s)) return 'mdi:bell-off-outline';
+  if (/klingel|ring|doorbell|sonnette|sonner/.test(s)) return 'mdi:doorbell';
+  if (/unscharf|disarm|deaktiv|d[eé]sarm/.test(s)) return 'mdi:shield-off-outline';
+  if (/abwes|away|weg|urlaub|vacation|absent|vacances/.test(s)) return 'mdi:shield-lock-outline';
+  if (/nacht|night|schlaf|sleep|nuit/.test(s)) return 'mdi:weather-night';
+  if (/zuhause|home|daheim|maison/.test(s)) return 'mdi:home-outline';
+  if (/^(aus|off|arr[eê]t)$|stumm|mute|deaktiv|disarm|silence/.test(s)) return 'mdi:bell-off-outline';
   return 'mdi:circle-medium';
 }
 

@@ -1,0 +1,160 @@
+blueprint:
+  name: Reolink App Card – camera mode automatic
+  author: niondevelop
+  description: >-
+    Switches the camera mode helper (shown at the top of the Reolink App Card via
+    `mode_entity`) automatically:
+
+
+    - **Away** when everybody has left home
+    - **Home** or **Night** when somebody comes home, depending on the time
+    - **Home → Night** at the start of the night and **Night → Home** at its end,
+      while somebody is home
+
+
+    The mode **Off** and modes you set by hand stay until the next of these events.
+  domain: automation
+  homeassistant:
+    min_version: 2026.7.0
+  source_url: https://github.com/niondevelop/reolink-app-card/blob/main/blueprints/automation/reolink_app_card/camera_mode_automatic.yaml
+  input:
+    mode_entity:
+      name: Mode helper
+      description: The dropdown helper with your modes, e.g. Away / Home / Night / Off.
+      selector:
+        entity:
+          filter:
+            - domain: input_select
+    persons:
+      name: People
+      description: The mode is Away when none of them is home.
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: person
+    leave_delay:
+      name: Delay when leaving
+      description: Protects against short GPS jumps.
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          unit_of_measurement: min
+    night_start:
+      name: Night from
+      default: "22:30:00"
+      selector:
+        time: {}
+    night_end:
+      name: Night until
+      default: "06:30:00"
+      selector:
+        time: {}
+    away_option:
+      name: Name of the away mode
+      description: Exactly as in the helper.
+      default: Away
+      selector:
+        text: {}
+    home_option:
+      name: Name of the home mode
+      default: Home
+      selector:
+        text: {}
+    night_option:
+      name: Name of the night mode
+      default: Night
+      selector:
+        text: {}
+
+triggers:
+  - trigger: state
+    entity_id: !input persons
+    from: home
+    for:
+      minutes: !input leave_delay
+    id: left
+  - trigger: state
+    entity_id: !input persons
+    to: home
+    id: arrived
+  - trigger: time
+    at: !input night_start
+    id: night
+  - trigger: time
+    at: !input night_end
+    id: morning
+
+variables:
+  mode_entity: !input mode_entity
+  away_option: !input away_option
+  home_option: !input home_option
+  night_option: !input night_option
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: left
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: !input persons
+                state: home
+                match: any
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input mode_entity
+            data:
+              option: "{{ away_option }}"
+      - conditions:
+          - condition: trigger
+            id: arrived
+        sequence:
+          - if:
+              - condition: time
+                after: !input night_start
+                before: !input night_end
+            then:
+              - action: input_select.select_option
+                target:
+                  entity_id: !input mode_entity
+                data:
+                  option: "{{ night_option }}"
+            else:
+              - action: input_select.select_option
+                target:
+                  entity_id: !input mode_entity
+                data:
+                  option: "{{ home_option }}"
+      - conditions:
+          - condition: trigger
+            id: night
+          - condition: state
+            entity_id: !input persons
+            state: home
+            match: any
+          - condition: template
+            value_template: "{{ is_state(mode_entity, home_option) }}"
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input mode_entity
+            data:
+              option: "{{ night_option }}"
+      - conditions:
+          - condition: trigger
+            id: morning
+          - condition: template
+            value_template: "{{ is_state(mode_entity, night_option) }}"
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input mode_entity
+            data:
+              option: "{{ home_option }}"
+
+mode: queued

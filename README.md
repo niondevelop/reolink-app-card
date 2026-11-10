@@ -5,6 +5,7 @@
 [![HACS](https://img.shields.io/badge/HACS-Dashboard-41BDF5.svg)](https://github.com/hacs/integration)
 [![Release](https://img.shields.io/github/v/release/niondevelop/reolink-app-card)](https://github.com/niondevelop/reolink-app-card/releases)
 [![Validate](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml/badge.svg)](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#known-limitations)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 
 A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for Reolink cameras (e.g. the battery-powered Argus series) connected to a **Reolink Home Hub**, using the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
@@ -12,13 +13,33 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 > [!IMPORTANT]
 > **Requires a Reolink Home Hub.** The card only works with cameras that are connected to a Reolink Home Hub (or Home Hub Pro) and added to Home Assistant through the hub. Cameras connected directly to Home Assistant, without a hub, are not supported.
 
+> [!WARNING]
+> **Alpha – still in development.** The card is in daily use on one setup (Reolink Home Hub with two Argus battery cameras), but many parts are new and some have only been tested in a simulated Home Assistant. Expect bugs and changes between versions, and don't rely on it as your only alarm. See [Known limitations](#known-limitations) and please [report problems](https://github.com/niondevelop/reolink-app-card/issues).
+
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live view">
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/playback.png" width="260" alt="Playback">
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/settings.png" width="260" alt="Settings">
 </p>
 
-<sub>Screenshots use a drawn demo image instead of a real camera.</sub>
+<sub>Screenshots use a rendered demo image instead of a real camera.</sub>
+
+## Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Marketplace / HACS](#marketplace--hacs)
+  - [Manual installation](#manual-installation)
+- [Configuration](#configuration)
+  - [Card options](#card-options)
+  - [Camera options](#camera-options)
+  - [Open from a notification](#open-from-a-notification)
+  - [Camera mode and blueprints](#camera-mode-and-blueprints)
+  - [Accent colour](#accent-colour)
+- [Notes](#notes)
+- [Known limitations](#known-limitations)
+- [Support](#support)
+- [License](#license)
 
 ## Features
 
@@ -127,8 +148,11 @@ Add these parameters to the dashboard link of your notification:
 | --------- | ------- |
 | `rac=live` | Select the camera and start the live view |
 | `rac=event` | Play the recording at the time of the notification |
+| `rac=talk` | Start the live view and turn on two-way audio right away, e.g. for an **Answer** button |
 | `rac_cam` | The camera: its entity, `prefix` or name |
 | `rac_t` | Time of the event as Unix timestamp (for `rac=event`; default: now) |
+
+When the card is opened through such a link, it fires the event `reolink_app_card` with `action` (`live`, `event` or `talk`) and `camera` (the prefix). An automation can wait for it, e.g. to stop a call-like notification from ringing once you answered (only for Home Assistant users with admin rights).
 
 If the camera is still saving the recording, the card tries again for a few minutes. Example for the Android Companion app, with two buttons:
 
@@ -212,6 +236,21 @@ Notes:
 - A separate `tag` per camera keeps both notifications instead of replacing one with the other; `channel: Alarm` with `importance: max` lets you give alarm notifications their own sound on Android.
 - The snapshot entity (`..._snapshots_fluent`) is disabled by default in the Reolink integration; enable it on the device page, or use the stream entity instead.
 
+### Camera mode and blueprints
+
+The card can show your own mode at the top, e.g. **Away / Home / Night / Off**, and your automations decide what happens in each mode. Two blueprints make this easy to set up:
+
+1. **Create the mode helper:** *Settings → Devices & services → Helpers → Create helper → Dropdown*, name it e.g. "Camera mode", options `Away`, `Home`, `Night`, `Off`.
+2. **Show it in the card:** in the card editor under *Options → Mode selector on top*, or `mode_entity: input_select.camera_mode` in YAML. The card picks fitting icons for these names; set your own with `mode_icons`.
+3. **Import the blueprints** and create an automation from each:
+
+| Blueprint | What it does | |
+| --------- | ------------ | - |
+| Camera notification by mode | When a camera detects something (e.g. a person), it sends a notification with a snapshot and the buttons **Live** and **Recording**, but only in the modes you choose, e.g. Away and Night. One automation per camera | [![Import camera notification blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_notification_by_mode.yaml) |
+| Camera mode automatic | **Away** when everybody has left, **Home** or **Night** when somebody comes home, and Home ↔ Night at the night times you set | [![Import camera mode blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_mode_automatic.yaml) |
+
+Both need Home Assistant 2026.7 or later. If your helper uses other names (e.g. German *Abwesend / Zuhause / Nacht*), enter them in the blueprint. The mode **Off** is never set automatically; choose it in the card when you want no notifications.
+
 ### Accent colour
 
 The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8bff`) and can be set in your theme.
@@ -228,6 +267,21 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 
   Tap the handset to talk; the live view starts if needed and stays on while you talk. Tap the red button to hang up. If a requirement is missing, the button is greyed out and tapping it tells you why. With `talk_url`, the button opens that link instead whenever two-way audio is not available, e.g. `app://com.mcu.reolink` to open the Reolink app in the Android Companion app.
 - **Playback:** uses the media source of the Reolink integration and prefers the low resolution, because it loads faster and saves battery.
+
+## Known limitations
+
+This is an alpha version. What has been tested, and how:
+
+- **Tested on real hardware with one setup only:** Reolink Home Hub with two Argus battery cameras, Android Companion app, Home Assistant 2026.11. Other models, an NVR or several hubs have not been tested.
+- **Only tested in a simulated Home Assistant, not with real devices:** the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
+- **Two-way audio** is a Labs (preview) feature of Home Assistant. Some Reolink models have known problems with it (no sound arriving at the camera, or an echo). In a browser it needs HTTPS.
+- **Sound in the live view:** turning it on reconnects the stream for a moment. If the camera's WebRTC stream has no audio track, there is no sound.
+- **Blueprints:** their templates and conditions were checked against a real Home Assistant, but they have not yet run as complete automations.
+- **Notification links and buttons** were tested with the Android Companion app; iPhones are untested.
+- **Home Assistant updates:** the card builds on parts of the Home Assistant frontend (its camera stream player). A Home Assistant update can break the live view, sound or two-way audio until the card is updated.
+- **Battery:** live view, sound and two-way audio wake battery cameras and cost battery.
+
+Found a problem? Please [open an issue](https://github.com/niondevelop/reolink-app-card/issues) with your camera model, Home Assistant version and what happened.
 
 ## Support
 

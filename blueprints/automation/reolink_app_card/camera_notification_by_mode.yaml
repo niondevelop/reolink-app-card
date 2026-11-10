@@ -1,0 +1,168 @@
+blueprint:
+  name: Reolink App Card – camera notification by mode
+  author: niondevelop
+  description: >-
+    Sends a notification with a snapshot when a camera detects something, but only
+    in the camera modes you choose (for example away and night). The mode is a
+    dropdown helper that the Reolink App Card shows at the top via `mode_entity`.
+
+
+    The notification has two buttons: **Live** opens the camera live in the card,
+    **Recording** plays the matching recording. Tapping the notification itself
+    opens the camera live. Create one automation per camera.
+  domain: automation
+  homeassistant:
+    min_version: 2026.7.0
+  source_url: https://github.com/niondevelop/reolink-app-card/blob/main/blueprints/automation/reolink_app_card/camera_notification_by_mode.yaml
+  input:
+    camera:
+      name: Camera
+      icon: mdi:cctv
+      input:
+        detection:
+          name: Detection sensors
+          description: What triggers the notification, e.g. the person and vehicle sensors of the camera.
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: binary_sensor
+                  integration: reolink
+        snapshot:
+          name: Snapshot camera
+          description: >-
+            Camera entity for the picture in the notification, e.g. the snapshot entity
+            (disabled by default in the Reolink integration) or the stream. It also tells
+            the card which camera to open.
+          selector:
+            entity:
+              filter:
+                - domain: camera
+                  integration: reolink
+        camera_name:
+          name: Camera name
+          description: Shown as the title of the notification.
+          default: Camera
+          selector:
+            text: {}
+    mode:
+      name: Camera mode
+      icon: mdi:shield-home-outline
+      input:
+        mode_entity:
+          name: Mode helper
+          description: The dropdown helper with your modes, e.g. Away / Home / Night / Off.
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - input_select
+                    - select
+        modes:
+          name: Notify in these modes
+          description: Type the options exactly as they are named in the helper.
+          default:
+            - Away
+            - Night
+          selector:
+            select:
+              multiple: true
+              custom_value: true
+              options:
+                - Away
+                - Home
+                - Night
+                - Abwesend
+                - Zuhause
+                - Nacht
+    notification:
+      name: Notification
+      icon: mdi:cellphone-message
+      input:
+        notify_actions:
+          name: Notify actions
+          description: >-
+            The notify actions of your phones, e.g. notify.mobile_app_my_phone.
+            Find them under Tools → Actions.
+          selector:
+            text:
+              multiple: true
+        dashboard:
+          name: Dashboard path
+          description: Path of the dashboard view with the Reolink App Card, e.g. /dashboard-cameras/cameras.
+          selector:
+            text: {}
+        live_label:
+          name: Label of the live button
+          default: Live
+          selector:
+            text: {}
+        recording_label:
+          name: Label of the recording button
+          default: Recording
+          selector:
+            text: {}
+        cooldown:
+          name: Pause after a notification
+          description: No further notification from this camera during this time.
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 30
+              unit_of_measurement: min
+
+triggers:
+  - trigger: motion.detected
+    target:
+      entity_id: !input detection
+
+conditions:
+  - condition: state
+    entity_id: !input mode_entity
+    state: !input modes
+
+variables:
+  snapshot: !input snapshot
+  camera_name: !input camera_name
+  dashboard: !input dashboard
+  notify_actions: !input notify_actions
+  live_label: !input live_label
+  recording_label: !input recording_label
+  cooldown: !input cooldown
+
+actions:
+  - variables:
+      live_url: "{{ dashboard ~ '?rac=live&rac_cam=' ~ snapshot }}"
+      event_url: "{{ dashboard ~ '?rac=event&rac_cam=' ~ snapshot ~ '&rac_t=' ~ (as_timestamp(now()) | int) }}"
+      what: "{{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }}"
+  - repeat:
+      for_each: "{{ notify_actions }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          continue_on_error: true
+          data:
+            title: "{{ camera_name }}"
+            message: "{{ what }} · {{ now().strftime('%H:%M') }}"
+            data:
+              image: "/api/camera_proxy/{{ snapshot }}"
+              clickAction: "{{ live_url }}"
+              url: "{{ live_url }}"
+              tag: "reolink-{{ snapshot }}"
+              group: reolink
+              channel: Camera
+              importance: high
+              priority: high
+              ttl: 0
+              actions:
+                - action: URI
+                  title: "{{ live_label }}"
+                  uri: "{{ live_url }}"
+                - action: URI
+                  title: "{{ recording_label }}"
+                  uri: "{{ event_url }}"
+  - delay:
+      minutes: "{{ cooldown }}"
+
+mode: single
+max_exceeded: silent

@@ -3,11 +3,15 @@
 [English](README.md) · **Deutsch** · [Français](README.fr.md)
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#bekannte-einschränkungen)
 
 Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für Reolink-Kameras (z. B. die akkubetriebene Argus-Serie) an einem **Reolink Home Hub**, über die offizielle [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
 
 > [!IMPORTANT]
 > **Nur mit Reolink Home Hub.** Die Karte funktioniert nur mit Kameras, die an einem Reolink Home Hub (oder Home Hub Pro) angemeldet sind und über den Hub in Home Assistant eingebunden wurden. Kameras, die ohne Hub direkt in Home Assistant eingebunden sind, werden nicht unterstützt.
+
+> [!WARNING]
+> **Alpha – noch in Entwicklung.** Die Karte läuft täglich bei einer Installation (Reolink Home Hub mit zwei Argus-Akkukameras), aber vieles ist neu und manches nur in einem nachgebauten Home Assistant getestet. Rechne mit Fehlern und Änderungen zwischen den Versionen und verlass dich nicht als einzige Alarmierung darauf. Siehe [Bekannte Einschränkungen](#bekannte-einschränkungen), und [melde Probleme](https://github.com/niondevelop/reolink-app-card/issues) gern.
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live-Ansicht">
@@ -15,7 +19,24 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/settings.png" width="260" alt="Einstellungen">
 </p>
 
-<sub>Screenshots mit einem gezeichneten Demo-Bild statt einer echten Kamera.</sub>
+<sub>Screenshots mit einem gerenderten Demo-Bild statt einer echten Kamera.</sub>
+
+## Inhalt
+
+- [Funktionen](#funktionen)
+- [Installation](#installation)
+  - [Über den Marketplace bzw. HACS](#über-den-marketplace-bzw-hacs)
+  - [Manuelle Installation](#manuelle-installation)
+- [Konfiguration](#konfiguration)
+  - [Karten-Optionen](#karten-optionen)
+  - [Kamera-Optionen](#kamera-optionen)
+  - [Aus einer Mitteilung öffnen](#aus-einer-mitteilung-öffnen)
+  - [Kamera-Modus und Blueprints](#kamera-modus-und-blueprints)
+  - [Farbe anpassen](#farbe-anpassen)
+- [Hinweise](#hinweise)
+- [Bekannte Einschränkungen](#bekannte-einschränkungen)
+- [Unterstützen](#unterstützen)
+- [Lizenz](#lizenz)
 
 ## Funktionen
 
@@ -124,8 +145,11 @@ Diese Angaben an den Dashboard-Link deiner Mitteilung hängen:
 | ------ | --------- |
 | `rac=live` | Kamera wählen und das Livebild starten |
 | `rac=event` | Die Aufnahme zum Zeitpunkt der Mitteilung abspielen |
+| `rac=talk` | Livebild starten und gleich das Gegensprechen einschalten, z. B. für einen Knopf **Annehmen** |
 | `rac_cam` | Die Kamera: ihre Entität, `prefix` oder ihr Name |
 | `rac_t` | Zeitpunkt als Unix-Zeitstempel (für `rac=event`; Standard: jetzt) |
+
+Wird die Karte über einen solchen Link geöffnet, löst sie das Ereignis `reolink_app_card` mit `action` (`live`, `event` oder `talk`) und `camera` (dem Präfix) aus. Eine Automation kann darauf warten, z. B. damit eine Anruf-Mitteilung aufhört zu klingeln, sobald du angenommen hast (nur für Home-Assistant-Benutzer mit Administratorrechten).
 
 Speichert die Kamera die Aufnahme noch, versucht es die Karte einige Minuten lang erneut. Beispiel für die Android-Companion-App, mit zwei Knöpfen:
 
@@ -209,6 +233,21 @@ Hinweise:
 - Ein eigener `tag` pro Kamera sorgt dafür, dass beide Mitteilungen bleiben, statt sich gegenseitig zu ersetzen; mit `channel: Alarm` und `importance: max` lässt sich Alarm-Mitteilungen unter Android ein eigener Ton geben.
 - Die Schnappschuss-Entität (`..._schnappschusse_in_standardauflosung`) ist in der Reolink-Integration ab Werk deaktiviert; auf der Geräteseite aktivieren oder stattdessen die Stream-Entität nehmen.
 
+### Kamera-Modus und Blueprints
+
+Die Karte kann oben einen eigenen Modus zeigen, z. B. **Abwesend / Zuhause / Nacht / Aus**, und deine Automationen entscheiden, was in welchem Modus passiert. Zwei Blueprints machen das Einrichten einfach:
+
+1. **Modus-Helfer anlegen:** *Einstellungen → Geräte & Dienste → Helfer → Helfer erstellen → Dropdown*, Name z. B. „Kamera-Modus“, Optionen `Abwesend`, `Zuhause`, `Nacht`, `Aus`.
+2. **In der Karte anzeigen:** im Karten-Editor unter *Optionen → Modus-Auswahl oben*, oder `mode_entity: input_select.kamera_modus` in YAML. Für diese Namen wählt die Karte passende Symbole; eigene lassen sich mit `mode_icons` setzen.
+3. **Blueprints importieren** und daraus je eine Automation erstellen:
+
+| Blueprint | Was er macht | |
+| --------- | ------------ | - |
+| Kamera-Benachrichtigung nach Modus | Erkennt eine Kamera etwas (z. B. eine Person), kommt eine Mitteilung mit Bild und den Knöpfen **Live** und **Aufnahme**, aber nur in den gewählten Modi, z. B. Abwesend und Nacht. Eine Automation pro Kamera | [![Blueprint Kamera-Benachrichtigung importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_notification_by_mode.yaml) |
+| Kamera-Modus automatisch | **Abwesend**, wenn alle weg sind, **Zuhause** oder **Nacht** beim Heimkommen, und Zuhause ↔ Nacht zu den eingestellten Nachtzeiten | [![Blueprint Kamera-Modus importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_mode_automatic.yaml) |
+
+Beide brauchen Home Assistant 2026.7 oder neuer. Die Blueprints sind auf Englisch voreingestellt (*Away / Home / Night*); bei einem deutschen Helfer im Blueprint die Namen `Abwesend`, `Zuhause` und `Nacht` eintragen und bei den Knöpfen z. B. „Aufnahme“ statt „Recording“. Der Modus **Aus** wird nie automatisch gesetzt; ihn wählst du in der Karte, wenn du keine Mitteilungen willst.
+
 ### Farbe anpassen
 
 Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff`) und lässt sich im Theme setzen.
@@ -225,6 +264,21 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 
   Auf den Hörer tippen, um zu sprechen; das Livebild startet bei Bedarf und bleibt während des Gesprächs an. Mit dem roten Button auflegen. Fehlt eine Voraussetzung, ist der Button ausgegraut, und ein Tipp darauf zeigt den Grund. Mit `talk_url` öffnet der Button stattdessen diesen Link, wenn Gegensprechen nicht verfügbar ist, z. B. `app://com.mcu.reolink` für die Reolink-App in der Android-Companion-App.
 - **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
+
+## Bekannte Einschränkungen
+
+Das ist eine Alpha-Version. Was wie getestet ist:
+
+- **Mit echter Hardware nur bei einer Installation getestet:** Reolink Home Hub mit zwei Argus-Akkukameras, Android-Companion-App, Home Assistant 2026.11. Andere Modelle, ein NVR oder mehrere Hubs sind nicht getestet.
+- **Nur in einem nachgebauten Home Assistant getestet, nicht mit echten Geräten:** die Klingel-Ansicht in der Karte, Schwenken & Neigen (PTZ), französische oder umbenannte Entity-IDs, die iPhone-App und das Senden des Mikrofons durch die Companion-App über reines HTTP.
+- **Gegensprechen** ist eine Labs-Funktion (Vorschau) von Home Assistant. Bei manchen Reolink-Modellen gibt es bekannte Probleme damit (kein Ton bei der Kamera oder ein Echo). Im Browser braucht es HTTPS.
+- **Ton im Livebild:** Beim Einschalten verbindet sich der Stream kurz neu. Hat der WebRTC-Stream der Kamera keine Tonspur, gibt es keinen Ton.
+- **Blueprints:** Vorlagen und Bedingungen sind an einem echten Home Assistant geprüft, als vollständige Automation sind sie aber noch nicht gelaufen.
+- **Links und Knöpfe in Mitteilungen** sind mit der Android-Companion-App getestet, iPhones nicht.
+- **Home-Assistant-Updates:** Die Karte baut auf Teilen des Home-Assistant-Frontends auf (dem Kamera-Player). Ein Update von Home Assistant kann Livebild, Ton oder Gegensprechen stören, bis die Karte angepasst ist.
+- **Akku:** Livebild, Ton und Gegensprechen wecken Akkukameras und kosten Akku.
+
+Ein Problem gefunden? [Eröffne gern ein Issue](https://github.com/niondevelop/reolink-app-card/issues) mit Kameramodell, Home-Assistant-Version und was passiert ist.
 
 ## Unterstützen
 
