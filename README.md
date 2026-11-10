@@ -26,7 +26,10 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Battery-friendly preview:** while paused, the card shows the last image as a still instead of polling the battery camera all the time.
 - **Sound:** the speaker button on the video turns the camera's sound on and off. With `audio: auto` the sound is on as soon as the live view runs.
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
-- **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear).
+- **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
+- **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move.
+- **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
+- **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
 - **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice.
 - **All cameras at once:** grid view with every live stream; tap one to open it.
@@ -40,7 +43,10 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 
 Entries for entities that don't exist or are disabled are hidden automatically.
 
-<img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/grid.png" width="300" alt="Grid view">
+<p>
+  <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/grid.png" width="300" alt="Grid view">
+  <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/doorbell.png" width="300" alt="Doorbell">
+</p>
 
 ## Installation
 
@@ -97,6 +103,8 @@ cameras:
 | `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
+| `doorbell_timeout`        | `30`          | How long the doorbell call screen stays (seconds) |
+| `doorbell_sound`          | `true`        | Play a short ring tone on the device when the bell rings |
 | `talk_url`                | –             | Optional: open this link (e.g. the Reolink app) with the talk button when two-way audio is not available. Can also be set per camera |
 
 ### Camera options
@@ -108,9 +116,42 @@ cameras:
 | `name`       | Display name |
 | `media_name` | Name of the camera in the Reolink media source (Media → Reolink). Needed for playback if it differs from the device name |
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
+| `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
 
-The card finds the entities on its own, for both English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
+The card finds the entities on its own through the device registry, so it works in any language and with renamed entities. If that's not possible, it falls back to English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
+
+### Open from a notification
+
+Add these parameters to the dashboard link of your notification:
+
+| Parameter | Meaning |
+| --------- | ------- |
+| `rac=live` | Select the camera and start the live view |
+| `rac=event` | Play the recording at the time of the notification |
+| `rac_cam` | The camera: its entity, `prefix` or name |
+| `rac_t` | Time of the event as Unix timestamp (for `rac=event`; default: now) |
+
+If the camera is still saving the recording, the card tries again for a few minutes. Example for the Android Companion app, with two buttons:
+
+```yaml
+action: notify.mobile_app_my_phone
+data:
+  title: Person at the front door
+  message: "{{ now().strftime('%H:%M') }}"
+  data:
+    image: /api/camera_proxy/camera.front_door_snapshots_fluent
+    clickAction: "/dashboard-cameras/0?rac=live&rac_cam=camera.front_door_fluent"
+    actions:
+      - action: URI
+        title: Live
+        uri: "/dashboard-cameras/0?rac=live&rac_cam=camera.front_door_fluent"
+      - action: URI
+        title: Recording
+        uri: "/dashboard-cameras/0?rac=event&rac_cam=camera.front_door_fluent&rac_t={{ as_timestamp(now()) | int }}"
+```
+
+On iPhones use `url` instead of `clickAction`; the `actions` work the same way.
 
 ### Accent colour
 

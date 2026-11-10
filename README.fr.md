@@ -21,7 +21,10 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Aperçu économe :** en pause, la carte affiche la dernière image au lieu d’interroger sans cesse la caméra sur batterie.
 - **Son :** le bouton haut-parleur sur l’image active ou coupe le son de la caméra. Avec `audio: auto`, le son est activé dès que le direct démarre.
 - **Interphone :** parler à travers la caméra directement depuis la carte, avec un bouton combiné et un écran d’appel comme dans l’app Reolink. Nécessite la fonction Labs « Audio bidirectionnel » de Home Assistant (2026.11+), une caméra qui la prend en charge en RTSP et un accès en **HTTPS** ; sinon le bouton est grisé.
-- **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette).
+- **Sonnette :** pour une sonnette Reolink ou une caméra utilisée comme sonnette (option `doorbell`) : un écran d’appel avec Refuser et Répondre apparaît ; Répondre lance l’interphone.
+- **Orientation (PTZ) :** croix directionnelle, zoom et positions enregistrées pour les caméras motorisées.
+- **Ouverture depuis une notification :** `?rac=live&rac_cam=<caméra>` ouvre le direct, `?rac=event&rac_cam=<caméra>&rac_t=<horodatage>` lit l’enregistrement correspondant (voir la [documentation en anglais](README.md#open-from-a-notification)).
+- **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette), mémorisée sur chaque appareil.
 - **Sélecteur de mode :** mode scène du hub (désarmé / maison / absent) ou votre propre mode (`mode_entity`), plus l’occupation de la carte SD.
 - **Bascule automatique** vers la caméra qui détecte une personne, un véhicule ou un animal.
 - **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures et filtres.
