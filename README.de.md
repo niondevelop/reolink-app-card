@@ -21,7 +21,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 
 - **Echtes Livebild:** startet automatisch, sobald die Karte sichtbar ist, und pausiert nach 5 Minuten (einstellbar) oder sofort, wenn du wegscrollst oder die App verlässt.
 - **Schonende Vorschau:** Im pausierten Zustand zeigt die Karte das letzte Bild als Standbild, statt die Akkukamera ständig neu abzufragen.
-- **Ton:** Das Livebild startet stumm; der Lautsprecher-Button im Bild schaltet den Ton der Kamera ein (bleibt beim Kamerawechsel an).
+- **Ton:** Der Lautsprecher-Button im Bild schaltet den Ton der Kamera ein und aus. Mit `audio: auto` ist der Ton an, sobald das Livebild läuft.
 - **Gegensprechen:** direkt aus der Karte durch die Kamera sprechen, mit Hörer-Button und Gesprächsansicht wie in der Reolink-App (Labs-Funktion von Home Assistant, siehe Hinweise).
 - **Steuerleiste wie in der Reolink-App:** Sprechen, Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar).
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte.
@@ -74,6 +74,7 @@ cameras:
 | Option                    | Standard      | Beschreibung |
 | ------------------------- | ------------- | ------------ |
 | `cameras`                 | –             | **Pflicht.** Liste der Kameras (siehe unten) |
+| `audio`                   | `manual`      | Audioausgabe: `manual` (Livebild startet stumm, Ton über den Lautsprecher-Button) oder `auto` (Ton an, sobald das Livebild läuft; Browser erlauben das erst, nachdem du einmal auf die Seite getippt hast) |
 | `default_quality`         | `fluent`      | Startqualität: `fluent` (Flüssig), `balanced` (Balanciert) oder `clear` (Klar) |
 | `live_timeout`            | `300`         | Sekunden, nach denen das Livebild pausiert. `0` = kein Limit |
 | `auto_live`               | `true`        | Livebild automatisch starten, sobald die Karte sichtbar ist |

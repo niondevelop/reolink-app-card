@@ -19,7 +19,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 
 - **Vrai direct** qui démarre quand la carte est visible et se met en pause après 5 minutes (réglable) ou dès que vous quittez la vue.
 - **Aperçu économe :** en pause, la carte affiche la dernière image au lieu d’interroger sans cesse la caméra sur batterie.
-- **Son :** le direct démarre sans son ; le bouton haut-parleur sur l’image active le son de la caméra.
+- **Son :** le bouton haut-parleur sur l’image active ou coupe le son de la caméra. Avec `audio: auto`, le son est activé dès que le direct démarre.
 - **Interphone :** parler à travers la caméra directement depuis la carte, avec un bouton combiné et un écran d’appel comme dans l’app Reolink. Nécessite la fonction Labs « Audio bidirectionnel » de Home Assistant (2026.11+), une caméra qui la prend en charge en RTSP et un accès en **HTTPS** ; sinon le bouton est grisé.
 - **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette).
 - **Sélecteur de mode :** mode scène du hub (désarmé / maison / absent) ou votre propre mode (`mode_entity`), plus l’occupation de la carte SD.

@@ -112,6 +112,7 @@ const pickLang = (opt, hass) => {
 };
 const fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] ?? ''));
 /* Element in verschachtelten Shadow-DOMs suchen (z. B. den Kamera-Stream in der picture-entity-Karte) */
+const SND_EVENTS = ['pointerup', 'click', 'keydown'];
 const deepFind = (root, sel) => {
   if (!root) return null;
   const hit = root.querySelector && root.querySelector(sel);
@@ -238,7 +239,7 @@ class ReolinkAppCard extends HTMLElement {
     if (config.cameras.some((c) => !c || !c.prefix)) throw new Error(STR.de.need_prefix);
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
-      default_quality: 'fluent', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
+      default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
       hub_prefix: 'reolink_hub', show_hub: true, alert_seconds: 8, language: 'auto',
       ...config,
     };
@@ -261,7 +262,7 @@ class ReolinkAppCard extends HTMLElement {
     this._snaps = {};
     this._prevDet = null;
     this._pics = [];
-    this._twa = {}; this._sound = false; this._mic = 'off'; this._micReq = 0; this._streamType = null;
+    this._twa = {}; this._sound = this._config.audio === 'auto'; this._sndCheck = this._sound; this._mic = 'off'; this._micReq = 0; this._streamType = null;
     if (this._built) { this._renderTabs(); this._rebuildCamera(); }
   }
 
@@ -318,6 +319,7 @@ class ReolinkAppCard extends HTMLElement {
 
   disconnectedCallback() {
     window.removeEventListener('webrtc-stream-stopped', this._onAppStop);
+    this._sndStopWait();
     this._micReset();
     clearInterval(this._tick);
     clearTimeout(this._toastT);
@@ -754,7 +756,17 @@ class ReolinkAppCard extends HTMLElement {
      Zum Einschalten wird der Player deshalb ohne Stummschaltung neu verbunden. */
   async _applySound() {
     const tok = (this._sndTok = Symbol());
-    for (let n = 0; n < 75; n++) {
+    // Browser spielen Ton erst nach einer Interaktion mit der Seite ab, sonst bliebe das Livebild schwarz
+    const ua = navigator.userActivation;
+    if (this._sound && ua && !ua.hasBeenActive) {
+      if (!this._sndWait) {
+        // Auf Touchgeräten zählt erst das Loslassen als Interaktion, darum auf pointerup/click/keydown warten
+        this._sndWait = () => { this._sndStopWait(); setTimeout(() => { if (this._sound) this._applySound(); }, 0); };
+        SND_EVENTS.forEach((t) => window.addEventListener(t, this._sndWait, true));
+      }
+      return;
+    }
+    for (let n = 0; n < 100; n++) {
       if (tok !== this._sndTok || !this._live || this._grid) return;
       const s = deepFind(this.$('pic'), 'ha-camera-stream');
       if (s) {
@@ -774,8 +786,15 @@ class ReolinkAppCard extends HTMLElement {
         }
         return;
       }
-      await new Promise((r) => setTimeout(r, 200));
+      // Anfangs schnell nachsehen, damit der Player möglichst gleich mit Ton startet statt neu zu verbinden
+      await new Promise((r) => setTimeout(r, n < 40 ? 25 : 200));
     }
+  }
+
+  _sndStopWait() {
+    if (!this._sndWait) return;
+    SND_EVENTS.forEach((t) => window.removeEventListener(t, this._sndWait, true));
+    this._sndWait = null;
   }
 
   /* ---------- Gegensprechen über Home Assistant (Zwei-Wege-Audio, Labs-Funktion ab 2026.11) ----------
@@ -1521,6 +1540,7 @@ const ED_LABELS = {
     battery_warning: 'Akku-Warnung ab (%)', temperature_warning: 'Temperatur-Warnung ab (°C)', show_hub: 'Hub anzeigen (Szenenmodus, SD-Karte)',
     hub_prefix: 'Hub-Präfix', language: 'Sprache', prefix: 'Kamera', name: 'Anzeigename', media_name: 'Name in der Medienquelle (für Wiedergabe)',
     cameras: 'Kameras', add: 'Kamera hinzufügen', remove: 'Entfernen', up: 'Nach oben', auto: 'Automatisch', options: 'Optionen',
+    audio: 'Audioausgabe', audio_auto: 'Automatisch (Ton an, sobald das Livebild läuft)', audio_manual: 'Manuell (mit dem Lautsprecher-Button)',
   },
   en: {
     mode_entity: 'Mode selector on top (e.g. an input_select for notifications)', default_quality: 'Start quality', live_timeout: 'Live limit (seconds, 0 = no limit)', auto_live: 'Start live automatically',
@@ -1528,6 +1548,7 @@ const ED_LABELS = {
     battery_warning: 'Battery warning at (%)', temperature_warning: 'Temperature warning at (°C)', show_hub: 'Show hub (scene mode, SD card)',
     hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', name: 'Display name', media_name: 'Name in the media source (for playback)',
     cameras: 'Cameras', add: 'Add camera', remove: 'Remove', up: 'Move up', auto: 'Automatic', options: 'Options',
+    audio: 'Audio output', audio_auto: 'Automatic (sound on as soon as the live view runs)', audio_manual: 'Manual (with the speaker button)',
   },
   fr: {
     mode_entity: 'Sélecteur de mode en haut (p. ex. un input_select pour les notifications)', default_quality: 'Qualité au démarrage', live_timeout: 'Limite du direct (secondes, 0 = sans limite)', auto_live: 'Démarrer le direct automatiquement',
@@ -1535,6 +1556,7 @@ const ED_LABELS = {
     battery_warning: 'Alerte batterie à partir de (%)', temperature_warning: 'Alerte température à partir de (°C)', show_hub: 'Afficher le hub (mode scène, carte SD)',
     hub_prefix: 'Préfixe du hub', language: 'Langue', prefix: 'Caméra', name: 'Nom affiché', media_name: 'Nom dans la source multimédia (pour la lecture)',
     cameras: 'Caméras', add: 'Ajouter une caméra', remove: 'Supprimer', up: 'Monter', auto: 'Automatique', options: 'Options',
+    audio: 'Sortie audio', audio_auto: 'Automatique (son activé dès que le direct démarre)', audio_manual: 'Manuelle (avec le bouton haut-parleur)',
   },
 };
 
@@ -1566,6 +1588,7 @@ class ReolinkAppCardEditor extends HTMLElement {
     const camOpts = detected.map((c) => ({ value: c.prefix, label: `${c.name} (${c.prefix})` }));
     const general = [
       { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
+      { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
       { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
       { type: 'grid', name: '', schema: [
@@ -1585,7 +1608,7 @@ class ReolinkAppCardEditor extends HTMLElement {
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
     ];
-    const defaults = { mode_entity: '', default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
