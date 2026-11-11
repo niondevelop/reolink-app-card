@@ -37,8 +37,13 @@ jobs:
       - run: node --check dist/reolink-app-card.js
       - name: Unit tests
         run: npm test
+      # Systempakete kommen von den Ubuntu-Spiegeln; sind diese nicht erreichbar, reichen die Bibliotheken des Runners
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          npx playwright install --with-deps chromium || {
+            echo "::warning::System packages for Chromium could not be installed (package mirror unreachable); using the runner's libraries"
+            npx playwright install chromium
+          }
       - name: Browser tests
         run: npm run test:browser
 
