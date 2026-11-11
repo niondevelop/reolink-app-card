@@ -24,6 +24,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - [Fonctions](#fonctions)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Développement](#développement)
 - [Soutenir](#soutenir)
 - [Licence](#licence)
 
@@ -65,6 +66,10 @@ cameras:
 ```
 
 Toutes les options sont décrites dans la [documentation en anglais](README.md#card-options) ; les noms des options sont identiques.
+
+## Développement
+
+Le code source se trouve dans `src/` et est assemblé dans `dist/` avec esbuild ; des tests unitaires et de navigateur sont fournis. Voir [CONTRIBUTING.md](CONTRIBUTING.md) (en anglais).
 
 ## Soutenir
 

@@ -35,6 +35,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
   - [Farbe anpassen](#farbe-anpassen)
 - [Hinweise](#hinweise)
 - [Bekannte Einschränkungen](#bekannte-einschränkungen)
+- [Entwicklung](#entwicklung)
 - [Unterstützen](#unterstützen)
 - [Lizenz](#lizenz)
 
@@ -279,6 +280,10 @@ Das ist eine Alpha-Version. Was wie getestet ist:
 - **Akku:** Livebild, Ton und Gegensprechen wecken Akkukameras und kosten Akku.
 
 Ein Problem gefunden? [Eröffne gern ein Issue](https://github.com/niondevelop/reolink-app-card/issues) mit Kameramodell, Home-Assistant-Version und was passiert ist.
+
+## Entwicklung
+
+Der Quellcode liegt in `src/` und wird mit esbuild nach `dist/` gebündelt; dazu gibt es Unit- und Browsertests. Siehe [CONTRIBUTING.md](CONTRIBUTING.md) (Englisch).
 
 ## Unterstützen
 
