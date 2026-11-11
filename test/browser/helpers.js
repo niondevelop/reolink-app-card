@@ -12,7 +12,9 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
 export async function startServer() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    const file = url.startsWith('/dist/') ? path.join(ROOT, url) : path.join(ROOT, 'test/browser/fixtures', url === '/' ? 'index.html' : url);
+    // /local/reolink-test/… liefert ebenfalls den Build aus (wie die Testdatei in Home Assistant)
+    const file = url === '/local/reolink-test/reolink-app-card.js' ? path.join(ROOT, 'dist/reolink-app-card.js')
+      : url.startsWith('/dist/') ? path.join(ROOT, url) : path.join(ROOT, 'test/browser/fixtures', url === '/' ? 'index.html' : url);
     if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
@@ -31,6 +33,13 @@ export async function openCard(browser, server, options = {}) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript((t) => { window.__T = t; }, options.test || {});
+  // Nur beim ersten Laden setzen, damit ein Neuladen das Ergebnis der Karte zeigt
+  if (options.storage) await page.addInitScript((s) => {
+    if (sessionStorage.getItem('__seeded')) return;
+    sessionStorage.setItem('__seeded', '1');
+    Object.entries(s).forEach(([k, v]) => localStorage.setItem(k, v));
+  }, options.storage);
+  if (options.missingTest) await page.route('**/local/reolink-test/**', (r) => r.fulfill({ status: 404, body: '' }));
   if (options.insecure) await page.addInitScript(() => Object.defineProperty(window, 'isSecureContext', { get: () => false }));
   if (options.fakeActivation) {
     // Headless Chromium meldet die Seite sonst immer als „schon angetippt“
@@ -40,15 +49,19 @@ export async function openCard(browser, server, options = {}) {
       window.addEventListener('pointerup', () => { active = true; }, true);
     });
   }
+  const testLoads = [];
+  page.on('request', (r) => { if (r.url().includes('/local/reolink-test/')) testLoads.push(r.url()); });
   await page.goto(`${server.url}/index.html${options.query || ''}`);
+  await page.evaluate(() => customElements.whenDefined('reolink-app-card'));
   await page.evaluate(({ config, hass }) => { window.mountCard(config, hass); }, { config: options.config || TWO_CAMS, hass: options.hass || {} });
   await page.waitForTimeout(options.wait ?? 400);
   return {
-    page, errors,
+    page, errors, testLoads,
     info: () => page.evaluate(() => window.cardInfo()),
     rec: () => page.evaluate(() => window.__R),
     click: (sel) => page.evaluate((s) => window.__card.shadowRoot.querySelector(s).click(), sel),
     run: (fn, arg) => page.evaluate(fn, arg),
+    ctx,
     close: () => ctx.close(),
   };
 }

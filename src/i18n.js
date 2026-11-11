@@ -36,6 +36,8 @@ export const STR = {
     talk_na_feature: 'Gegensprechen nicht verfügbar – in Home Assistant unter Einstellungen → System → Labs „Zwei-Wege-Audio“ aktivieren',
     talk_na_https: 'Gegensprechen braucht HTTPS – Home Assistant über https:// öffnen',
     talk_na_webrtc: 'Gegensprechen geht nur mit einem WebRTC-Stream', talk_denied: 'Kein Zugriff auf das Mikrofon – im Browser bzw. in der App erlauben',
+    test_on: 'Testversion {v} – tippen für die stabile Version', test_missing: 'Testdatei nicht gefunden – die stabile Version läuft. Tippen zum Beenden',
+    test_back: 'Zur stabilen Version zurückkehren? Die Seite wird neu geladen.', test_back_btn: 'Zurück',
   },
   en: {
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
@@ -71,6 +73,8 @@ export const STR = {
     talk_na_feature: 'Two-way audio not available – enable “Two-way audio” in Home Assistant under Settings → System → Labs',
     talk_na_https: 'Two-way audio needs HTTPS – open Home Assistant via https://',
     talk_na_webrtc: 'Two-way audio only works with a WebRTC stream', talk_denied: 'No access to the microphone – allow it in your browser or app',
+    test_on: 'Test version {v} – tap for the stable version', test_missing: 'Test file not found – the stable version is running. Tap to end',
+    test_back: 'Go back to the stable version? The page will reload.', test_back_btn: 'Go back',
   },
   fr: {
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
@@ -106,6 +110,8 @@ export const STR = {
     talk_na_feature: 'Audio bidirectionnel indisponible – activez « Audio bidirectionnel » dans Home Assistant sous Paramètres → Système → Labs',
     talk_na_https: 'L’audio bidirectionnel nécessite HTTPS – ouvrez Home Assistant via https://',
     talk_na_webrtc: 'L’audio bidirectionnel ne fonctionne qu’avec un flux WebRTC', talk_denied: 'Pas d’accès au micro – autorisez-le dans le navigateur ou l’app',
+    test_on: 'Version de test {v} – touchez pour la version stable', test_missing: 'Fichier de test introuvable – la version stable est active. Touchez pour arrêter',
+    test_back: 'Revenir à la version stable ? La page sera rechargée.', test_back_btn: 'Revenir',
   },
 };
 

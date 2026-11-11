@@ -7,6 +7,9 @@ on:
     - cron: "0 4 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   hacs:
     name: HACS validation
@@ -38,3 +41,86 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests
         run: npm run test:browser
+
+  # Nur bei Pull Requests: fertige Testdatei zum Ausprobieren in Home Assistant (siehe TESTING.de.md).
+  # Läuft erst, wenn Build und Tests grün sind. Veröffentlicht und merged nichts.
+  test-file:
+    name: Test file for Home Assistant
+    if: github.event_name == 'pull_request'
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+    steps:
+      # Genau der Stand des Pull Requests (nicht der Merge mit main), damit die Datei der im PR entspricht
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build and compare with dist/ in the pull request
+        run: |
+          npm run build
+          git diff --exit-code dist/ || { echo "::error::dist/ in this pull request is not built from src/. Run 'npm run build' and commit."; exit 1; }
+      - name: File info
+        id: info
+        run: |
+          echo "sha256=$(sha256sum dist/reolink-app-card.js | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "version=$(grep -oP "RAC_VERSION = [\"']\K[^\"']+" dist/reolink-app-card.js)" >> "$GITHUB_OUTPUT"
+          echo "short=${SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Upload test file
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: reolink-app-card-pr-${{ github.event.pull_request.number }}
+          path: dist/reolink-app-card.js
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+      - name: Download notes
+        id: notes
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          SHA256: ${{ steps.info.outputs.sha256 }}
+          VERSION: ${{ steps.info.outputs.version }}
+          SHORT: ${{ steps.info.outputs.short }}
+        run: |
+          RAW="https://raw.githubusercontent.com/$HEAD_REPO/$SHA/dist/reolink-app-card.js"
+          {
+            echo '<!-- reolink-app-card-test-file -->'
+            echo "### 🧪 Testdatei für PR #$PR · Version $VERSION · Commit \`$SHORT\`"
+            echo
+            echo "**Home Assistant → Terminal** öffnen, einfügen und ausführen (lädt nach \`/config/www/reolink-test/\` und prüft die Datei, am Ende steht **OK**):"
+            echo
+            echo '```bash'
+            echo "D=\$( [ -d /homeassistant ] && echo /homeassistant || echo /config )/www/reolink-test; mkdir -p \$D && curl -fsSL -o \$D/reolink-app-card.js $RAW && echo \"$SHA256  \$D/reolink-app-card.js\" | sha256sum -c"
+            echo '```'
+            echo
+            echo "Danach das Dashboard neu laden. Auf einem Gerät zum ersten Mal: Dashboard einmal mit \`?rac_channel=test\` öffnen ([Anleitung](https://github.com/$GITHUB_REPOSITORY/blob/main/TESTING.de.md))."
+            echo
+            echo "- Oder herunterladen: [Artifact \`reolink-app-card-pr-$PR\`]($ARTIFACT_URL) (ZIP, GitHub-Anmeldung, 30 Tage) · [Datei direkt]($RAW)"
+            echo "- SHA-256: \`$SHA256\` – identisch mit \`dist/reolink-app-card.js\` in diesem Commit"
+            echo "- Zurück zur stabilen Version: in der Karte auf den lila Balken **Testversion** tippen"
+          } > notes.md
+          cat notes.md >> "$GITHUB_STEP_SUMMARY"
+      # Kommentar im PR (wird bei jedem neuen Commit aktualisiert); bei PRs aus Forks fehlt die Berechtigung
+      - name: Comment on the pull request
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = require('fs').readFileSync('notes.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            const old = comments.find((c) => c.user.type === 'Bot' && c.body.includes('<!-- reolink-app-card-test-file -->'));
+            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });

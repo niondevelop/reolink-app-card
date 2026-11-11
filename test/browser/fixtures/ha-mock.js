@@ -85,6 +85,7 @@ window.makeHass = (opts = {}) => {
   const hass = {
     language: opts.language || 'de', locale: { language: opts.language || 'de' }, themes: {},
     states, entities: opts.entities || {}, devices: opts.devices || {},
+    user: { is_admin: !opts.noAdmin },
     hassUrl: (x) => x,
     auth: opts.appMic ? { external: { config: { webrtc: { hasCameraMicrophoneStream: true } },
       sendMessage: async (m) => { window.__R.msgs.push(m); await new Promise((r) => setTimeout(r, 100)); return { session_id: 'S1' }; },

@@ -13,6 +13,9 @@ ha-card { overflow: hidden; padding-bottom: 8px; position: relative; }
 .dbtns button.danger { background: #ff3b30; color: #fff; }
 .dbtns button:not(.danger)#dyes { background: var(--ra); color: #fff; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.testbar { display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 7px 12px; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; text-align: left; color: #fff; background: #8e44ad; }
+.testbar.missing { background: #c0392b; }
+.testbar ha-icon { --mdc-icon-size: 18px; flex: none; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 18px; background: var(--secondary-background-color); white-space: nowrap; font-size: 14px; }

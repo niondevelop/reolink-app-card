@@ -4,6 +4,8 @@ import { modeIcon } from '../entities.js';
 import { LOCALES, STR } from '../i18n.js';
 import { RAC_CSS } from '../styles.js';
 import { esc } from '../util.js';
+import { runningChannel, setTestWanted } from '../channel.js';
+import { RAC_VERSION } from '../version.js';
 
 export default {
   /* ---------- Aufbau ---------- */
@@ -13,6 +15,7 @@ export default {
     root.innerHTML = `
       <style>${RAC_CSS}</style>
       <ha-card>
+        <button class="testbar" id="testbar"><ha-icon icon="mdi:flask-outline"></ha-icon><span id="testbar-l"></span></button>
         <div class="top"><div class="tabs" id="tabs"></div><button class="gridbtn" id="gridbtn"><ha-icon></ha-icon></button></div>
         <div class="hub" id="hub"></div>
         <div class="warns" id="warns"></div>
@@ -69,6 +72,12 @@ export default {
       </ha-card>`;
     const $ = (id) => root.getElementById(id);
     this.$ = $;
+    // Hinweis „Testversion“ (siehe channel.js); antippen führt zur stabilen Version zurück
+    $('testbar').onclick = async () => {
+      if (runningChannel() === 'test' && !(await this._ask(this._t('test_back'), this._t('test_back_btn')))) return;
+      setTestWanted(false);
+      location.reload();
+    };
     $('bigplay').onclick = () => { this._expired = false; this._startLive(); };
     $('stop').onclick = () => {
       if (this._playing) this._stopPlayback();
@@ -269,6 +278,10 @@ export default {
     $('m-live').textContent = this._t('live');
     $('m-play').textContent = this._t('playback');
     $('more-l').textContent = this._t('settings');
+    const ch = runningChannel();
+    $('testbar').style.display = ch === 'stable' ? 'none' : '';
+    $('testbar').classList.toggle('missing', ch === 'test-missing');
+    if (ch !== 'stable') $('testbar-l').textContent = this._t(ch === 'test' ? 'test_on' : 'test_missing', { v: RAC_VERSION });
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
     $('pane-live').style.display = this._mode === 'live' ? '' : 'none';
