@@ -16,6 +16,7 @@ Thanks for helping! Issues and pull requests are welcome.
 | `src/card/doorbell.js`, `ptz.js`, `links.js` | Doorbell, pan & tilt, notification links |
 | `src/card/render.js` | HTML of the card |
 | `src/editor.js` | Visual editor |
+| `src/channel.js` | Per-browser switch to a test file in `/local/reolink-test/` |
 | `src/i18n.js` | Texts in English, German and French |
 | `src/entities.js`, `constants.js`, `suggestions.js`, `styles.js`, `util.js` | Shared helpers |
 | `dist/reolink-app-card.js` | **Generated** – the file HACS installs. Don't edit it by hand |
@@ -39,6 +40,8 @@ npm run check      # build + all tests
 To try a change in Home Assistant, copy `dist/reolink-app-card.js` to `/config/www/` and add it as a dashboard resource (or use `npm run watch` with a network share).
 
 ## Pull requests
+
+- Every pull request gets a ready-to-use test file (artifact `reolink-app-card-pr-<number>` and a comment with a copy-and-paste command). How to try it in Home Assistant without touching the HACS install: [TESTING.de.md](TESTING.de.md) (German).
 
 - Change files in `src/`, run `npm run build` and **commit `dist/` too**. The check on GitHub fails if `dist/` doesn't match `src/`.
 - New texts need an entry in all three languages in `src/i18n.js` (a unit test checks this).

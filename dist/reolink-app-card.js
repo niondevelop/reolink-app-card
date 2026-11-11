@@ -286,7 +286,11 @@
       talk_na_feature: "Gegensprechen nicht verfügbar – in Home Assistant unter Einstellungen → System → Labs „Zwei-Wege-Audio“ aktivieren",
       talk_na_https: "Gegensprechen braucht HTTPS – Home Assistant über https:// öffnen",
       talk_na_webrtc: "Gegensprechen geht nur mit einem WebRTC-Stream",
-      talk_denied: "Kein Zugriff auf das Mikrofon – im Browser bzw. in der App erlauben"
+      talk_denied: "Kein Zugriff auf das Mikrofon – im Browser bzw. in der App erlauben",
+      test_on: "Testversion {v} – tippen für die stabile Version",
+      test_missing: "Testdatei nicht gefunden – die stabile Version läuft. Tippen zum Beenden",
+      test_back: "Zur stabilen Version zurückkehren? Die Seite wird neu geladen.",
+      test_back_btn: "Zurück"
     },
     en: {
       live: "Live",
@@ -402,7 +406,11 @@
       talk_na_feature: "Two-way audio not available – enable “Two-way audio” in Home Assistant under Settings → System → Labs",
       talk_na_https: "Two-way audio needs HTTPS – open Home Assistant via https://",
       talk_na_webrtc: "Two-way audio only works with a WebRTC stream",
-      talk_denied: "No access to the microphone – allow it in your browser or app"
+      talk_denied: "No access to the microphone – allow it in your browser or app",
+      test_on: "Test version {v} – tap for the stable version",
+      test_missing: "Test file not found – the stable version is running. Tap to end",
+      test_back: "Go back to the stable version? The page will reload.",
+      test_back_btn: "Go back"
     },
     fr: {
       live: "Direct",
@@ -518,7 +526,11 @@
       talk_na_feature: "Audio bidirectionnel indisponible – activez « Audio bidirectionnel » dans Home Assistant sous Paramètres → Système → Labs",
       talk_na_https: "L’audio bidirectionnel nécessite HTTPS – ouvrez Home Assistant via https://",
       talk_na_webrtc: "L’audio bidirectionnel ne fonctionne qu’avec un flux WebRTC",
-      talk_denied: "Pas d’accès au micro – autorisez-le dans le navigateur ou l’app"
+      talk_denied: "Pas d’accès au micro – autorisez-le dans le navigateur ou l’app",
+      test_on: "Version de test {v} – touchez pour la version stable",
+      test_missing: "Fichier de test introuvable – la version stable est active. Touchez pour arrêter",
+      test_back: "Revenir à la version stable ? La page sera rechargée.",
+      test_back_btn: "Revenir"
     }
   };
   var LANGS = ["en", "de", "fr"];
@@ -1425,12 +1437,40 @@
     }
   };
 
+  // src/channel.js
+  var TEST_URL = "/local/reolink-test/reolink-app-card.js";
+  var KEY = "reolink-app-card:channel";
+  var testWanted = () => {
+    try {
+      return localStorage.getItem(KEY) === "test";
+    } catch (_) {
+      return false;
+    }
+  };
+  var setTestWanted = (on) => {
+    try {
+      if (on) localStorage.setItem(KEY, "test");
+      else localStorage.removeItem(KEY);
+    } catch (_) {
+    }
+  };
+  function bootMode(win = window) {
+    if (win.__RAC_LOADING_TEST) return "is-test";
+    try {
+      if (new URLSearchParams(win.location.search).get("rac_channel") === "stable") setTestWanted(false);
+    } catch (_) {
+    }
+    return testWanted() ? "load-test" : "self";
+  }
+  var runningChannel = () => window.__RAC_CHANNEL || "stable";
+
   // src/card/links.js
   var links_default = {
     /* ---------- Direktlink, z. B. aus einer Push-Mitteilung ----------
        ?rac=live&rac_cam=kamera_eingang            → Kamera wählen und live starten
        ?rac=event&rac_cam=kamera_eingang&rac_t=…   → Aufnahme zu diesem Zeitpunkt (Unix-Sekunden) abspielen
-       ?rac=talk&rac_cam=kamera_eingang            → live starten und gleich das Gegensprechen einschalten (z. B. „Annehmen“) */
+       ?rac=talk&rac_cam=kamera_eingang            → live starten und gleich das Gegensprechen einschalten (z. B. „Annehmen“)
+       ?rac_channel=test | stable                  → in diesem Browser die Testversion ein- bzw. ausschalten (siehe channel.js) */
     _handleLink() {
       if (!this._built || !this._hass || !this.isConnected) return;
       let q;
@@ -1439,6 +1479,7 @@
       } catch (_) {
         return;
       }
+      if (this._handleChannel(q)) return;
       const mode = q.get("rac");
       if (!["live", "event", "talk"].includes(mode)) return;
       const want = String(q.get("rac_cam") || "").trim().toLowerCase();
@@ -1482,6 +1523,26 @@
         }
         this._setMode("live");
       }
+    },
+    /* ?rac_channel=test schaltet die Testversion ein (nur für Administratoren), ?rac_channel=stable aus.
+       Lädt die Seite neu, wenn dadurch eine andere Version laufen soll; true = erledigt */
+    _handleChannel(q) {
+      const want = q.get("rac_channel");
+      if (want !== "test" && want !== "stable") return false;
+      q.delete("rac_channel");
+      const qs = q.toString();
+      try {
+        history.replaceState(history.state, "", `${location.pathname}${qs ? `?${qs}` : ""}${location.hash}`);
+      } catch (_) {
+      }
+      if (want === "test" && !(this._hass.user && this._hass.user.is_admin)) return false;
+      setTestWanted(want === "test");
+      const now = runningChannel();
+      if (now !== (want === "test" ? "test" : "stable")) {
+        location.reload();
+        return true;
+      }
+      return false;
     }
   };
 
@@ -2094,6 +2155,9 @@ ha-card { overflow: hidden; padding-bottom: 8px; position: relative; }
 .dbtns button.danger { background: #ff3b30; color: #fff; }
 .dbtns button:not(.danger)#dyes { background: var(--ra); color: #fff; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.testbar { display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 7px 12px; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; text-align: left; color: #fff; background: #8e44ad; }
+.testbar.missing { background: #c0392b; }
+.testbar ha-icon { --mdc-icon-size: 18px; flex: none; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 18px; background: var(--secondary-background-color); white-space: nowrap; font-size: 14px; }
@@ -2271,6 +2335,9 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .msg { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 18px; color: var(--secondary-text-color); font-size: 14px; }
 `;
 
+  // src/version.js
+  var RAC_VERSION = "0.1.0";
+
   // src/card/render.js
   var render_default = {
     /* ---------- Aufbau ---------- */
@@ -2280,6 +2347,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
       root.innerHTML = `
       <style>${RAC_CSS}</style>
       <ha-card>
+        <button class="testbar" id="testbar"><ha-icon icon="mdi:flask-outline"></ha-icon><span id="testbar-l"></span></button>
         <div class="top"><div class="tabs" id="tabs"></div><button class="gridbtn" id="gridbtn"><ha-icon></ha-icon></button></div>
         <div class="hub" id="hub"></div>
         <div class="warns" id="warns"></div>
@@ -2336,6 +2404,11 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
       </ha-card>`;
       const $ = (id) => root.getElementById(id);
       this.$ = $;
+      $("testbar").onclick = async () => {
+        if (runningChannel() === "test" && !await this._ask(this._t("test_back"), this._t("test_back_btn"))) return;
+        setTestWanted(false);
+        location.reload();
+      };
       $("bigplay").onclick = () => {
         this._expired = false;
         this._startLive();
@@ -2579,6 +2652,10 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
       $("m-live").textContent = this._t("live");
       $("m-play").textContent = this._t("playback");
       $("more-l").textContent = this._t("settings");
+      const ch = runningChannel();
+      $("testbar").style.display = ch === "stable" ? "none" : "";
+      $("testbar").classList.toggle("missing", ch === "test-missing");
+      if (ch !== "stable") $("testbar-l").textContent = this._t(ch === "test" ? "test_on" : "test_missing", { v: RAC_VERSION });
       $("m-live").classList.toggle("sel", this._mode === "live");
       $("m-play").classList.toggle("sel", this._mode === "play");
       $("pane-live").style.display = this._mode === "live" ? "" : "none";
@@ -2966,22 +3043,36 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
     return out;
   }
 
-  // src/version.js
-  var RAC_VERSION = "0.1.0";
-
   // src/index.js
-  if (!customElements.get("reolink-app-card")) customElements.define("reolink-app-card", ReolinkAppCard);
-  if (!customElements.get("reolink-app-card-editor")) customElements.define("reolink-app-card-editor", ReolinkAppCardEditor);
-  window.customCards = window.customCards || [];
-  if (!window.customCards.some((c) => c.type === "reolink-app-card")) {
-    window.customCards.push({
-      type: "reolink-app-card",
-      name: "Reolink App Card",
-      preview: false,
-      documentationURL: "https://github.com/niondevelop/reolink-app-card",
-      getEntitySuggestion: (hass, entityId) => cardSuggestion(hass, entityId),
-      description: "Live view, controls, settings and SD card playback for Reolink cameras, styled like the Reolink app"
-    });
+  function register(label) {
+    if (!customElements.get("reolink-app-card")) customElements.define("reolink-app-card", ReolinkAppCard);
+    if (!customElements.get("reolink-app-card-editor")) customElements.define("reolink-app-card-editor", ReolinkAppCardEditor);
+    window.customCards = window.customCards || [];
+    if (!window.customCards.some((c) => c.type === "reolink-app-card")) {
+      window.customCards.push({
+        type: "reolink-app-card",
+        name: "Reolink App Card",
+        preview: false,
+        documentationURL: "https://github.com/niondevelop/reolink-app-card",
+        getEntitySuggestion: (hass, entityId) => cardSuggestion(hass, entityId),
+        description: "Live view, controls, settings and SD card playback for Reolink cameras, styled like the Reolink app"
+      });
+    }
+    console.info(`%c REOLINK-APP-CARD %c ${RAC_VERSION}${label ? ` ${label}` : ""} `, "background:#1e8bff;color:#fff", "");
   }
-  console.info(`%c REOLINK-APP-CARD %c ${RAC_VERSION} `, "background:#1e8bff;color:#fff", "");
+  var boot = bootMode();
+  if (boot === "load-test" && !customElements.get("reolink-app-card")) {
+    window.__RAC_LOADING_TEST = true;
+    import(`${TEST_URL}?v=${Date.now()}`).then(() => {
+      if (!customElements.get("reolink-app-card")) throw new Error("test file did not register the card");
+      window.__RAC_CHANNEL = "test";
+    }).catch((e) => {
+      console.warn(`Reolink App Card: test version ${TEST_URL} could not be loaded, using the stable version.`, e);
+      window.__RAC_CHANNEL = "test-missing";
+      register();
+    });
+  } else {
+    if (boot === "is-test") window.__RAC_CHANNEL = "test";
+    register(boot === "is-test" ? "TEST" : "");
+  }
 })();
