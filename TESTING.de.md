@@ -43,7 +43,7 @@ Die Testdatei darf liegen bleiben; sie wird nur geladen, solange die Testversion
 
 ## Ohne Umschaltung (nur bis zur nächsten Version)
 
-Solange die installierte stabile Version die Umschaltung noch nicht kennt (Version 0.1.0):
+Solange die installierte stabile Version die Umschaltung noch nicht kennt (bis Version 0.1.0; ab 0.2.0 ist sie enthalten):
 
 1. Datei wie oben mit dem Befehl holen.
 2. **Einstellungen → Dashboards → ⋮ → Ressourcen**, den Eintrag `/local/community/reolink-app-card/reolink-app-card.js?v=…` öffnen und **die bisherige Adresse notieren**.
@@ -55,6 +55,6 @@ Diese Umstellung gilt für alle Geräte. Danach nicht vergessen, sie zurückzust
 ## Hinweise
 
 - Die Testdatei ist die normale gebaute Datei `dist/reolink-app-card.js` aus dem Pull Request. GitHub prüft, dass sie aus `src/` gebaut ist, und stellt sie erst bereit, wenn Unit- und Browser-Tests grün sind.
-- Die Version im Balken ist die Versionsnummer im Code (z. B. 0.1.0). Welcher Commit getestet wird, zeigt der Kommentar im Pull Request.
+- Die Version im Balken ist die Versionsnummer im Code (z. B. 0.2.0). Welcher Commit getestet wird, zeigt der Kommentar im Pull Request.
 - Bei Pull Requests aus einem Fork gibt es keinen Kommentar (fehlende Berechtigung); die Angaben stehen dann in der **Summary** des Laufs.
 - Es wird nichts automatisch veröffentlicht oder gemergt.

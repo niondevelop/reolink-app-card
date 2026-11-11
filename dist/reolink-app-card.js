@@ -2336,7 +2336,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.1.0";
+  var RAC_VERSION = "0.2.0";
 
   // src/card/render.js
   var render_default = {
