@@ -6,27 +6,27 @@ const st = (s) => ({ state: s, attributes: {} });
 const hass = {
   language: 'de',
   states: {
-    'camera.nord_standardauflosung': st('idle'), 'sensor.nord_batterie': st('80'),
-    'camera.sued_standardauflosung': st('idle'),
+    'camera.garten_standardauflosung': st('idle'), 'sensor.garten_batterie': st('80'),
+    'camera.eingang_standardauflosung': st('idle'),
     'select.hub_szenenmodus': st('home'),
     'light.wohnzimmer': st('on'),
   },
   entities: {
-    'camera.nord_standardauflosung': { platform: 'reolink', device_id: 'n' },
-    'sensor.nord_batterie': { platform: 'reolink', device_id: 'n' },
-    'camera.sued_standardauflosung': { platform: 'reolink', device_id: 's' },
+    'camera.garten_standardauflosung': { platform: 'reolink', device_id: 'n' },
+    'sensor.garten_batterie': { platform: 'reolink', device_id: 'n' },
+    'camera.eingang_standardauflosung': { platform: 'reolink', device_id: 's' },
     'select.hub_szenenmodus': { platform: 'reolink', device_id: 'h' },
   },
-  devices: { n: { name: 'Nord' }, s: { name: 'Süd' }, h: { name: 'Hub' } },
+  devices: { n: { name: 'Garten' }, s: { name: 'Eingang' }, h: { name: 'Hub' } },
 };
 const summary = (r) => r && r.map((x) => `${x.label} → ${x.config.cameras.map((c) => c.prefix).join('+')}`);
 
 test('Entität einer Kamera: diese Kamera und alle Kameras', () => {
-  assert.deepEqual(summary(cardSuggestion(hass, 'sensor.nord_batterie')), ['Reolink App Card – Nord → nord', 'Reolink App Card – Alle Kameras → nord+sued']);
+  assert.deepEqual(summary(cardSuggestion(hass, 'sensor.garten_batterie')), ['Reolink App Card – Garten → garten', 'Reolink App Card – Alle Kameras → garten+eingang']);
 });
 
 test('Entität des Hubs: alle Kameras', () => {
-  assert.deepEqual(summary(cardSuggestion(hass, 'select.hub_szenenmodus')), ['Reolink App Card – Alle Kameras → nord+sued']);
+  assert.deepEqual(summary(cardSuggestion(hass, 'select.hub_szenenmodus')), ['Reolink App Card – Alle Kameras → garten+eingang']);
 });
 
 test('fremde Entität: kein Vorschlag', () => {
@@ -35,7 +35,7 @@ test('fremde Entität: kein Vorschlag', () => {
 });
 
 test('Vorschlag ist eine gültige Kartenkonfiguration', () => {
-  const [first] = cardSuggestion(hass, 'camera.nord_standardauflosung');
+  const [first] = cardSuggestion(hass, 'camera.garten_standardauflosung');
   assert.equal(first.config.type, 'custom:reolink-app-card');
-  assert.deepEqual(first.config.cameras[0], { name: 'Nord', prefix: 'nord', media_name: 'Nord' });
+  assert.deepEqual(first.config.cameras[0], { name: 'Garten', prefix: 'garten', media_name: 'Garten' });
 });
