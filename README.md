@@ -57,7 +57,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **All cameras at once:** grid view with every live stream; tap one to open it.
 - **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel.
 - **Grouped settings:** general, detection (PIR and AI sensitivity), image (brightness, contrast, saturation, sharpness), floodlight, audio & recording – with sliders and dropdowns.
-- **Playback:** day picker, event type filter, coloured 24-hour timeline, speed (0.5× to 4×), autoplay next clip, clip download.
+- **Playback:** day picker, event type filter, coloured 24-hour timeline, speed (0.5× to 4×), autoplay next clip, clip download, and a **Low / High** resolution switch that is remembered on each device (independent of the live view quality).
 - **Battery warnings** for low charge and for battery temperature that is too high or too low.
 - **Visual editor:** cameras are detected automatically and can be added with one click.
 - **Card suggestions:** under *Add to dashboard* on a Reolink camera (or the hub), the card shows up under the community suggestions, ready configured.
@@ -267,7 +267,7 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
   - Allow microphone access when your browser or app asks.
 
   Tap the handset to talk; the live view starts if needed and stays on while you talk. Tap the red button to hang up. If a requirement is missing, the button is greyed out and tapping it tells you why. With `talk_url`, the button opens that link instead whenever two-way audio is not available, e.g. `app://com.mcu.reolink` to open the Reolink app in the Android Companion app.
-- **Playback:** uses the media source of the Reolink integration and prefers the low resolution, because it loads faster and saves battery.
+- **Playback:** uses the media source of the Reolink integration. It starts with the low resolution, because it loads faster and saves battery; switch to **High** in the playback tab. The choice is stored in the browser and kept after reloading the card or restarting Home Assistant. The switch only appears if the camera offers both resolutions.
 
 ## Known limitations
 

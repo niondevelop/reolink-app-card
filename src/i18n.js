@@ -3,6 +3,7 @@
 /* ---------- Sprache ---------- */
 export const STR = {
   de: {
+    play_res: 'Auflösung', play_res_low: 'Niedrig', play_res_high: 'Hoch',
     live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
     start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
     ring_title: 'Es klingelt', answer: 'Annehmen', decline: 'Ablehnen', ptz: 'Schwenken & Neigen', ptz_presets: 'Positionen', zoom_in: 'Heranzoomen', zoom_out: 'Wegzoomen', ptz_stop: 'Stopp',
@@ -40,6 +41,7 @@ export const STR = {
     test_back: 'Zur stabilen Version zurückkehren? Die Seite wird neu geladen.', test_back_btn: 'Zurück',
   },
   en: {
+    play_res: 'Resolution', play_res_low: 'Low', play_res_high: 'High',
     live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
     start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
     ring_title: 'Someone is ringing', answer: 'Answer', decline: 'Decline', ptz: 'Pan & tilt', ptz_presets: 'Positions', zoom_in: 'Zoom in', zoom_out: 'Zoom out', ptz_stop: 'Stop',
@@ -77,6 +79,7 @@ export const STR = {
     test_back: 'Go back to the stable version? The page will reload.', test_back_btn: 'Go back',
   },
   fr: {
+    play_res: 'Résolution', play_res_low: 'Basse', play_res_high: 'Haute',
     live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
     start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
     ring_title: 'On sonne', answer: 'Répondre', decline: 'Refuser', ptz: 'Orientation', ptz_presets: 'Positions', zoom_in: 'Zoom avant', zoom_out: 'Zoom arrière', ptz_stop: 'Arrêt',

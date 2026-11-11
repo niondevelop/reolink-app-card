@@ -173,6 +173,9 @@
   // src/i18n.js
   var STR = {
     de: {
+      play_res: "Auflösung",
+      play_res_low: "Niedrig",
+      play_res_high: "Hoch",
       live: "Live",
       playback: "Wiedergabe",
       settings: "Einstellungen",
@@ -293,6 +296,9 @@
       test_back_btn: "Zurück"
     },
     en: {
+      play_res: "Resolution",
+      play_res_low: "Low",
+      play_res_high: "High",
       live: "Live",
       playback: "Playback",
       settings: "Settings",
@@ -413,6 +419,9 @@
       test_back_btn: "Go back"
     },
     fr: {
+      play_res: "Résolution",
+      play_res_low: "Basse",
+      play_res_high: "Haute",
       live: "Direct",
       playback: "Lecture",
       settings: "Réglages",
@@ -635,6 +644,7 @@
   };
   var Q_ORDER = ["fluent", "balanced", "clear"];
   var Q_STORE = "reolink-app-card:quality";
+  var PLAY_Q_STORE = "reolink-app-card:playback_quality";
   var Q_ALIAS = { sd: "fluent", low: "fluent", hd: "clear", high: "clear", medium: "balanced" };
   var REOLINK_PKG = "com.mcu.reolink";
   var REOLINK_COMPANION = `app://${REOLINK_PKG}`;
@@ -1013,6 +1023,13 @@
       }
       this._quality = this._normQ(saved && Q[saved] ? saved : this._config.default_quality);
       this._qOpen = false;
+      let playQ = null;
+      try {
+        playQ = localStorage.getItem(PLAY_Q_STORE);
+      } catch (_) {
+      }
+      this._playQ = playQ === "high" ? "high" : "low";
+      this._res = null;
       this._live = false;
       this._filter = "all";
       this._days = null;
@@ -1862,7 +1879,36 @@
       const want = this._cam.media_name.toLowerCase();
       return kids.find((k) => k.title.toLowerCase() === want) || kids.find((k) => k.title.toLowerCase().includes(want) || want.includes(k.title.toLowerCase())) || kids[this._idx];
     },
-    async _loadDays() {
+    /* Auflösungsebene der Reolink-Medienquelle: „Low resolution“ (…|sub) und „High resolution“ (…|main) */
+    _resNodes(kids) {
+      const txt = (k) => `${k.media_content_id} ${k.title}`;
+      const plain = kids.filter((k) => !/autotrack/i.test(txt(k)));
+      return {
+        low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
+        high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null
+      };
+    },
+    /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
+       Tag und laufender Clip (samt Stelle) bleiben erhalten. */
+    async _setPlayQ(q) {
+      if (q !== "low" && q !== "high") return;
+      try {
+        localStorage.setItem(PLAY_Q_STORE, q);
+      } catch (_) {
+      }
+      if (q === this._playQ) return;
+      this._playQ = q;
+      const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
+      const v = this.$("video");
+      const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
+      if (this._mode !== "play") {
+        this._days = null;
+        this._update();
+        return;
+      }
+      await this._loadDays({ day, resume });
+    },
+    async _loadDays(opts = {}) {
       const camIdx = this._idx;
       this._days = "loading";
       this._files = null;
@@ -1872,15 +1918,24 @@
         if (!camNode) throw new Error(this._t("cam_not_found"));
         let node = await this._browse(camNode.media_content_id);
         let kids = node.children || [];
+        let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
-          const sub = kids.find((k) => /\|sub|low|niedrig|fluent|clear/i.test(k.media_content_id + k.title)) || kids[0];
-          node = await this._browse(sub.media_content_id);
+          res = this._resNodes(kids);
+          const pick = res[this._playQ] || res.low || res.high || kids[0];
+          res.used = pick === res.high ? "high" : "low";
+          node = await this._browse(pick.media_content_id);
           kids = node.children || [];
         }
+        if (camIdx !== this._idx) return;
+        this._res = res;
         const days = kids.filter((k) => k.can_expand).map((k) => ({ node: k, date: this._dayOf(k) })).sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
         if (camIdx !== this._idx) return;
         this._days = days;
         this._dayIdx = 0;
+        if (opts.day) {
+          const k = days.findIndex((d) => d.date && d.date.toDateString() === opts.day.toDateString());
+          if (k >= 0) this._dayIdx = k;
+        }
         if (this._pendingEvent) {
           const want = new Date(this._pendingEvent * 1e3).toDateString();
           const k = days.findIndex((d) => d.date && d.date.toDateString() === want);
@@ -1889,12 +1944,33 @@
         this._renderDays();
         if (days.length) await this._loadFiles();
         else this._update();
+        if (opts.resume && camIdx === this._idx) this._resumeClip(opts.resume);
         if (this._pendingEvent && camIdx === this._idx) this._pickEvent();
       } catch (e) {
         if (camIdx !== this._idx) return;
         this._days = { error: e.message || String(e) };
         this._update();
       }
+    },
+    /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */
+    _resumeClip({ start, at }) {
+      const f = Array.isArray(this._files) && this._files.find((x) => x.start === start);
+      if (!f) {
+        this._stopPlayback();
+        return;
+      }
+      const v = this.$("video");
+      const seek = () => {
+        v.removeEventListener("loadedmetadata", seek);
+        if (at > 0) {
+          try {
+            v.currentTime = at;
+          } catch (_) {
+          }
+        }
+      };
+      v.addEventListener("loadedmetadata", seek);
+      this._play(f);
     },
     _dayOf(k) {
       const m = String(k.media_content_id).match(/(\d{4})\|(\d{1,2})\|(\d{1,2})(?:\||$)/) || String(k.title).match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
@@ -2038,6 +2114,15 @@
     },
     _updatePlayPane() {
       const $ = this.$;
+      const both = !!(this._res && this._res.low && this._res.high);
+      $("pqrow").style.display = both ? "" : "none";
+      if (both) {
+        $("pq-l").textContent = this._t("play_res");
+        $("pq").querySelectorAll("button").forEach((b) => {
+          b.textContent = this._t(`play_res_${b.dataset.q}`);
+          b.classList.toggle("sel", b.dataset.q === this._res.used);
+        });
+      }
       this.shadowRoot.querySelectorAll(".chip").forEach((b) => b.classList.toggle("sel", b.dataset.k === this._filter));
       const list = $("list"), bar = $("tlbar");
       const msg = (t) => {
@@ -2321,6 +2406,11 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px; border-radius: 15px; border: 1px solid var(--divider-color); font-size: 13px; white-space: nowrap; }
 .chip ha-icon { --mdc-icon-size: 16px; }
 .chip.sel { background: var(--ra); border-color: var(--ra); color: #fff; }
+.pqrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 0; font-size: 13px; }
+.pqrow > span { opacity: .7; }
+.pq { display: flex; padding: 2px; border-radius: 9px; background: var(--secondary-background-color); }
+.pq button { padding: 4px 12px; border-radius: 7px; font-size: 13px; font-weight: 600; opacity: .7; }
+.pq button.sel { background: var(--rb); color: var(--ra); opacity: 1; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .tl { padding: 12px 12px 2px; }
 .tlbar { position: relative; height: 22px; border-radius: 6px; background: var(--secondary-background-color); overflow: hidden; }
 .tlbar i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; border-radius: 2px; cursor: pointer; }
@@ -2336,7 +2426,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.2.0";
+  var RAC_VERSION = "0.2.1";
 
   // src/card/render.js
   var render_default = {
@@ -2397,6 +2487,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
         <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
+          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button></div></div>
           <div class="filters" id="filters"></div>
           <div class="tl"><div class="tlbar" id="tlbar"></div><div class="tlh"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
           <div class="list" id="list"></div>
@@ -2409,6 +2500,9 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
         setTestWanted(false);
         location.reload();
       };
+      $("pq").querySelectorAll("button").forEach((b) => {
+        b.onclick = () => this._setPlayQ(b.dataset.q);
+      });
       $("bigplay").onclick = () => {
         this._expired = false;
         this._startLive();
