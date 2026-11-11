@@ -22,11 +22,11 @@ const hass = {
 const summary = (r) => r && r.map((x) => `${x.label} → ${x.config.cameras.map((c) => c.prefix).join('+')}`);
 
 test('Entität einer Kamera: diese Kamera und alle Kameras', () => {
-  assert.deepEqual(summary(cardSuggestion(hass, 'sensor.garten_batterie')), ['Reolink App Card – Garten → garten', 'Reolink App Card – Alle Kameras → garten+eingang']);
+  assert.deepEqual(summary(cardSuggestion(hass, 'sensor.garten_batterie')), ['Reolink App Card – Garten → garten', 'Reolink App Card – Alle Kameras → eingang+garten']);
 });
 
 test('Entität des Hubs: alle Kameras', () => {
-  assert.deepEqual(summary(cardSuggestion(hass, 'select.hub_szenenmodus')), ['Reolink App Card – Alle Kameras → garten+eingang']);
+  assert.deepEqual(summary(cardSuggestion(hass, 'select.hub_szenenmodus')), ['Reolink App Card – Alle Kameras → eingang+garten']);
 });
 
 test('fremde Entität: kein Vorschlag', () => {
