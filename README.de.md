@@ -54,7 +54,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
 - **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste.
 - **Einstellungen in Gruppen:** Allgemein, Erkennung (PIR- und KI-Empfindlichkeit), Bild (Helligkeit, Kontrast, Sättigung, Schärfe), Flutlicht, Ton & Aufnahme – mit Reglern und Auswahllisten.
-- **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp, farbige 24-Stunden-Zeitleiste, Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen.
+- **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp, farbige 24-Stunden-Zeitleiste, Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen und ein Umschalter **Niedrig / Hoch** für die Auflösung, der auf jedem Gerät gespeichert wird (unabhängig von der Livebild-Qualität).
 - **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur.
 - **Visueller Editor:** Kameras werden automatisch erkannt und lassen sich per Klick hinzufügen.
 - **Kartenvorschläge:** Bei *Zum Dashboard hinzufügen* an einer Reolink-Kamera (oder am Hub) erscheint die Karte unter den Community-Vorschlägen, fertig eingerichtet.
@@ -264,7 +264,7 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
   - Den Zugriff aufs Mikrofon erlauben, wenn Browser oder App fragen.
 
   Auf den Hörer tippen, um zu sprechen; das Livebild startet bei Bedarf und bleibt während des Gesprächs an. Mit dem roten Button auflegen. Fehlt eine Voraussetzung, ist der Button ausgegraut, und ein Tipp darauf zeigt den Grund. Mit `talk_url` öffnet der Button stattdessen diesen Link, wenn Gegensprechen nicht verfügbar ist, z. B. `app://com.mcu.reolink` für die Reolink-App in der Android-Companion-App.
-- **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration und lädt bevorzugt die niedrige Auflösung, weil das schneller geht und Akku spart.
+- **Wiedergabe:** nutzt die Medienquelle der Reolink-Integration. Sie startet mit der niedrigen Auflösung, weil das schneller geht und Akku spart; im Bereich Wiedergabe lässt sich auf **Hoch** umschalten. Die Wahl wird im Browser gespeichert und bleibt nach dem Neuladen der Karte oder einem Neustart von Home Assistant erhalten. Der Umschalter erscheint nur, wenn die Kamera beide Auflösungen anbietet.
 
 ## Bekannte Einschränkungen
 

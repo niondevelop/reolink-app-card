@@ -1,5 +1,5 @@
 /* Wiedergabe der SD-Karten-Aufnahmen – Methoden der Klasse ReolinkAppCard */
-import { DET, EVT, EVT_ORDER, SPEEDS } from '../constants.js';
+import { DET, EVT, EVT_ORDER, PLAY_Q_STORE, SPEEDS } from '../constants.js';
 import { LOCALES } from '../i18n.js';
 import { esc } from '../util.js';
 
@@ -48,7 +48,31 @@ export default {
       || kids[this._idx];
   },
 
-  async _loadDays() {
+  /* Auflösungsebene der Reolink-Medienquelle: „Low resolution“ (…|sub) und „High resolution“ (…|main) */
+  _resNodes(kids) {
+    const txt = (k) => `${k.media_content_id} ${k.title}`;
+    const plain = kids.filter((k) => !/autotrack/i.test(txt(k)));
+    return {
+      low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
+      high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
+    };
+  },
+
+  /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
+     Tag und laufender Clip (samt Stelle) bleiben erhalten. */
+  async _setPlayQ(q) {
+    if (q !== 'low' && q !== 'high') return;
+    try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
+    if (q === this._playQ) return;
+    this._playQ = q;
+    const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
+    const v = this.$('video');
+    const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
+    if (this._mode !== 'play') { this._days = null; this._update(); return; }
+    await this._loadDays({ day, resume });
+  },
+
+  async _loadDays(opts = {}) {
     const camIdx = this._idx;
     this._days = 'loading'; this._files = null; this._update();
     try {
@@ -56,17 +80,26 @@ export default {
       if (!camNode) throw new Error(this._t('cam_not_found'));
       let node = await this._browse(camNode.media_content_id);
       let kids = node.children || [];
-      // Auflösungsebene (falls vorhanden): niedrige Auflösung bevorzugen (schneller, akkuschonend)
+      // Auflösungsebene (falls vorhanden): gewählte Auflösung, sonst die andere
+      let res = null;
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
-        const sub = kids.find((k) => /\|sub|low|niedrig|fluent|clear/i.test(k.media_content_id + k.title)) || kids[0];
-        node = await this._browse(sub.media_content_id);
+        res = this._resNodes(kids);
+        const pick = res[this._playQ] || res.low || res.high || kids[0];
+        res.used = pick === res.high ? 'high' : 'low';
+        node = await this._browse(pick.media_content_id);
         kids = node.children || [];
       }
+      if (camIdx !== this._idx) return;
+      this._res = res;
       const days = kids.filter((k) => k.can_expand).map((k) => ({ node: k, date: this._dayOf(k) }))
         .sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
       if (camIdx !== this._idx) return;
       this._days = days;
       this._dayIdx = 0;
+      if (opts.day) {
+        const k = days.findIndex((d) => d.date && d.date.toDateString() === opts.day.toDateString());
+        if (k >= 0) this._dayIdx = k;
+      }
       if (this._pendingEvent) {
         const want = new Date(this._pendingEvent * 1000).toDateString();
         const k = days.findIndex((d) => d.date && d.date.toDateString() === want);
@@ -75,12 +108,23 @@ export default {
       this._renderDays();
       if (days.length) await this._loadFiles();
       else this._update();
+      if (opts.resume && camIdx === this._idx) this._resumeClip(opts.resume);
       if (this._pendingEvent && camIdx === this._idx) this._pickEvent();
     } catch (e) {
       if (camIdx !== this._idx) return;
       this._days = { error: e.message || String(e) };
       this._update();
     }
+  },
+
+  /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */
+  _resumeClip({ start, at }) {
+    const f = Array.isArray(this._files) && this._files.find((x) => x.start === start);
+    if (!f) { this._stopPlayback(); return; }
+    const v = this.$('video');
+    const seek = () => { v.removeEventListener('loadedmetadata', seek); if (at > 0) { try { v.currentTime = at; } catch (_) { /* ignorieren */ } } };
+    v.addEventListener('loadedmetadata', seek);
+    this._play(f);
   },
 
   _dayOf(k) {
@@ -209,6 +253,16 @@ export default {
 
   _updatePlayPane() {
     const $ = this.$;
+    // Umschalter Niedrig/Hoch nur, wenn die Kamera beide Auflösungen anbietet
+    const both = !!(this._res && this._res.low && this._res.high);
+    $('pqrow').style.display = both ? '' : 'none';
+    if (both) {
+      $('pq-l').textContent = this._t('play_res');
+      $('pq').querySelectorAll('button').forEach((b) => {
+        b.textContent = this._t(`play_res_${b.dataset.q}`);
+        b.classList.toggle('sel', b.dataset.q === this._res.used);
+      });
+    }
     this.shadowRoot.querySelectorAll('.chip').forEach((b) => b.classList.toggle('sel', b.dataset.k === this._filter));
     const list = $('list'), bar = $('tlbar');
     const msg = (t) => { list.dataset.sig = ''; list.innerHTML = `<div class="msg">${t}</div>`; bar.innerHTML = ''; };

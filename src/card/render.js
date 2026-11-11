@@ -65,6 +65,7 @@ export default {
         <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
+          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button></div></div>
           <div class="filters" id="filters"></div>
           <div class="tl"><div class="tlbar" id="tlbar"></div><div class="tlh"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
           <div class="list" id="list"></div>
@@ -78,6 +79,7 @@ export default {
       setTestWanted(false);
       location.reload();
     };
+    $('pq').querySelectorAll('button').forEach((b) => { b.onclick = () => this._setPlayQ(b.dataset.q); });
     $('bigplay').onclick = () => { this._expired = false; this._startLive(); };
     $('stop').onclick = () => {
       if (this._playing) this._stopPlayback();

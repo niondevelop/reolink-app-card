@@ -5,7 +5,7 @@
    - makeHass(): hass-Objekt mit Zuständen, Register, callService/callWS und Medienquelle
    Steuerung über window.__T (Optionen) und Aufzeichnung über window.__R (Aufrufe, Ereignisse). */
 window.__T = window.__T || {};
-window.__R = { calls: [], ws: [], events: [], msgs: [], toggles: 0, connects: 0, lastMuted: null };
+window.__R = { calls: [], ws: [], events: [], msgs: [], resolved: [], toggles: 0, connects: 0, lastMuted: null };
 const fire = (el, type, detail) => el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 
 customElements.define('ha-icon', class extends HTMLElement {});
@@ -74,7 +74,15 @@ window.loadCardHelpers = async () => ({
 function media(opts, id) {
   const d = new Date();
   if (id === 'media-source://reolink') return { children: (opts.mediaCameras || []).map((t, i) => ({ title: t, media_content_id: `R|${i}`, can_expand: true })) };
-  if (/^R\|\d+$/.test(id)) return { children: [{ title: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, media_content_id: `${id}|${d.getFullYear()}|${d.getMonth() + 1}|${d.getDate()}`, can_expand: true }] };
+  // Mit opts.resolutions wie die Reolink-Integration: erst „Low/High resolution“, dann die Tage
+  if (opts.resolutions && /^R\|\d+$/.test(id)) {
+    return { children: [
+      { title: 'Low resolution', media_content_id: `${id}|RES|sub`, can_expand: true },
+      { title: 'High resolution', media_content_id: `${id}|RES|main`, can_expand: true },
+      { title: 'Autotrack low resolution', media_content_id: `${id}|RES|autotrack_sub`, can_expand: true },
+    ] };
+  }
+  if (/^R\|\d+(\|RES\|\w+)?$/.test(id)) return { children: [{ title: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, media_content_id: `${id}|${d.getFullYear()}|${d.getMonth() + 1}|${d.getDate()}`, can_expand: true }] };
   return { children: (opts.files || []).map((t, i) => ({ title: t, media_content_id: `${id}|f${i}`, can_play: true })) };
 }
 
@@ -95,7 +103,7 @@ window.makeHass = (opts = {}) => {
       window.__R.ws.push(m.type);
       if (m.type === 'camera/capabilities') return { frontend_stream_types: ['web_rtc'], two_way_audio: opts.twoWay !== false };
       if (m.type === 'fire_event') { if (opts.noAdmin) throw new Error('Unauthorized'); window.__R.events.push({ type: m.event_type, data: m.event_data }); return {}; }
-      if (m.type === 'media_source/resolve_media') return { url: '/clip.mp4' };
+      if (m.type === 'media_source/resolve_media') { window.__R.resolved.push(m.media_content_id); return { url: '/clip.mp4' }; }
       if (m.type === 'media_source/browse_media') return media(opts, m.media_content_id);
       return {};
     },

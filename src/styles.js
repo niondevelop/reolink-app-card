@@ -179,6 +179,11 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px; border-radius: 15px; border: 1px solid var(--divider-color); font-size: 13px; white-space: nowrap; }
 .chip ha-icon { --mdc-icon-size: 16px; }
 .chip.sel { background: var(--ra); border-color: var(--ra); color: #fff; }
+.pqrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 0; font-size: 13px; }
+.pqrow > span { opacity: .7; }
+.pq { display: flex; padding: 2px; border-radius: 9px; background: var(--secondary-background-color); }
+.pq button { padding: 4px 12px; border-radius: 7px; font-size: 13px; font-weight: 600; opacity: .7; }
+.pq button.sel { background: var(--rb); color: var(--ra); opacity: 1; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .tl { padding: 12px 12px 2px; }
 .tlbar { position: relative; height: 22px; border-radius: 6px; background: var(--secondary-background-color); overflow: hidden; }
 .tlbar i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; border-radius: 2px; cursor: pointer; }

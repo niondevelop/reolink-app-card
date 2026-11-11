@@ -40,7 +40,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette), mémorisée sur chaque appareil.
 - **Sélecteur de mode :** mode scène du hub (désarmé / maison / absent) ou votre propre mode (`mode_entity`), plus l’occupation de la carte SD — avec deux blueprints prêts à importer pour les notifications et le changement de mode automatique (voir la [documentation en anglais](README.md#camera-mode-and-blueprints)).
 - **Bascule automatique** vers la caméra qui détecte une personne, un véhicule ou un animal.
-- **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures et filtres.
+- **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures, filtres et choix de la résolution **Basse / Haute** (mémorisé sur chaque appareil, indépendamment de la qualité du direct).
 - **Alertes batterie** et **éditeur visuel** qui détecte les caméras automatiquement.
 - **Suggestions de carte :** via *Ajouter au tableau de bord* sur une caméra Reolink (ou le hub), la carte apparaît dans les suggestions de la communauté, déjà configurée.
 - **Anglais, allemand et français,** selon la langue de Home Assistant (option `language: fr` pour forcer le français).

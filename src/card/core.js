@@ -1,5 +1,5 @@
 /* Grundlagen: Konfiguration, Entitäten, hass, Sichtbarkeit, Kamera- und Moduswechsel, Dialoge – Methoden der Klasse ReolinkAppCard */
-import { DET, EVT, Q, Q_STORE } from '../constants.js';
+import { DET, EVT, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
 import { DC, ENT, HUB_ENT, LEGACY, TK, findHubPrefix, prefixOf } from '../entities.js';
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
@@ -28,6 +28,11 @@ export default {
     try { saved = localStorage.getItem(Q_STORE); } catch (_) { /* privater Modus o. ä. */ }
     this._quality = this._normQ(saved && Q[saved] ? saved : this._config.default_quality);
     this._qOpen = false;
+    // Auflösung der Wiedergabe: zuletzt gewählte, sonst niedrig (schneller, akkuschonend)
+    let playQ = null;
+    try { playQ = localStorage.getItem(PLAY_Q_STORE); } catch (_) { /* privater Modus o. ä. */ }
+    this._playQ = playQ === 'high' ? 'high' : 'low';
+    this._res = null;
     this._live = false;
     this._filter = 'all';
     this._days = null; this._dayIdx = 0; this._files = null; this._playing = null;
