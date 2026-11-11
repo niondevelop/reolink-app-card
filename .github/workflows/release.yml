@@ -17,7 +17,7 @@ jobs:
       - name: Check version in code
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          CODE=$(grep -oP "RAC_VERSION = '\K[^']+" dist/reolink-app-card.js)
+          CODE=$(grep -oP "RAC_VERSION = [\"']\K[^\"']+" dist/reolink-app-card.js)
           if [ "$TAG" != "$CODE" ]; then
             echo "Tag v$TAG does not match RAC_VERSION $CODE"; exit 1
           fi
