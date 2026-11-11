@@ -1,8 +1,9 @@
 /* Kleine Hilfsfunktionen */
 
-/* Element in verschachtelten Shadow-DOMs suchen (z. B. den Kamera-Stream in der picture-entity-Karte) */
+/* Ereignisse, die als Interaktion mit der Seite zählen (Browser erlauben Ton erst danach) */
 export const SND_EVENTS = ['pointerup', 'click', 'keydown'];
 
+/* Element in verschachtelten Shadow-DOMs suchen (z. B. den Kamera-Stream in der picture-entity-Karte) */
 export const deepFind = (root, sel) => {
   if (!root) return null;
   const hit = root.querySelector && root.querySelector(sel);

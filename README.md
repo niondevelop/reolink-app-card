@@ -38,6 +38,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
   - [Accent colour](#accent-colour)
 - [Notes](#notes)
 - [Known limitations](#known-limitations)
+- [Development](#development)
 - [Support](#support)
 - [License](#license)
 
@@ -282,6 +283,10 @@ This is an alpha version. What has been tested, and how:
 - **Battery:** live view, sound and two-way audio wake battery cameras and cost battery.
 
 Found a problem? Please [open an issue](https://github.com/niondevelop/reolink-app-card/issues) with your camera model, Home Assistant version and what happened.
+
+## Development
+
+The source code lives in `src/` and is bundled into `dist/` with esbuild; there are unit and browser tests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Support
 
