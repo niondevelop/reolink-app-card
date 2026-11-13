@@ -287,6 +287,8 @@ Ein Problem gefunden? [Eröffne gern ein Issue](https://github.com/niondevelop/r
 
 Der Quellcode liegt in `src/` und wird mit esbuild nach `dist/` gebündelt; dazu gibt es Unit- und Browsertests. Siehe [CONTRIBUTING.md](CONTRIBUTING.md) (Englisch).
 
+**Beim Testen helfen:** Zu jedem Pull Request gibt es eine fertige Testdatei, die sich im eigenen Home Assistant neben der stabilen Version ausprobieren lässt; zurück geht es mit einem Tipp. Siehe [TESTING.de.md](TESTING.de.md).
+
 ## Unterstützen
 
 Wenn dir die Karte gefällt, kannst du mir einen Kaffee spendieren. Danke!

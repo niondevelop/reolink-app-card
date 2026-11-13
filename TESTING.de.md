@@ -1,11 +1,11 @@
 # Pull Requests in Home Assistant testen
 
-Damit lässt sich ein Pull Request mit echten Kameras ausprobieren, bevor er gemergt oder als Version veröffentlicht wird. Die Installation aus HACS bzw. dem Marketplace bleibt dabei unverändert.
+Damit lässt sich ein Pull Request mit echten Kameras ausprobieren, bevor er gemergt oder als Version veröffentlicht wird. Die Installation aus HACS bzw. dem Marketplace bleibt dabei unverändert. [English](TESTING.md)
 
 ## So funktioniert es
 
 - Bei jedem Pull Request baut GitHub die Karte, führt alle Tests aus und legt danach die fertige Datei bereit. Bei jedem neuen Commit passiert das erneut.
-- Im Pull Request erscheint ein Kommentar **🧪 Testdatei für PR #…** mit einem Befehl zum Kopieren. Der Kommentar wird bei jedem Commit aktualisiert. Dieselben Angaben stehen auch in GitHub unter **Actions** → Lauf **Validate** → **Summary**.
+- Im Pull Request erscheint ein Kommentar **🧪 Test file for PR #…** (auf Englisch) mit einem Befehl zum Kopieren. Der Kommentar wird bei jedem Commit aktualisiert. Dieselben Angaben stehen auch in GitHub unter **Actions** → Lauf **Validate** → **Summary**.
 - Die Testdatei liegt immer an derselben Stelle: `/config/www/reolink-test/reolink-app-card.js` (im Browser `/local/reolink-test/reolink-app-card.js`).
 - **Keine zweite Ressource.** Stabile Version und Testversion heissen beide `reolink-app-card` und dürfen nicht gleichzeitig geladen werden. Darum bleibt die Ressource aus HACS die einzige. Ist in einem Browser die Testversion eingeschaltet, lädt die stabile Karte stattdessen die Testdatei und registriert sich selbst nicht.
 - **Pro Gerät:** Die Umschaltung gilt nur für den Browser bzw. die App, in der sie eingeschaltet wurde. Alle anderen Geräte im Haushalt laufen weiter mit der stabilen Version.
@@ -22,7 +22,7 @@ Der Ordner `/config/www` existiert bereits (dort liegen auch die HACS-Dateien un
 
 ## Einen Pull Request testen
 
-1. **Datei holen:** Im Pull Request den Befehl aus dem Kommentar **🧪 Testdatei** kopieren, in Home Assistant **Terminal** öffnen, einfügen und ausführen. Am Ende muss `reolink-app-card.js: OK` stehen; damit ist die Datei geprüft und identisch mit der im Pull Request.
+1. **Datei holen:** Im Pull Request den Befehl aus dem Kommentar **🧪 Test file** kopieren, in Home Assistant **Terminal** öffnen, einfügen und ausführen. Am Ende muss `reolink-app-card.js: OK` stehen; damit ist die Datei geprüft und identisch mit der im Pull Request.
 2. **Testversion einschalten** (nur beim ersten Mal pro Gerät, danach bleibt sie eingeschaltet):
    - **Browser:** Das Dashboard mit der Karte öffnen und an die Adresse `?rac_channel=test` anhängen, z. B. `https://…/dashboard-kameras/0?rac_channel=test`. Die Seite lädt neu.
    - **Companion-App:** Im Dashboard vorübergehend eine Schaltfläche mit der Aktion **Navigieren** zu `/dashboard-kameras/0?rac_channel=test` anlegen (Pfad des eigenen Dashboards) und antippen.

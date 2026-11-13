@@ -290,6 +290,8 @@ Found a problem? Please [open an issue](https://github.com/niondevelop/reolink-a
 
 The source code lives in `src/` and is bundled into `dist/` with esbuild; there are unit and browser tests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+**Help testing:** every pull request comes with a ready-to-use test file that you can try in your own Home Assistant next to the stable version, and switch back with one tap. See [TESTING.md](TESTING.md).
+
 ## Support
 
 If you like the card, you can buy me a coffee. Thank you!

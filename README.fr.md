@@ -71,6 +71,8 @@ Toutes les options sont décrites dans la [documentation en anglais](README.md#c
 
 Le code source se trouve dans `src/` et est assemblé dans `dist/` avec esbuild ; des tests unitaires et de navigateur sont fournis. Voir [CONTRIBUTING.md](CONTRIBUTING.md) (en anglais).
 
+**Aider à tester :** chaque pull request fournit un fichier de test prêt à l’emploi, à essayer dans votre Home Assistant à côté de la version stable, avec retour en un geste. Voir [TESTING.md](TESTING.md) (en anglais).
+
 ## Soutenir
 
 Si la carte vous plaît, vous pouvez m’offrir un café. Merci !
