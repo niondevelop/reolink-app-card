@@ -5,10 +5,10 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#bekannte-einschränkungen)
 
-Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für Reolink-Kameras (z. B. die akkubetriebene Argus-Serie) an einem **Reolink Home Hub**, über die offizielle [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
+Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für Reolink-Kameras an einem **Reolink Home Hub** (z. B. die akkubetriebene Argus-Serie) oder **direkt in Home Assistant**, über die offizielle [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
 
 > [!IMPORTANT]
-> **Nur mit Reolink Home Hub.** Die Karte funktioniert nur mit Kameras, die an einem Reolink Home Hub (oder Home Hub Pro) angemeldet sind und über den Hub in Home Assistant eingebunden wurden. Kameras, die ohne Hub direkt in Home Assistant eingebunden sind, werden nicht unterstützt.
+> **Reolink-Integration nötig.** Die Karte funktioniert mit Kameras, die über die offizielle Reolink-Integration in Home Assistant eingebunden sind: über einen **Reolink Home Hub** (oder Home Hub Pro) oder **direkt**, ohne Hub. Kameras, die nur von einem anderen Home Assistant übernommen werden, zeigen das Livebild, aber keine Aufnahmen (siehe [Bekannte Einschränkungen](#bekannte-einschränkungen)).
 
 > [!WARNING]
 > **Alpha – noch in Entwicklung.** Die Karte läuft täglich bei einer Installation (Reolink Home Hub mit zwei Argus-Akkukameras), aber vieles ist neu und manches nur in einem nachgebauten Home Assistant getestet. Rechne mit Fehlern und Änderungen zwischen den Versionen und verlass dich nicht als einzige Alarmierung darauf. Siehe [Bekannte Einschränkungen](#bekannte-einschränkungen), und [melde Probleme](https://github.com/niondevelop/reolink-app-card/issues) gern.
@@ -271,7 +271,9 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 Das ist eine Alpha-Version. Was wie getestet ist:
 
 - **Mit echter Hardware nur bei einer Installation getestet:** Reolink Home Hub mit zwei Argus-Akkukameras, Android-Companion-App, Home Assistant 2026.11. Andere Modelle, ein NVR oder mehrere Hubs sind nicht getestet.
-- **Nur in einem nachgebauten Home Assistant getestet, nicht mit echten Geräten:** die Klingel-Ansicht in der Karte, Schwenken & Neigen (PTZ), französische oder umbenannte Entity-IDs, die iPhone-App und das Senden des Mikrofons durch die Companion-App über reines HTTP.
+- **Nur in einem nachgebauten Home Assistant getestet, nicht mit echten Geräten:** Kameras, die ohne Hub direkt in Home Assistant eingebunden sind (auch Aufnahmen, die Home Assistant als HLS-Stream liefert), die Klingel-Ansicht in der Karte, Schwenken & Neigen (PTZ), französische oder umbenannte Entity-IDs, die iPhone-App und das Senden des Mikrofons durch die Companion-App über reines HTTP.
+- **Kameras aus einem anderen Home Assistant:** Die Aufnahmen kommen aus der Medienquelle der Reolink-Integration, und die gibt es nur auf dem Home Assistant, auf dem die Kamera eingebunden ist. Eine Kamera, die nur von einer anderen Instanz übernommen wird (z. B. mit *Remote Home-Assistant* oder go2rtc), zeigt das Livebild, die Steuerung nur, wenn deren Entitäten mit übernommen werden (mit `entities:` zuordnen), aber keine Aufnahmen. Dann die Karte auf der anderen Instanz nutzen oder die Kamera direkt in diesem Home Assistant einbinden (die Reolink-Integration erreicht Kameras an anderen Orten auch über ein VPN wie Tailscale).
+- **Aufnahmen in hoher Auflösung** sind meist H.265, das Chrome und Firefox oft nicht abspielen; die niedrige Auflösung (H.264) läuft überall.
 - **Gegensprechen** ist eine Labs-Funktion (Vorschau) von Home Assistant. Bei manchen Reolink-Modellen gibt es bekannte Probleme damit (kein Ton bei der Kamera oder ein Echo). Im Browser braucht es HTTPS.
 - **Ton im Livebild:** Beim Einschalten verbindet sich der Stream kurz neu. Hat der WebRTC-Stream der Kamera keine Tonspur, gibt es keinen Ton.
 - **Blueprints:** Vorlagen und Bedingungen sind an einem echten Home Assistant geprüft, als vollständige Automation sind sie aber noch nicht gelaufen.

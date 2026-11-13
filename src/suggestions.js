@@ -1,5 +1,5 @@
 /* Kartenvorschläge für „Zum Dashboard hinzufügen“ */
-import { detectCameras, findHubPrefix } from './entities.js';
+import { camConfig, detectCameras, findHubPrefix } from './entities.js';
 import { STR, pickLang } from './i18n.js';
 
 /* Vorschlag für „Zur Übersicht hinzufügen“: zu jeder Entität einer Reolink-Kamera (oder des Hubs) */
@@ -15,7 +15,7 @@ export function cardSuggestion(hass, entityId) {
   const isHub = !hit && hub && (obj.startsWith(`${hub}_`) || hubDev);
   if (!hit && !isHub) return null;
   const t = STR[pickLang('auto', hass)];
-  const conf = (list) => ({ type: 'custom:reolink-app-card', cameras: list.map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name })) });
+  const conf = (list) => ({ type: 'custom:reolink-app-card', cameras: list.map(camConfig) });
   const out = [];
   if (hit) out.push({ label: `Reolink App Card – ${hit.name}`, config: conf([hit]) });
   if (cams.length > 1 || isHub) out.push({ label: `Reolink App Card – ${t.grid}`, config: conf(cams) });

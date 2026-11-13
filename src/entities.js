@@ -110,28 +110,48 @@ export function prefixOf(entityId) {
 /* Reolink-Kameras in Home Assistant finden (für Editor und Vorschläge); nutzt das Geräte-Register, wenn vorhanden */
 export function detectCameras(hass) {
   if (!hass) return [];
-  const out = [];
+  const out = [], seen = new Set();
+  const add = (id, prefix, fallbackName) => {
+    const reg = hass.entities && hass.entities[id];
+    const dev = reg && reg.device_id && hass.devices ? hass.devices[reg.device_id] : null;
+    if (reg && reg.device_id) { if (seen.has(reg.device_id)) return; seen.add(reg.device_id); }
+    const name = (dev && (dev.name_by_user || dev.name)) || fallbackName || prefix;
+    out.push({ prefix, name, entity: id, device_id: reg ? reg.device_id : undefined });
+  };
+  // 1. Über die Namensendung (deutsche/englische Entity-IDs)
   Object.keys(hass.states).forEach((id) => {
     const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)$/);
     if (!m) return;
     const reg = hass.entities && hass.entities[id];
     if (reg && reg.platform && reg.platform !== 'reolink') return;
-    const dev = reg && reg.device_id && hass.devices ? hass.devices[reg.device_id] : null;
-    const fn = String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, '').trim();
-    const name = (dev && (dev.name_by_user || dev.name)) || fn || m[1];
-    out.push({ prefix: m[1], name, entity: id, device_id: reg ? reg.device_id : undefined });
+    add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, '').trim());
+  });
+  // 2. Über das Geräteregister: Fluent-Stream jeder Reolink-Kamera (andere Sprachen, umbenannte IDs),
+  //    gleich ob über einen Hub/NVR oder direkt in Home Assistant eingebunden
+  Object.keys(hass.entities || {}).forEach((id) => {
+    const r = hass.entities[id];
+    if (!id.startsWith('camera.') || r.platform !== 'reolink' || r.translation_key !== TK.cam_sd || !hass.states[id]) return;
+    add(id, prefixOf(id) || id.slice(7), String(hass.states[id].attributes.friendly_name || '').trim());
   });
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /* Hub finden: Szenenmodus- oder SD-Karten-Entität, die keiner Kamera gehört */
+/* Kamera-Eintrag für eine Konfiguration; die Entität nur, wenn sich der Präfix nicht aus ihr ableiten lässt */
+export const camConfig = (c) => ({ name: c.name, prefix: c.prefix, media_name: c.name, ...(c.entity && !prefixOf(c.entity) ? { entity: c.entity } : {}) });
+
 export function findHubPrefix(hass) {
   if (!hass) return null;
+  // Direkt eingebundene Kameras haben selbst einen Szenenmodus bzw. eine SD-Karte; das ist kein Hub
+  const reg = hass.entities || {};
+  const camDevs = new Set(Object.keys(reg).filter((id) => id.startsWith('camera.') && reg[id].platform === 'reolink' && reg[id].device_id).map((id) => reg[id].device_id));
+  const isCamera = (pre) => Object.keys(hass.states).some((id) => id.startsWith(`camera.${pre}_`) && CAM_SUFFIX.test(id.slice(7)));
   for (const id of Object.keys(hass.states)) {
     const m = id.match(/^select\.(.+)_(szenenmodus|scene_mode)$/) || id.match(/^sensor\.(.+)_sd_0_(speicher|storage)$/);
     if (!m) continue;
-    const reg = hass.entities && hass.entities[id];
-    if (reg && reg.platform && reg.platform !== 'reolink') continue;
+    const r = reg[id];
+    if (r && r.platform && r.platform !== 'reolink') continue;
+    if ((r && r.device_id && camDevs.has(r.device_id)) || isCamera(m[1])) continue;
     return m[1];
   }
   return null;
