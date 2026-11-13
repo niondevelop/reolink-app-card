@@ -145,26 +145,43 @@
   }
   function detectCameras(hass) {
     if (!hass) return [];
-    const out = [];
+    const out = [], seen = /* @__PURE__ */ new Set();
+    const add = (id, prefix, fallbackName) => {
+      const reg = hass.entities && hass.entities[id];
+      const dev = reg && reg.device_id && hass.devices ? hass.devices[reg.device_id] : null;
+      if (reg && reg.device_id) {
+        if (seen.has(reg.device_id)) return;
+        seen.add(reg.device_id);
+      }
+      const name = dev && (dev.name_by_user || dev.name) || fallbackName || prefix;
+      out.push({ prefix, name, entity: id, device_id: reg ? reg.device_id : void 0 });
+    };
     Object.keys(hass.states).forEach((id) => {
       const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)$/);
       if (!m) return;
       const reg = hass.entities && hass.entities[id];
       if (reg && reg.platform && reg.platform !== "reolink") return;
-      const dev = reg && reg.device_id && hass.devices ? hass.devices[reg.device_id] : null;
-      const fn = String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, "").trim();
-      const name = dev && (dev.name_by_user || dev.name) || fn || m[1];
-      out.push({ prefix: m[1], name, entity: id, device_id: reg ? reg.device_id : void 0 });
+      add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, "").trim());
+    });
+    Object.keys(hass.entities || {}).forEach((id) => {
+      const r = hass.entities[id];
+      if (!id.startsWith("camera.") || r.platform !== "reolink" || r.translation_key !== TK.cam_sd || !hass.states[id]) return;
+      add(id, prefixOf(id) || id.slice(7), String(hass.states[id].attributes.friendly_name || "").trim());
     });
     return out.sort((a, b) => a.name.localeCompare(b.name));
   }
+  var camConfig = (c) => ({ name: c.name, prefix: c.prefix, media_name: c.name, ...c.entity && !prefixOf(c.entity) ? { entity: c.entity } : {} });
   function findHubPrefix(hass) {
     if (!hass) return null;
+    const reg = hass.entities || {};
+    const camDevs = new Set(Object.keys(reg).filter((id) => id.startsWith("camera.") && reg[id].platform === "reolink" && reg[id].device_id).map((id) => reg[id].device_id));
+    const isCamera = (pre) => Object.keys(hass.states).some((id) => id.startsWith(`camera.${pre}_`) && CAM_SUFFIX.test(id.slice(7)));
     for (const id of Object.keys(hass.states)) {
       const m = id.match(/^select\.(.+)_(szenenmodus|scene_mode)$/) || id.match(/^sensor\.(.+)_sd_0_(speicher|storage)$/);
       if (!m) continue;
-      const reg = hass.entities && hass.entities[id];
-      if (reg && reg.platform && reg.platform !== "reolink") continue;
+      const r = reg[id];
+      if (r && r.platform && r.platform !== "reolink") continue;
+      if (r && r.device_id && camDevs.has(r.device_id) || isCamera(m[1])) continue;
       return m[1];
     }
     return null;
@@ -1716,7 +1733,7 @@
       const el = this.$("stage");
       if (document.fullscreenElement) document.exitFullscreen();
       else if (el.requestFullscreen) el.requestFullscreen();
-      else if (this.$("video").webkitEnterFullscreen && this._playing) this.$("video").webkitEnterFullscreen();
+      else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
     },
     /* ---------- Digitaler Zoom ---------- */
     _setupZoom() {
@@ -1899,7 +1916,7 @@
       if (q === this._playQ) return;
       this._playQ = q;
       const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
-      const v = this.$("video");
+      const v = this._vid();
       const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
       if (this._mode !== "play") {
         this._days = null;
@@ -1959,18 +1976,19 @@
         this._stopPlayback();
         return;
       }
-      const v = this.$("video");
-      const seek = () => {
-        v.removeEventListener("loadedmetadata", seek);
-        if (at > 0) {
+      this._play(f).then(() => {
+        const v = this._vid();
+        if (!v || !(at > 0)) return;
+        const seek = () => {
+          v.removeEventListener("loadedmetadata", seek);
           try {
             v.currentTime = at;
           } catch (_) {
           }
-        }
-      };
-      v.addEventListener("loadedmetadata", seek);
-      this._play(f);
+        };
+        if (v.readyState >= 1) seek();
+        else v.addEventListener("loadedmetadata", seek);
+      });
     },
     _dayOf(k) {
       const m = String(k.media_content_id).match(/(\d{4})\|(\d{1,2})\|(\d{1,2})(?:\||$)/) || String(k.title).match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
@@ -2015,21 +2033,81 @@
     get _visibleFiles() {
       return Array.isArray(this._files) ? this._files.filter((f) => this._filter === "all" || f.types.includes(this._filter)) : [];
     },
+    /* Aktives Videoelement: eigenes <video> oder das im HLS-Player von Home Assistant */
+    _vid() {
+      const inner = this._hls && this._hls.shadowRoot && this._hls.shadowRoot.querySelector("video");
+      return inner || this.$("video");
+    },
+    /* Clips als HLS-Stream (z. B. von direkt eingebundenen Kameras ohne MP4-Dateien): Browser ohne eigenes HLS
+       (Chrome, Firefox) spielen sie mit dem HLS-Player von Home Assistant ab */
+    _needsHlsPlayer(r) {
+      const hls = /mpegurl/i.test(r.mime_type || "") || /\.m3u8(\?|$)/i.test(r.url || "");
+      return hls && !this.$("video").canPlayType("application/vnd.apple.mpegurl");
+    },
+    async _hlsPlayerReady() {
+      if (customElements.get("ha-hls-player")) return true;
+      try {
+        const helpers = await window.loadCardHelpers();
+        helpers.createCardElement({ type: "picture-entity", entity: this._e("cam_sd") || this._cam.entity || "camera.none", camera_view: "live" });
+      } catch (_) {
+      }
+      return Promise.race([customElements.whenDefined("ha-hls-player").then(() => true), new Promise((r) => setTimeout(() => r(false), 8e3))]);
+    },
+    async _playHls(url, file) {
+      if (!await this._hlsPlayerReady()) throw new Error("HLS");
+      if (this._playing !== file) return;
+      this._removeHls();
+      this.$("video").removeAttribute("src");
+      const el = document.createElement("ha-hls-player");
+      el.className = "hls";
+      el.hass = this._hass;
+      el.controls = true;
+      el.autoPlay = true;
+      el.playsInline = true;
+      el.fitMode = "contain";
+      el.url = url;
+      this.$("media").appendChild(el);
+      this._hls = el;
+      this.$("stage").classList.add("hls");
+      if (el.updateComplete) await el.updateComplete;
+      const v = this._vid();
+      if (v && v !== this.$("video")) {
+        v.playbackRate = this._speed;
+        v.addEventListener("loadedmetadata", () => {
+          v.playbackRate = this._speed;
+        });
+        v.addEventListener("ended", () => {
+          if (this._config.autoplay_next) this._playNext(true);
+        });
+      }
+    },
+    _removeHls() {
+      if (this._hls) {
+        this._hls.remove();
+        this._hls = null;
+      }
+      if (this.$) this.$("stage").classList.remove("hls");
+    },
     async _play(file) {
       this._stopLive(true);
       this._resetZoom();
       this._playing = file;
       this._update();
-      const v = this.$("video");
       try {
         const r = await this._hass.callWS({ type: "media_source/resolve_media", media_content_id: file.node.media_content_id, expires: 3600 });
         if (this._playing !== file) return;
         this._playUrl = this._hass.hassUrl(r.url);
-        v.src = this._playUrl;
-        v.playbackRate = this._speed;
-        const p = v.play();
-        if (p && p.catch) p.catch(() => {
-        });
+        if (this._needsHlsPlayer(r)) {
+          await this._playHls(this._playUrl, file);
+        } else {
+          this._removeHls();
+          const v = this.$("video");
+          v.src = this._playUrl;
+          v.playbackRate = this._speed;
+          const p = v.play();
+          if (p && p.catch) p.catch(() => {
+          });
+        }
       } catch (e) {
         this._playing = null;
         this._toast({ text: `${this._t("play_error")}: ${e.message || e}`, color: "#636366", icon: "mdi:alert-circle-outline", wrap: true });
@@ -2044,7 +2122,7 @@
     },
     _cycleSpeed() {
       this._speed = SPEEDS[(SPEEDS.indexOf(this._speed) + 1) % SPEEDS.length];
-      this.$("video").playbackRate = this._speed;
+      this._vid().playbackRate = this._speed;
       this._update();
     },
     _download() {
@@ -2054,7 +2132,7 @@
       this._openLink(this._playUrl, `${this._cam.name}_${d}_${this._playing.time.replace(/:/g, "-")}.mp4`);
     },
     _stopPlayback(silent) {
-      const v = this.$ && this.$("video");
+      const v = this.$ && this._vid();
       if (v) {
         try {
           v.pause();
@@ -2063,6 +2141,7 @@
         } catch (_) {
         }
       }
+      this._removeHls();
       if (!this._playing) return;
       this._playing = null;
       this._playUrl = null;
@@ -2278,6 +2357,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .pic, .pic > * { position: absolute; inset: 0; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
+ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
+.stage.playing ha-hls-player.hls { display: block; } .stage.hls.playing video#video { display: none; }
 .stage.playing video { display: block; } .stage.playing .pic, .stage.playing .media > .prev { display: none; }
 .grid { display: none; }
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }
@@ -2739,7 +2820,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
       const pi = playing ? files.findIndex((f) => f.node.media_content_id === this._playing.node.media_content_id) : -1;
       $("next").style.display = playing && pi >= 0 && pi + 1 < files.length ? "" : "none";
       $("next").title = this._t("next");
-      $("dl").style.display = playing && this._playUrl ? "" : "none";
+      $("dl").style.display = playing && this._playUrl && !this._hls ? "" : "none";
       $("dl").title = this._t("download");
       $("unzoom").title = this._t("reset_zoom");
       this._applyZoom();
@@ -2960,7 +3041,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
       return document.createElement("reolink-app-card-editor");
     }
     static getStubConfig(hass) {
-      const cams = detectCameras(hass).slice(0, 4).map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name }));
+      const cams = detectCameras(hass).slice(0, 4).map(camConfig);
       const name = STR[pickLang("auto", hass)].camera;
       return { cameras: cams.length ? cams : [{ name, prefix: "camera" }] };
     }
@@ -3068,6 +3149,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
           if (hit && v.prefix !== cam.prefix) {
             if (!v.name) v.name = hit.name;
             if (!v.media_name) v.media_name = hit.name;
+            if (!prefixOf(hit.entity)) v.entity = hit.entity;
           }
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
@@ -3130,7 +3212,7 @@ video { position: absolute; inset: 0; width: 100%; height: 100%; background: #00
     const isHub = !hit && hub && (obj.startsWith(`${hub}_`) || hubDev);
     if (!hit && !isHub) return null;
     const t = STR[pickLang("auto", hass)];
-    const conf = (list) => ({ type: "custom:reolink-app-card", cameras: list.map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name })) });
+    const conf = (list) => ({ type: "custom:reolink-app-card", cameras: list.map(camConfig) });
     const out = [];
     if (hit) out.push({ label: `Reolink App Card – ${hit.name}`, config: conf([hit]) });
     if (cams.length > 1 || isHub) out.push({ label: `Reolink App Card – ${t.grid}`, config: conf(cams) });

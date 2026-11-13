@@ -8,10 +8,10 @@
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#known-limitations)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 
-A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for Reolink cameras (e.g. the battery-powered Argus series) connected to a **Reolink Home Hub**, using the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
+A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for Reolink cameras connected to a **Reolink Home Hub** (e.g. the battery-powered Argus series) or **directly to Home Assistant**, using the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
 
 > [!IMPORTANT]
-> **Requires a Reolink Home Hub.** The card only works with cameras that are connected to a Reolink Home Hub (or Home Hub Pro) and added to Home Assistant through the hub. Cameras connected directly to Home Assistant, without a hub, are not supported.
+> **Reolink integration required.** The card works with cameras added to Home Assistant with the official Reolink integration: through a **Reolink Home Hub** (or Home Hub Pro) or **directly**, without a hub. Cameras that only reach this Home Assistant from another Home Assistant instance show the live view, but no recordings (see [Known limitations](#known-limitations)).
 
 > [!WARNING]
 > **Alpha – still in development.** The card is in daily use on one setup (Reolink Home Hub with two Argus battery cameras), but many parts are new and some have only been tested in a simulated Home Assistant. Expect bugs and changes between versions, and don't rely on it as your only alarm. See [Known limitations](#known-limitations) and please [report problems](https://github.com/niondevelop/reolink-app-card/issues).
@@ -274,7 +274,9 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 This is an alpha version. What has been tested, and how:
 
 - **Tested on real hardware with one setup only:** Reolink Home Hub with two Argus battery cameras, Android Companion app, Home Assistant 2026.11. Other models, an NVR or several hubs have not been tested.
-- **Only tested in a simulated Home Assistant, not with real devices:** the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
+- **Only tested in a simulated Home Assistant, not with real devices:** cameras connected directly to Home Assistant without a hub (including recordings that Home Assistant streams as HLS), the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
+- **Cameras from another Home Assistant:** recordings come from the media source of the Reolink integration, which only exists on the Home Assistant instance where the camera is added. A camera that only reaches this Home Assistant from another instance (e.g. via *Remote Home-Assistant* or go2rtc) shows the live view, and controls only if their entities are shared too (map them with `entities:`), but no recordings. Use the card on the other instance, or add the camera to this Home Assistant directly (the Reolink integration also reaches cameras at other places through a VPN such as Tailscale).
+- **High resolution recordings** are usually H.265, which Chrome and Firefox often can't play; the low resolution (H.264) plays everywhere.
 - **Two-way audio** is a Labs (preview) feature of Home Assistant. Some Reolink models have known problems with it (no sound arriving at the camera, or an echo). In a browser it needs HTTPS.
 - **Sound in the live view:** turning it on reconnects the stream for a moment. If the camera's WebRTC stream has no audio track, there is no sound.
 - **Blueprints:** their templates and conditions were checked against a real Home Assistant, but they have not yet run as complete automations.
@@ -287,6 +289,8 @@ Found a problem? Please [open an issue](https://github.com/niondevelop/reolink-a
 ## Development
 
 The source code lives in `src/` and is bundled into `dist/` with esbuild; there are unit and browser tests. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Help testing:** every pull request comes with a ready-to-use test file that you can try in your own Home Assistant next to the stable version, and switch back with one tap. See [TESTING.md](TESTING.md).
 
 ## Support
 

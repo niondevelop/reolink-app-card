@@ -5,10 +5,10 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 [![Statut : alpha](https://img.shields.io/badge/statut-alpha-orange)](README.md#known-limitations)
 
-Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reolink : direct, commandes, réglages et lecture des enregistrements de la carte SD dans une seule carte. Conçue pour les caméras Reolink (p. ex. la série Argus sur batterie) reliées à un **Reolink Home Hub**, via l’[intégration Reolink](https://www.home-assistant.io/integrations/reolink/) officielle.
+Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reolink : direct, commandes, réglages et lecture des enregistrements de la carte SD dans une seule carte. Conçue pour les caméras Reolink reliées à un **Reolink Home Hub** (p. ex. la série Argus sur batterie) ou **directement à Home Assistant**, via l’[intégration Reolink](https://www.home-assistant.io/integrations/reolink/) officielle.
 
 > [!IMPORTANT]
-> **Nécessite un Reolink Home Hub.** La carte fonctionne uniquement avec des caméras reliées à un Reolink Home Hub (ou Home Hub Pro) et ajoutées à Home Assistant via le hub. Les caméras ajoutées directement à Home Assistant, sans hub, ne sont pas prises en charge.
+> **Intégration Reolink nécessaire.** La carte fonctionne avec les caméras ajoutées à Home Assistant via l’intégration Reolink officielle : par un **Reolink Home Hub** (ou Home Hub Pro) ou **directement**, sans hub. Les caméras reprises d’une autre instance de Home Assistant affichent le direct, mais pas les enregistrements (voir les [limitations connues](README.md#known-limitations), en anglais).
 
 > [!WARNING]
 > **Alpha – encore en développement.** La carte est utilisée au quotidien sur une seule installation (Reolink Home Hub avec deux caméras Argus sur batterie), mais beaucoup de parties sont nouvelles et certaines n’ont été testées que dans un Home Assistant simulé. Attendez-vous à des bugs et à des changements, et ne l’utilisez pas comme seule alarme. Voir les [limitations connues](README.md#known-limitations) (en anglais) et [signalez les problèmes](https://github.com/niondevelop/reolink-app-card/issues).
@@ -70,6 +70,8 @@ Toutes les options sont décrites dans la [documentation en anglais](README.md#c
 ## Développement
 
 Le code source se trouve dans `src/` et est assemblé dans `dist/` avec esbuild ; des tests unitaires et de navigateur sont fournis. Voir [CONTRIBUTING.md](CONTRIBUTING.md) (en anglais).
+
+**Aider à tester :** chaque pull request fournit un fichier de test prêt à l’emploi, à essayer dans votre Home Assistant à côté de la version stable, avec retour en un geste. Voir [TESTING.md](TESTING.md) (en anglais).
 
 ## Soutenir
 

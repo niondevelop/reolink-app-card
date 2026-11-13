@@ -1,5 +1,5 @@
 /* Die Karte: Klasse und Zusammensetzung aus den Modulen in card/ */
-import { detectCameras } from './entities.js';
+import { camConfig, detectCameras } from './entities.js';
 import { pickLang, STR } from './i18n.js';
 import audio from './card/audio.js';
 import core from './card/core.js';
@@ -22,7 +22,7 @@ export class ReolinkAppCard extends HTMLElement {
   static getConfigElement() { return document.createElement('reolink-app-card-editor'); }
 
   static getStubConfig(hass) {
-    const cams = detectCameras(hass).slice(0, 4).map((c) => ({ name: c.name, prefix: c.prefix, media_name: c.name }));
+    const cams = detectCameras(hass).slice(0, 4).map(camConfig);
     const name = STR[pickLang('auto', hass)].camera;
     return { cameras: cams.length ? cams : [{ name, prefix: 'camera' }] };
   }

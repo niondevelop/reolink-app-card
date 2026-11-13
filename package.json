@@ -2,7 +2,7 @@
   "name": "reolink-app-card",
   "version": "0.2.1",
   "private": true,
-  "description": "Lovelace card for Reolink cameras on a Reolink Home Hub",
+  "description": "Lovelace card for Reolink cameras, on a Reolink Home Hub or connected directly",
   "license": "MIT",
   "type": "module",
   "scripts": {

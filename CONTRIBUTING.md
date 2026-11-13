@@ -41,7 +41,7 @@ To try a change in Home Assistant, copy `dist/reolink-app-card.js` to `/config/w
 
 ## Pull requests
 
-- Every pull request gets a ready-to-use test file (artifact `reolink-app-card-pr-<number>` and a comment with a copy-and-paste command). How to try it in Home Assistant without touching the HACS install: [TESTING.de.md](TESTING.de.md) (German).
+- Every pull request gets a ready-to-use test file (artifact `reolink-app-card-pr-<number>` and a comment with a copy-and-paste command). How to try it in Home Assistant without touching the HACS install: [TESTING.md](TESTING.md) ([Deutsch](TESTING.de.md)).
 
 - Change files in `src/`, run `npm run build` and **commit `dist/` too**. The check on GitHub fails if `dist/` doesn't match `src/`.
 - New texts need an entry in all three languages in `src/i18n.js` (a unit test checks this).
