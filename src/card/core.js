@@ -66,7 +66,10 @@ export default {
     const [domain, ...suf] = ENT[key];
     const dev = this._devIndex(cam);
     if (dev) {
-      for (const tk of [].concat(TK[key] || [])) { const id = dev[`${domain}:${tk}`]; if (id) return id; }
+      for (const tk of [].concat(TK[key] || [])) {
+        const id = dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
+        if (id) return id;
+      }
       if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     }
     for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id)) return id; }

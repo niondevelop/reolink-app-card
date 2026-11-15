@@ -83,3 +83,15 @@ test('Editor zeigt das Feld Audioausgabe', async () => {
   assert.equal(has, true);
   await c.close();
 });
+
+test('ausgegraute Qualitätsstufe erklärt, wo man den Stream aktiviert', async () => {
+  const c = await open();
+  await c.run(() => { window.__card._qOpen = true; window.__card._update(); });
+  await wait(50);
+  const opts = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#qmenu .qopt')].map((b) => [b.dataset.q, !!b.getAttribute('aria-disabled')]));
+  assert.deepEqual(opts, [['fluent', false], ['balanced', true], ['clear', false]]);
+  await c.click('#qmenu [data-q="balanced"]');
+  await wait(50);
+  assert.match((await c.info()).toast, /Appareils et services/);
+  await c.close();
+});

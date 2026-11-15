@@ -3,7 +3,7 @@ import { EVT, Q, Q_ORDER } from '../constants.js';
 import { modeIcon } from '../entities.js';
 import { LOCALES, STR } from '../i18n.js';
 import { RAC_CSS } from '../styles.js';
-import { esc } from '../util.js';
+import { esc, scrollable } from '../util.js';
 import { runningChannel, setTestWanted } from '../channel.js';
 import { RAC_VERSION } from '../version.js';
 
@@ -19,7 +19,7 @@ export default {
         <div class="top"><div class="tabs" id="tabs"></div><button class="gridbtn" id="gridbtn"><ha-icon></ha-icon></button></div>
         <div class="hub" id="hub"></div>
         <div class="warns" id="warns"></div>
-        <div class="stage" id="stage">
+        <div class="stage" id="stage" tabindex="-1">
           <div class="media" id="media">
             <img class="prev" id="prev" alt="">
             <div class="pic" id="pic"></div>
@@ -112,7 +112,10 @@ export default {
     const v = $('video');
     v.addEventListener('ended', () => { if (this._config.autoplay_next) this._playNext(true); });
     v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; });
+    v.addEventListener('timeupdate', () => this._updatePlayhead());
+    this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();
+    ['tabs', 'days', 'filters'].forEach((id) => scrollable($(id)));
     if (this.isConnected) this._observe();
   },
 
@@ -177,6 +180,11 @@ export default {
     const txt = timed ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '';
     if (t.textContent !== txt) t.textContent = txt;
     t.style.display = timed ? '' : 'none';
+  },
+
+  /* Bezeichnungen für Screenreader: Symbol-Knöpfe ohne Text bekommen ihren Tooltip als aria-label */
+  _a11y() {
+    this.shadowRoot.querySelectorAll('button[title]').forEach((b) => { if (b.getAttribute('aria-label') !== b.title) b.setAttribute('aria-label', b.title); });
   },
 
   _update() {
@@ -291,6 +299,7 @@ export default {
 
     if (this._mode === 'live') this._updateLivePane();
     else this._updatePlayPane();
+    this._a11y();
   },
 
   /* Kopfzeile: eigener Modus (z. B. input_select für Benachrichtigungen) oder Reolink-Szenenmodus, dazu SD-Karte */
@@ -318,7 +327,7 @@ export default {
     const sig = `${this._lang}|${rows.map((r) => `${r.id}:${r.opts.join()}:${r.st.state}`).join('|')}|${sd === null ? '' : Math.round(sd * 10)}`;
     if (box.dataset.sig === sig) return;
     box.dataset.sig = sig;
-    box.innerHTML = rows.map((r, i) => `<div class="scene" data-r="${i}">${r.opts.map((o) => `<button data-o="${esc(o)}" class="${r.st.state === o ? 'sel' : ''}">
+    box.innerHTML = rows.map((r, i) => `<div class="scene" data-r="${i}" role="radiogroup">${r.opts.map((o) => `<button data-o="${esc(o)}" class="${r.st.state === o ? 'sel' : ''}" role="radio" aria-checked="${r.st.state === o}" title="${esc(r.label(o))}" aria-label="${esc(r.label(o))}">
       <ha-icon icon="${esc(r.icon(o))}"></ha-icon><span>${esc(r.label(o))}</span></button>`).join('')}</div>`).join('')
       + (sd !== null ? `<span class="sd"><ha-icon icon="mdi:micro-sd"></ha-icon>${this._t('sd', { v: sd < 10 ? sd.toFixed(1) : Math.round(sd) })}</span>` : '');
     box.querySelectorAll('.scene').forEach((row) => {
@@ -327,6 +336,29 @@ export default {
         b.onclick = () => { if (b.dataset.o !== r.st.state) this._call(r.id.split('.')[0], 'select_option', r.id, { option: b.dataset.o }); };
       });
     });
+    // Symbole und Schrift laden in Home Assistant erst nach dem Aufbau: bei jeder Grössenänderung neu anpassen
+    if (window.ResizeObserver) {
+      if (!this._hubRO) this._hubRO = new ResizeObserver(() => { cancelAnimationFrame(this._hubRaf); this._hubRaf = requestAnimationFrame(() => this._fitHub()); });
+      this._hubRO.disconnect();
+      this._hubRO.observe(box);
+      box.querySelectorAll('.scene ha-icon, .scene span').forEach((el) => this._hubRO.observe(el));
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
+    this._fitHub();
+  },
+
+  /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,
+     reicht es dann noch nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
+  _fitHub() {
+    const box = this.$ && this.$('hub');
+    if (!box || box.style.display === 'none' || !box.clientWidth) return;
+    const rows = [...box.querySelectorAll('.scene')];
+    const over = () => rows.some((r) => r.scrollWidth > r.clientWidth + 1);
+    box.classList.remove('wrap');
+    rows.forEach((r) => r.classList.remove('compact'));
+    if (!over()) return;
+    if (box.querySelector('.sd')) box.classList.add('wrap');
+    rows.forEach((r) => { if (r.scrollWidth > r.clientWidth + 1) r.classList.add('compact'); });
   },
 
   _updateWarnings() {
@@ -366,6 +398,8 @@ export default {
       const icon = b.querySelector('ha-icon');
       if (icon.getAttribute('icon') !== x.icon) icon.setAttribute('icon', x.icon);
       b.title = x.label; b.setAttribute('aria-label', x.label);
+      if (x.on !== undefined) b.setAttribute('aria-pressed', String(!!x.on));
+      b.toggleAttribute('aria-disabled', !!x.dis);
       b.classList.toggle('on', !!x.on && !x.warn);
       b.classList.toggle('warn', !!x.on && !!x.warn);
       b.classList.toggle('dis', !!x.dis);
@@ -380,9 +414,12 @@ export default {
       const qsig = `${this._idx}|${this._quality}|${avail.join()}|${this._lang}`;
       if (qm.dataset.sig !== qsig) {
         qm.dataset.sig = qsig;
-        qm.innerHTML = Q_ORDER.map((q) => `<button class="qopt${q === this._quality ? ' sel' : ''}" data-q="${q}"${avail.includes(q) ? '' : ' disabled'}>
-          <ha-icon icon="${Q[q].icon}"></ha-icon><span>${this._t(Q[q].key)}</span>${avail.includes(q) ? (q === this._quality ? '<ha-icon class="chk" icon="mdi:check"></ha-icon>' : '') : `<small>${this._t('not_enabled')}</small>`}</button>`).join('');
-        qm.querySelectorAll('.qopt:not([disabled])').forEach((el) => { el.onclick = () => this._setQuality(el.dataset.q); });
+        qm.innerHTML = Q_ORDER.filter((q) => q !== 'tele' || avail.includes(q)).map((q) => `<button class="qopt${q === this._quality ? ' sel' : ''}" data-q="${q}" role="menuitemradio" aria-checked="${q === this._quality}"${avail.includes(q) ? '' : ' aria-disabled="true"'}>
+          <ha-icon icon="${Q[q].icon}"></ha-icon><span>${this._qLabel(q)}</span>${avail.includes(q) ? (q === this._quality ? '<ha-icon class="chk" icon="mdi:check"></ha-icon>' : '') : `<small>${this._t('not_enabled')}</small>`}</button>`).join('');
+        qm.querySelectorAll('.qopt').forEach((el) => {
+          // Ausgegraute Stufe: erklären, wo man den Stream in Home Assistant einschaltet
+          el.onclick = () => (el.getAttribute('aria-disabled') ? this._toast({ text: this._t('q_off_hint', { q: this._qLabel(el.dataset.q), name: this._cam.name }), color: '#636366', icon: 'mdi:video-off-outline', wrap: true }) : this._setQuality(el.dataset.q));
+        });
       }
     }
 

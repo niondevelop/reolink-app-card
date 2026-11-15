@@ -1,122 +1,15 @@
 /* Übersetzungen und Sprachwahl */
 
-/* ---------- Sprache ---------- */
-export const STR = {
-  de: {
-    play_res: 'Auflösung', play_res_low: 'Niedrig', play_res_high: 'Hoch',
-    live: 'Live', playback: 'Wiedergabe', settings: 'Einstellungen', paused: 'Pausiert', sleeping: 'Schlafmodus',
-    start_live: 'Live starten', stop_live: 'Live beenden', fullscreen: 'Vollbild',
-    ring_title: 'Es klingelt', answer: 'Annehmen', decline: 'Ablehnen', ptz: 'Schwenken & Neigen', ptz_presets: 'Positionen', zoom_in: 'Heranzoomen', zoom_out: 'Wegzoomen', ptz_stop: 'Stopp',
-    ev_missing: 'Zu diesem Zeitpunkt gibt es keine Aufnahme', ev_wait: 'Aufnahme wird noch gespeichert …',
-    sound_on: 'Ton einschalten', sound_off: 'Ton ausschalten', no_audio: 'Der Stream dieser Kamera enthält keinen Ton',
-    talk: 'Sprechen', talk_app: 'Sprechen (öffnet die Reolink-App)', hang_up: 'Auflegen', siren: 'Ton-Alarm', siren_confirm: 'Ton-Alarm bei „{name}“ auslösen?',
-    spotlight: 'Spotlight', record: 'Aufnahme', snapshot: 'Schnappschuss', quality: 'Qualität',
-    q_fluent: 'Flüssig', q_balanced: 'Balanciert', q_clear: 'Klar', not_enabled: 'nicht aktiviert',
-    no_talk_url: 'Auf diesem Gerät ist kein Link zur Reolink-App hinterlegt (Option „talk_url“).',
-    grid: 'Alle Kameras', single: 'Einzelansicht', detected: '{type} erkannt · {name}',
-    evt_person: 'Person', evt_vehicle: 'Fahrzeug', evt_animal: 'Tier', evt_motion: 'Bewegung', evt_other: 'Aufnahme',
-    all: 'Alle', today: 'Heute', yesterday: 'Gestern', loading: 'Aufnahmen werden geladen …', loading_day: 'Lade Tag …',
-    no_rec: 'Keine Aufnahmen auf der SD-Karte gefunden.', no_filter: 'Keine Ereignisse für diesen Filter.', error: 'Fehler',
-    cam_not_found: 'Kamera in der Medienquelle nicht gefunden', play_error: 'Aufnahme kann nicht geladen werden',
-    speed: 'Geschwindigkeit', next: 'Nächster Clip', download: 'Herunterladen', reset_zoom: 'Zoom zurücksetzen',
-    preview_at: 'Bild {time}', bat_low: 'Akku schwach · {name} {v} %', temp_high: 'Akku zu warm · {name} {v} °C',
-    temp_low: 'Akku zu kalt · {name} {v} °C', sd: 'SD {v} % belegt',
-    scene_off: 'Aus', scene_disarm: 'Deaktiviert', scene_home: 'Zuhause', scene_away: 'Abwesend',
-    g_general: 'Allgemein', g_detect: 'Erkennung', g_image: 'Bild', g_flood: 'Flutlicht', g_audio: 'Ton & Aufnahme',
-    pir: 'PIR-Erkennung', rec: 'Aufzeichnung', push: 'Push-Benachrichtigungen', pir_reduce: 'PIR-Fehlalarme reduzieren',
-    daynight: 'Tag/Nacht', ir: 'Infrarotlicht nachts', status_led: 'Status-LED', prealarm: 'Voralarm', play_btn: 'Abspielen',
-    restart: 'Kamera neu starten', restart_btn: 'Neu starten', cancel: 'Abbrechen', siren_btn: 'Auslösen', restart_confirm: 'Kamera „{name}“ neu starten?',
-    pir_sens: 'PIR-Empfindlichkeit', ai_person: 'KI-Empfindlichkeit Person', ai_vehicle: 'KI-Empfindlichkeit Fahrzeug',
-    ai_animal: 'KI-Empfindlichkeit Tier', img_bright: 'Helligkeit', img_contrast: 'Kontrast', img_sat: 'Sättigung',
-    img_sharp: 'Schärfe', anti_flicker: 'Anti-Flimmer', ir_bright: 'Infrarot-Helligkeit', fl_mode: 'Modus',
-    fl_bright: 'Helligkeit beim Einschalten', volume: 'Lautstärke', post_rec: 'Nachaufzeichnung', rec_audio: 'Audio aufnehmen',
-    siren_event: 'Sirene bei Ereignis', prealarm_event: 'Voralarm bei Ereignis', hub_ring_event: 'Hub-Klingelton bei Ereignis',
-    need_cameras: 'Bitte „cameras“ definieren', need_prefix: 'Jede Kamera braucht „entity“ (oder „prefix“)',
-    wifi: 'WLAN', camera: 'Kamera',
-    talking: 'Gegensprechen', talk_connecting: 'Verbinde …', talk_failed: 'Gegensprechen fehlgeschlagen',
-    talk_na_feature: 'Gegensprechen nicht verfügbar – in Home Assistant unter Einstellungen → System → Labs „Zwei-Wege-Audio“ aktivieren',
-    talk_na_https: 'Gegensprechen braucht HTTPS – Home Assistant über https:// öffnen',
-    talk_na_webrtc: 'Gegensprechen geht nur mit einem WebRTC-Stream', talk_denied: 'Kein Zugriff auf das Mikrofon – im Browser bzw. in der App erlauben',
-    test_on: 'Testversion {v} – tippen für die stabile Version', test_missing: 'Testdatei nicht gefunden – die stabile Version läuft. Tippen zum Beenden',
-    test_back: 'Zur stabilen Version zurückkehren? Die Seite wird neu geladen.', test_back_btn: 'Zurück',
-  },
-  en: {
-    play_res: 'Resolution', play_res_low: 'Low', play_res_high: 'High',
-    live: 'Live', playback: 'Playback', settings: 'Settings', paused: 'Paused', sleeping: 'Sleeping',
-    start_live: 'Start live', stop_live: 'Stop live', fullscreen: 'Fullscreen',
-    ring_title: 'Someone is ringing', answer: 'Answer', decline: 'Decline', ptz: 'Pan & tilt', ptz_presets: 'Positions', zoom_in: 'Zoom in', zoom_out: 'Zoom out', ptz_stop: 'Stop',
-    ev_missing: 'There is no recording at this time', ev_wait: 'Recording is still being saved …',
-    sound_on: 'Turn sound on', sound_off: 'Turn sound off', no_audio: 'This camera’s stream has no sound',
-    talk: 'Talk', talk_app: 'Talk (opens the Reolink app)', hang_up: 'Hang up', siren: 'Siren', siren_confirm: 'Sound the siren on “{name}”?',
-    spotlight: 'Spotlight', record: 'Record', snapshot: 'Snapshot', quality: 'Quality',
-    q_fluent: 'Fluent', q_balanced: 'Balanced', q_clear: 'Clear', not_enabled: 'not enabled',
-    no_talk_url: 'No link to the Reolink app is configured for this device (option “talk_url”).',
-    grid: 'All cameras', single: 'Single view', detected: '{type} detected · {name}',
-    evt_person: 'Person', evt_vehicle: 'Vehicle', evt_animal: 'Animal', evt_motion: 'Motion', evt_other: 'Recording',
-    all: 'All', today: 'Today', yesterday: 'Yesterday', loading: 'Loading recordings …', loading_day: 'Loading day …',
-    no_rec: 'No recordings found on the SD card.', no_filter: 'No events for this filter.', error: 'Error',
-    cam_not_found: 'Camera not found in the media source', play_error: 'Recording could not be loaded',
-    speed: 'Speed', next: 'Next clip', download: 'Download', reset_zoom: 'Reset zoom',
-    preview_at: 'Image {time}', bat_low: 'Battery low · {name} {v} %', temp_high: 'Battery too hot · {name} {v} °C',
-    temp_low: 'Battery too cold · {name} {v} °C', sd: 'SD {v} % used',
-    scene_off: 'Off', scene_disarm: 'Disarmed', scene_home: 'Home', scene_away: 'Away',
-    g_general: 'General', g_detect: 'Detection', g_image: 'Image', g_flood: 'Floodlight', g_audio: 'Audio & recording',
-    pir: 'PIR detection', rec: 'Recording', push: 'Push notifications', pir_reduce: 'Reduce PIR false alarms',
-    daynight: 'Day/night', ir: 'Infrared at night', status_led: 'Status LED', prealarm: 'Pre-alarm', play_btn: 'Play',
-    restart: 'Restart camera', restart_btn: 'Restart', cancel: 'Cancel', siren_btn: 'Sound it', restart_confirm: 'Restart camera “{name}”?',
-    pir_sens: 'PIR sensitivity', ai_person: 'AI sensitivity person', ai_vehicle: 'AI sensitivity vehicle',
-    ai_animal: 'AI sensitivity animal', img_bright: 'Brightness', img_contrast: 'Contrast', img_sat: 'Saturation',
-    img_sharp: 'Sharpness', anti_flicker: 'Anti-flicker', ir_bright: 'Infrared brightness', fl_mode: 'Mode',
-    fl_bright: 'Turn-on brightness', volume: 'Volume', post_rec: 'Post-recording', rec_audio: 'Record audio',
-    siren_event: 'Siren on event', prealarm_event: 'Pre-alarm on event', hub_ring_event: 'Hub ringtone on event',
-    need_cameras: 'Please define “cameras”', need_prefix: 'Every camera needs an “entity” (or “prefix”)',
-    wifi: 'Wi-Fi', camera: 'Camera',
-    talking: 'Talking', talk_connecting: 'Connecting …', talk_failed: 'Two-way audio failed',
-    talk_na_feature: 'Two-way audio not available – enable “Two-way audio” in Home Assistant under Settings → System → Labs',
-    talk_na_https: 'Two-way audio needs HTTPS – open Home Assistant via https://',
-    talk_na_webrtc: 'Two-way audio only works with a WebRTC stream', talk_denied: 'No access to the microphone – allow it in your browser or app',
-    test_on: 'Test version {v} – tap for the stable version', test_missing: 'Test file not found – the stable version is running. Tap to end',
-    test_back: 'Go back to the stable version? The page will reload.', test_back_btn: 'Go back',
-  },
-  fr: {
-    play_res: 'Résolution', play_res_low: 'Basse', play_res_high: 'Haute',
-    live: 'Direct', playback: 'Lecture', settings: 'Réglages', paused: 'En pause', sleeping: 'En veille',
-    start_live: 'Démarrer le direct', stop_live: 'Arrêter le direct', fullscreen: 'Plein écran',
-    ring_title: 'On sonne', answer: 'Répondre', decline: 'Refuser', ptz: 'Orientation', ptz_presets: 'Positions', zoom_in: 'Zoom avant', zoom_out: 'Zoom arrière', ptz_stop: 'Arrêt',
-    ev_missing: 'Aucun enregistrement à ce moment', ev_wait: 'Enregistrement en cours de sauvegarde …',
-    sound_on: 'Activer le son', sound_off: 'Couper le son', no_audio: 'Le flux de cette caméra n’a pas de son',
-    talk: 'Parler', talk_app: 'Parler (ouvre l’app Reolink)', hang_up: 'Raccrocher', siren: 'Sirène', siren_confirm: 'Déclencher la sirène sur « {name} » ?',
-    spotlight: 'Projecteur', record: 'Enregistrer', snapshot: 'Capture', quality: 'Qualité',
-    q_fluent: 'Fluide', q_balanced: 'Équilibrée', q_clear: 'Nette', not_enabled: 'non activé',
-    no_talk_url: 'Aucun lien vers l’app Reolink n’est configuré sur cet appareil (option « talk_url »).',
-    grid: 'Toutes les caméras', single: 'Vue unique', detected: '{type} détecté(e) · {name}',
-    evt_person: 'Personne', evt_vehicle: 'Véhicule', evt_animal: 'Animal', evt_motion: 'Mouvement', evt_other: 'Enregistrement',
-    all: 'Tous', today: 'Aujourd’hui', yesterday: 'Hier', loading: 'Chargement des enregistrements …', loading_day: 'Chargement du jour …',
-    no_rec: 'Aucun enregistrement trouvé sur la carte SD.', no_filter: 'Aucun événement pour ce filtre.', error: 'Erreur',
-    cam_not_found: 'Caméra introuvable dans la source multimédia', play_error: 'Impossible de charger l’enregistrement',
-    speed: 'Vitesse', next: 'Clip suivant', download: 'Télécharger', reset_zoom: 'Réinitialiser le zoom',
-    preview_at: 'Image {time}', bat_low: 'Batterie faible · {name} {v} %', temp_high: 'Batterie trop chaude · {name} {v} °C',
-    temp_low: 'Batterie trop froide · {name} {v} °C', sd: 'SD {v} % utilisée',
-    scene_off: 'Arrêt', scene_disarm: 'Désarmé', scene_home: 'Maison', scene_away: 'Absent',
-    g_general: 'Général', g_detect: 'Détection', g_image: 'Image', g_flood: 'Projecteur', g_audio: 'Son et enregistrement',
-    pir: 'Détection PIR', rec: 'Enregistrement', push: 'Notifications push', pir_reduce: 'Réduire les fausses alarmes PIR',
-    daynight: 'Jour/nuit', ir: 'Infrarouge la nuit', status_led: 'LED d’état', prealarm: 'Pré-alarme', play_btn: 'Lire',
-    restart: 'Redémarrer la caméra', restart_btn: 'Redémarrer', cancel: 'Annuler', siren_btn: 'Déclencher', restart_confirm: 'Redémarrer la caméra « {name} » ?',
-    pir_sens: 'Sensibilité PIR', ai_person: 'Sensibilité IA personne', ai_vehicle: 'Sensibilité IA véhicule',
-    ai_animal: 'Sensibilité IA animal', img_bright: 'Luminosité', img_contrast: 'Contraste', img_sat: 'Saturation',
-    img_sharp: 'Netteté', anti_flicker: 'Anti-scintillement', ir_bright: 'Luminosité infrarouge', fl_mode: 'Mode',
-    fl_bright: 'Luminosité à l’allumage', volume: 'Volume', post_rec: 'Post-enregistrement', rec_audio: 'Enregistrer le son',
-    siren_event: 'Sirène lors d’un événement', prealarm_event: 'Pré-alarme lors d’un événement', hub_ring_event: 'Sonnerie du hub lors d’un événement',
-    need_cameras: 'Veuillez définir « cameras »', need_prefix: 'Chaque caméra a besoin d’une « entity » (ou d’un « prefix »)',
-    wifi: 'Wi-Fi', camera: 'Caméra',
-    talking: 'Interphone', talk_connecting: 'Connexion …', talk_failed: 'Échec de l’audio bidirectionnel',
-    talk_na_feature: 'Audio bidirectionnel indisponible – activez « Audio bidirectionnel » dans Home Assistant sous Paramètres → Système → Labs',
-    talk_na_https: 'L’audio bidirectionnel nécessite HTTPS – ouvrez Home Assistant via https://',
-    talk_na_webrtc: 'L’audio bidirectionnel ne fonctionne qu’avec un flux WebRTC', talk_denied: 'Pas d’accès au micro – autorisez-le dans le navigateur ou l’app',
-    test_on: 'Version de test {v} – touchez pour la version stable', test_missing: 'Fichier de test introuvable – la version stable est active. Touchez pour arrêter',
-    test_back: 'Revenir à la version stable ? La page sera rechargée.', test_back_btn: 'Revenir',
-  },
-};
+/* ---------- Sprache ----------
+   Die Texte liegen in src/translations/<sprache>.json: "card" für die Karte, "editor" für den visuellen Editor.
+   Neue Sprache: Datei kopieren, übersetzen, hier eintragen; ein Test prüft, dass alle Schlüssel vorhanden sind. */
+import de from './translations/de.json' with { type: 'json' };
+import en from './translations/en.json' with { type: 'json' };
+import fr from './translations/fr.json' with { type: 'json' };
+
+const ALL = { de, en, fr };
+
+export const STR = Object.fromEntries(Object.entries(ALL).map(([l, t]) => [l, t.card]));
 
 export const LANGS = ['en', 'de', 'fr'];
 
@@ -131,29 +24,4 @@ export const pickLang = (opt, hass) => {
 export const fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] ?? ''));
 
 /* Beschriftungen des visuellen Editors */
-export const ED_LABELS = {
-  de: {
-    mode_entity: 'Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)', default_quality: 'Startqualität', live_timeout: 'Live-Limit (Sekunden, 0 = kein Limit)', auto_live: 'Live automatisch starten',
-    auto_switch: 'Bei Erkennung zur Kamera springen', autoplay_next: 'Nächsten Clip automatisch abspielen',
-    battery_warning: 'Akku-Warnung ab (%)', temperature_warning: 'Temperatur-Warnung ab (°C)', show_hub: 'Hub anzeigen (Szenenmodus, SD-Karte)',
-    hub_prefix: 'Hub-Präfix', language: 'Sprache', prefix: 'Kamera', doorbell: 'Klingel-Auslöser (optional, z. B. Taster oder Besucher-Sensor)', doorbell_timeout: 'Klingeln anzeigen für (Sekunden)', doorbell_sound: 'Klingelton abspielen', name: 'Anzeigename', media_name: 'Name in der Medienquelle (für Wiedergabe)',
-    cameras: 'Kameras', add: 'Kamera hinzufügen', remove: 'Entfernen', up: 'Nach oben', auto: 'Automatisch', options: 'Optionen',
-    audio: 'Audioausgabe', audio_auto: 'Automatisch (Ton an, sobald das Livebild läuft)', audio_manual: 'Manuell (mit dem Lautsprecher-Button)',
-  },
-  en: {
-    mode_entity: 'Mode selector on top (e.g. an input_select for notifications)', default_quality: 'Start quality', live_timeout: 'Live limit (seconds, 0 = no limit)', auto_live: 'Start live automatically',
-    auto_switch: 'Jump to camera on detection', autoplay_next: 'Autoplay next clip',
-    battery_warning: 'Battery warning at (%)', temperature_warning: 'Temperature warning at (°C)', show_hub: 'Show hub (scene mode, SD card)',
-    hub_prefix: 'Hub prefix', language: 'Language', prefix: 'Camera', doorbell: 'Doorbell trigger (optional, e.g. a button or visitor sensor)', doorbell_timeout: 'Show ringing for (seconds)', doorbell_sound: 'Play ring tone', name: 'Display name', media_name: 'Name in the media source (for playback)',
-    cameras: 'Cameras', add: 'Add camera', remove: 'Remove', up: 'Move up', auto: 'Automatic', options: 'Options',
-    audio: 'Audio output', audio_auto: 'Automatic (sound on as soon as the live view runs)', audio_manual: 'Manual (with the speaker button)',
-  },
-  fr: {
-    mode_entity: 'Sélecteur de mode en haut (p. ex. un input_select pour les notifications)', default_quality: 'Qualité au démarrage', live_timeout: 'Limite du direct (secondes, 0 = sans limite)', auto_live: 'Démarrer le direct automatiquement',
-    auto_switch: 'Basculer vers la caméra lors d’une détection', autoplay_next: 'Lire automatiquement le clip suivant',
-    battery_warning: 'Alerte batterie à partir de (%)', temperature_warning: 'Alerte température à partir de (°C)', show_hub: 'Afficher le hub (mode scène, carte SD)',
-    hub_prefix: 'Préfixe du hub', language: 'Langue', prefix: 'Caméra', doorbell: 'Déclencheur de sonnette (facultatif, p. ex. bouton ou capteur visiteur)', doorbell_timeout: 'Afficher la sonnerie pendant (secondes)', doorbell_sound: 'Jouer une sonnerie', name: 'Nom affiché', media_name: 'Nom dans la source multimédia (pour la lecture)',
-    cameras: 'Caméras', add: 'Ajouter une caméra', remove: 'Supprimer', up: 'Monter', auto: 'Automatique', options: 'Options',
-    audio: 'Sortie audio', audio_auto: 'Automatique (son activé dès que le direct démarre)', audio_manual: 'Manuelle (avec le bouton haut-parleur)',
-  },
-};
+export const ED_LABELS = Object.fromEntries(Object.entries(ALL).map(([l, t]) => [l, t.editor]));

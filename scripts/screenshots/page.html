@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Reolink App Card – screenshots</title>
+<!-- Nachgebautes Home Assistant für die README-Bilder (siehe scripts/screenshots.mjs).
+     Symbole: Material Design Icons (Pictogrammers, Apache License 2.0), nur die von der Karte genutzten. -->
+<style>
+  body { margin: 0; background: #111; font-family: Inter, system-ui, sans-serif; color: #eee;
+    --primary-text-color: #eee; --secondary-text-color: #9a9a9f; --divider-color: #333; --card-background-color: #1c1c1e; --secondary-background-color: #2c2c2e; }
+  #wrap { width: 420px; } reolink-app-card { display: block; }
+</style>
+<script>
+(async () => {
+  window.__ICONS = await (await fetch('mdi-icons.json')).json();
+  window.__iconsReady = true;
+})();
+customElements.define('ha-icon', class extends HTMLElement {
+  static get observedAttributes() { return ['icon']; }
+  connectedCallback() { this.r(); } attributeChangedCallback() { this.r(); }
+  r() {
+    const p = (window.__ICONS || {})[this.getAttribute('icon')] || '';
+    const s = (getComputedStyle(this).getPropertyValue('--mdc-icon-size') || '24px').trim() || '24px';
+    this.style.display = 'inline-flex';
+    this.innerHTML = `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="currentColor"><path d="${p}"/></svg>`;
+  }
+});
+customElements.define('ha-card', class extends HTMLElement {
+  connectedCallback() { Object.assign(this.style, { display: 'block', background: '#1c1c1e', borderRadius: '16px', overflow: 'hidden' }); }
+});
+customElements.define('ha-web-rtc-player', class extends HTMLElement {
+  constructor() { super(); this.microphoneState = 'off'; this.muted = true; this.updateComplete = Promise.resolve(true); }
+});
+/* Kamera-Stream: zeigt das gerenderte Demobild der Kamera */
+customElements.define('ha-camera-stream', class extends HTMLElement {
+  constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<img style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><ha-web-rtc-player></ha-web-rtc-player>'; }
+  get updateComplete() { return Promise.resolve(true); }
+  connectedCallback() {
+    this.style.cssText = 'position:absolute;inset:0;display:block';
+    let h = this; for (let i = 0; i < 4 && h; i++) { h = h.getRootNode().host; if (h && h.cfg) break; }
+    const ent = h && h.cfg ? h.cfg.entity : '';
+    this.shadowRoot.querySelector('img').src = ent.includes('eingang') ? 'scene-entrance.jpg' : 'scene-garden.jpg';
+    setTimeout(() => this.dispatchEvent(new CustomEvent('stream-type-changed', { detail: { type: 'web_rtc' }, bubbles: true, composed: true })), 50);
+  }
+});
+customElements.define('demo-img', class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<ha-camera-stream></ha-camera-stream>'; } connectedCallback() { this.style.cssText = 'position:absolute;inset:0;display:block'; } });
+customElements.define('demo-pe', class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<demo-img></demo-img>'; } connectedCallback() { this.style.cssText = 'position:absolute;inset:0;display:block'; } });
+window.loadCardHelpers = async () => ({ createCardElement: (cfg) => { const e = document.createElement('demo-pe'); e.cfg = cfg; return e; } });
+</script>
+<script src="/dist/reolink-app-card.js"></script>
+</head><body><div id="wrap"></div></body></html>

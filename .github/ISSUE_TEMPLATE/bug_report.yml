@@ -1,0 +1,94 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! A few details help to find the cause quickly. Please don't post personal data (names, addresses, IP addresses, serial numbers) – entity IDs and screenshots are fine if they don't show your home.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: card_version
+    attributes:
+      label: Card version
+      description: Shown in the browser console as `REOLINK-APP-CARD x.y.z`, or in HACS / the Marketplace.
+      placeholder: e.g. 0.3.1
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: e.g. 2026.11.2
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Camera model(s)
+      placeholder: e.g. Argus 4 Pro, TrackMix WiFi, Video Doorbell
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How is the camera connected to Home Assistant?
+      options:
+        - Through a Reolink Home Hub / Home Hub Pro
+        - Through a Reolink NVR
+        - Directly (no hub)
+        - From another Home Assistant instance
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Where do you see the problem?
+      multiple: true
+      options:
+        - Chrome / Edge (PC)
+        - Firefox (PC)
+        - Safari (Mac)
+        - Android Companion app
+        - iPhone / iPad Companion app
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: area
+    attributes:
+      label: Which part of the card?
+      options:
+        - label: Live view / sound / quality
+        - label: Two-way audio
+        - label: Playback of recordings
+        - label: Settings / controls
+        - label: Doorbell / PTZ
+        - label: Editor / card suggestions
+  - type: dropdown
+    id: media
+    attributes:
+      label: Recordings only – does the same clip play in Home Assistant under Media → Reolink?
+      options:
+        - Not about recordings
+        - "Yes"
+        - "No"
+        - Didn't check
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log messages
+      description: Errors from the browser console (F12) or the Home Assistant log that mention `reolink`.
+      render: text
+  - type: checkboxes
+    id: test
+    attributes:
+      label: Help testing
+      options:
+        - label: I can test a fix in my Home Assistant (see [TESTING.md](https://github.com/niondevelop/reolink-app-card/blob/main/TESTING.md))

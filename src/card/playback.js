@@ -43,7 +43,9 @@ export default {
     const root = await this._browse('media-source://reolink');
     const kids = root.children || [];
     const want = this._cam.media_name.toLowerCase();
+    // Kameras mit zwei Objektiven erscheinen als „Name lens 0“ und „Name lens 1“: das erste Objektiv nehmen
     return kids.find((k) => k.title.toLowerCase() === want)
+      || kids.find((k) => k.title.toLowerCase() === `${want} lens 0`)
       || kids.find((k) => k.title.toLowerCase().includes(want) || want.includes(k.title.toLowerCase()))
       || kids[this._idx];
   },
@@ -213,6 +215,7 @@ export default {
       v.playbackRate = this._speed;
       v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; });
       v.addEventListener('ended', () => { if (this._config.autoplay_next) this._playNext(true); });
+      v.addEventListener('timeupdate', () => this._updatePlayhead());
     }
   },
 
@@ -247,6 +250,40 @@ export default {
     this._update();
   },
 
+  /* Laufende Stelle auf der Zeitleiste */
+  _updatePlayhead() {
+    const ph = this.$ && this.$('ph');
+    if (!ph) return;
+    const f = this._playing, v = this._vid();
+    if (!f) { ph.style.display = 'none'; return; }
+    ph.style.display = '';
+    ph.style.left = `${(((f.start + ((v && v.currentTime) || 0)) / 864)).toFixed(3)}%`;
+  },
+
+  /* Zeitlich späterer Clip (die Liste ist absteigend sortiert, „nächster Clip“ ist der ältere) */
+  _playNewer() {
+    const files = this._visibleFiles;
+    const i = files.findIndex((f) => this._playing && f.node.media_content_id === this._playing.node.media_content_id);
+    if (i > 0) this._play(files[i - 1]);
+  },
+
+  /* Tastenkürzel in der Wiedergabe: Leertaste Pause/Weiter, ←/→ vorheriger/nächster Clip, Umschalt+←/→ 10 Sekunden */
+  _playbackKey(e) {
+    if (this._mode !== 'play' || e.altKey || e.ctrlKey || e.metaKey) return;
+    const tgt = e.composedPath()[0];
+    if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return;
+    const v = this._vid();
+    if (e.key === ' ' || e.key === 'k') {
+      if (tgt && tgt.tagName === 'BUTTON' && e.key === ' ') return;
+      if (!this._playing) { const f = this._visibleFiles[0]; if (f) this._play(f); } else if (v.paused) v.play().catch(() => {}); else v.pause();
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      if (!this._playing) return;
+      if (e.shiftKey) v.currentTime = Math.max(0, v.currentTime + (e.key === 'ArrowRight' ? 10 : -10));
+      else if (e.key === 'ArrowRight') this._playNewer(); else this._playNext();
+    } else return;
+    e.preventDefault();
+  },
+
   _playNext(auto) {
     const files = this._visibleFiles;
     const i = files.findIndex((f) => this._playing && f.node.media_content_id === this._playing.node.media_content_id);
@@ -276,10 +313,16 @@ export default {
     if (!silent) { this._update(); this._autoLive(); }
   },
 
+  /* Filter-Chips: Person, Fahrzeug, Tier, Bewegung immer; seltenere Typen (Klingeln, Paket …) nur, wenn sie am Tag vorkommen */
   _renderFilters() {
     const box = this.$('filters');
+    const seen = new Set(Array.isArray(this._files) ? this._files.flatMap((f) => f.types) : []);
+    const keys = ['all', ...EVT_ORDER.filter((k) => k !== 'other' && (DET.includes(k) || seen.has(k) || this._filter === k))];
+    const sig = `${keys.join()}|${this._lang}`;
+    if (box.dataset.sig === sig) return;
+    box.dataset.sig = sig;
     box.innerHTML = '';
-    ['all', ...DET].forEach((k) => {
+    keys.forEach((k) => {
       const b = document.createElement('button');
       b.className = 'chip';
       b.dataset.k = k;
@@ -322,6 +365,7 @@ export default {
         b.classList.toggle('sel', b.dataset.q === this._res.used);
       });
     }
+    this._renderFilters();
     this.shadowRoot.querySelectorAll('.chip').forEach((b) => b.classList.toggle('sel', b.dataset.k === this._filter));
     const list = $('list'), bar = $('tlbar');
     const msg = (t) => { list.dataset.sig = ''; list.innerHTML = `<div class="msg">${t}</div>`; bar.innerHTML = ''; };
@@ -337,12 +381,22 @@ export default {
     if (list.dataset.sig === sig) return;
     list.dataset.sig = sig;
 
+    const cur = this._playing && this._playing.node.media_content_id;
     bar.innerHTML = files.map((f, i) => {
       const l = (f.start / 864).toFixed(3);
       const w = Math.max(0.35, f.dur / 864).toFixed(3);
-      return `<i data-i="${i}" style="left:${l}%;width:${w}%;background:${EVT[f.type].color}"></i>`;
-    }).join('');
-    bar.querySelectorAll('i').forEach((el) => { el.onclick = () => this._play(files[+el.dataset.i]); });
+      return `<i data-i="${i}" class="${f.node.media_content_id === cur ? 'cur' : ''}" style="left:${l}%;width:${w}%;background:${EVT[f.type].color}"></i>`;
+    }).join('') + '<b class="ph" id="ph"></b>';
+    bar.querySelectorAll('i').forEach((el) => { el.onclick = (e) => { e.stopPropagation(); this._play(files[+el.dataset.i]); }; });
+    // Tippen auf eine leere Stelle: der nächste Clip ab dieser Uhrzeit (sonst der letzte davor)
+    bar.onclick = (e) => {
+      const r = bar.getBoundingClientRect();
+      const t = ((e.clientX - r.left) / r.width) * 86400;
+      const byTime = [...files].sort((a, b) => a.start - b.start);
+      const f = byTime.find((x) => x.start + x.dur >= t) || byTime[byTime.length - 1];
+      if (f) this._play(f);
+    };
+    this._updatePlayhead();
 
     if (!files.length) { list.innerHTML = `<div class="msg">${this._t('no_filter')}</div>`; return; }
     list.innerHTML = files.map((f, i) => {

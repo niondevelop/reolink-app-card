@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an idea for the card
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature and what you would use it for.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Camera model(s) and connection
+      placeholder: e.g. Argus 4 Pro via Home Hub, Elite directly

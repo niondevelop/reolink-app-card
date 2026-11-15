@@ -7,6 +7,7 @@
     cam_bal: ["camera", "ausgewogen", "balanced"],
     cam_hd: ["camera", "hochauflosung", "clear"],
     snap: ["camera", "schnappschusse_in_standardauflosung", "snapshots_fluent"],
+    cam_tele: ["camera", "tele_standardauflosung", "telephoto_fluent"],
     light: ["light", "flutlicht", "floodlight"],
     status_led: ["light", "status_led"],
     siren: ["siren", "sirene", "siren"],
@@ -61,6 +62,8 @@
     cam_bal: "ext",
     cam_hd: "main",
     snap: "snapshots_sub",
+    // Tele (TrackMix an Hub/NVR) bzw. zweites Objektiv (direkt eingebundene TrackMix, Duo)
+    cam_tele: ["telephoto_sub", "sub_lens_1"],
     light: "floodlight",
     status_led: "status_led",
     siren: "siren",
@@ -138,7 +141,7 @@
     if (/^(aus|off|arr[eê]t)$|stumm|mute|deaktiv|disarm|silence/.test(s)) return "mdi:bell-off-outline";
     return "mdi:circle-medium";
   }
-  var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))$/;
+  var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
   function prefixOf(entityId) {
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
@@ -157,15 +160,15 @@
       out.push({ prefix, name, entity: id, device_id: reg ? reg.device_id : void 0 });
     };
     Object.keys(hass.states).forEach((id) => {
-      const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)$/);
+      const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)(_(lens|objektiv|linse)_0)?$/);
       if (!m) return;
       const reg = hass.entities && hass.entities[id];
       if (reg && reg.platform && reg.platform !== "reolink") return;
-      add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, "").trim());
+      add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)(\s+(lens|Objektiv|Linse)\s+0)?$/i, "").trim());
     });
     Object.keys(hass.entities || {}).forEach((id) => {
       const r = hass.entities[id];
-      if (!id.startsWith("camera.") || r.platform !== "reolink" || r.translation_key !== TK.cam_sd || !hass.states[id]) return;
+      if (!id.startsWith("camera.") || r.platform !== "reolink" || !["sub", "sub_lens_0"].includes(r.translation_key) || !hass.states[id]) return;
       add(id, prefixOf(id) || id.slice(7), String(hass.states[id].attributes.friendly_name || "").trim());
     });
     return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -187,9 +190,9 @@
     return null;
   }
 
-  // src/i18n.js
-  var STR = {
-    de: {
+  // src/translations/de.json
+  var de_default = {
+    card: {
       play_res: "Auflösung",
       play_res_low: "Niedrig",
       play_res_high: "Hoch",
@@ -226,7 +229,14 @@
       q_fluent: "Flüssig",
       q_balanced: "Balanciert",
       q_clear: "Klar",
-      not_enabled: "nicht aktiviert",
+      q_tele: "Tele",
+      dir_u: "hoch",
+      dir_d: "runter",
+      dir_l: "links",
+      dir_r: "rechts",
+      q_lens2: "2. Objektiv",
+      not_enabled: "nicht aktiviert – antippen für Hilfe",
+      q_off_hint: "Der Stream „{q}“ von {name} ist in Home Assistant deaktiviert (Reolink schaltet ihn ab Werk aus). Aktivieren unter Einstellungen → Geräte & Dienste → Reolink → {name} → Entitäten.",
       no_talk_url: "Auf diesem Gerät ist kein Link zur Reolink-App hinterlegt (Option „talk_url“).",
       grid: "Alle Kameras",
       single: "Einzelansicht",
@@ -236,6 +246,11 @@
       evt_animal: "Tier",
       evt_motion: "Bewegung",
       evt_other: "Aufnahme",
+      evt_doorbell: "Klingeln",
+      evt_package: "Paket",
+      evt_face: "Gesicht",
+      evt_smart: "Smart-Ereignis",
+      evt_crying: "Weinen",
       all: "Alle",
       today: "Heute",
       yesterday: "Gestern",
@@ -312,7 +327,39 @@
       test_back: "Zur stabilen Version zurückkehren? Die Seite wird neu geladen.",
       test_back_btn: "Zurück"
     },
-    en: {
+    editor: {
+      mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
+      default_quality: "Startqualität",
+      live_timeout: "Live-Limit (Sekunden, 0 = kein Limit)",
+      auto_live: "Live automatisch starten",
+      auto_switch: "Bei Erkennung zur Kamera springen",
+      autoplay_next: "Nächsten Clip automatisch abspielen",
+      battery_warning: "Akku-Warnung ab (%)",
+      temperature_warning: "Temperatur-Warnung ab (°C)",
+      show_hub: "Hub anzeigen (Szenenmodus, SD-Karte)",
+      hub_prefix: "Hub-Präfix",
+      language: "Sprache",
+      prefix: "Kamera",
+      doorbell: "Klingel-Auslöser (optional, z. B. Taster oder Besucher-Sensor)",
+      doorbell_timeout: "Klingeln anzeigen für (Sekunden)",
+      doorbell_sound: "Klingelton abspielen",
+      name: "Anzeigename",
+      media_name: "Name in der Medienquelle (für Wiedergabe)",
+      cameras: "Kameras",
+      add: "Kamera hinzufügen",
+      remove: "Entfernen",
+      up: "Nach oben",
+      auto: "Automatisch",
+      options: "Optionen",
+      audio: "Audioausgabe",
+      audio_auto: "Automatisch (Ton an, sobald das Livebild läuft)",
+      audio_manual: "Manuell (mit dem Lautsprecher-Button)"
+    }
+  };
+
+  // src/translations/en.json
+  var en_default = {
+    card: {
       play_res: "Resolution",
       play_res_low: "Low",
       play_res_high: "High",
@@ -349,7 +396,14 @@
       q_fluent: "Fluent",
       q_balanced: "Balanced",
       q_clear: "Clear",
-      not_enabled: "not enabled",
+      q_tele: "Telephoto",
+      dir_u: "up",
+      dir_d: "down",
+      dir_l: "left",
+      dir_r: "right",
+      q_lens2: "Second lens",
+      not_enabled: "not enabled – tap for help",
+      q_off_hint: "The “{q}” stream of {name} is disabled in Home Assistant (Reolink turns it off by default). Enable it under Settings → Devices & services → Reolink → {name} → Entities.",
       no_talk_url: "No link to the Reolink app is configured for this device (option “talk_url”).",
       grid: "All cameras",
       single: "Single view",
@@ -359,6 +413,11 @@
       evt_animal: "Animal",
       evt_motion: "Motion",
       evt_other: "Recording",
+      evt_doorbell: "Doorbell",
+      evt_package: "Package",
+      evt_face: "Face",
+      evt_smart: "Smart event",
+      evt_crying: "Crying",
       all: "All",
       today: "Today",
       yesterday: "Yesterday",
@@ -435,7 +494,39 @@
       test_back: "Go back to the stable version? The page will reload.",
       test_back_btn: "Go back"
     },
-    fr: {
+    editor: {
+      mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
+      default_quality: "Start quality",
+      live_timeout: "Live limit (seconds, 0 = no limit)",
+      auto_live: "Start live automatically",
+      auto_switch: "Jump to camera on detection",
+      autoplay_next: "Autoplay next clip",
+      battery_warning: "Battery warning at (%)",
+      temperature_warning: "Temperature warning at (°C)",
+      show_hub: "Show hub (scene mode, SD card)",
+      hub_prefix: "Hub prefix",
+      language: "Language",
+      prefix: "Camera",
+      doorbell: "Doorbell trigger (optional, e.g. a button or visitor sensor)",
+      doorbell_timeout: "Show ringing for (seconds)",
+      doorbell_sound: "Play ring tone",
+      name: "Display name",
+      media_name: "Name in the media source (for playback)",
+      cameras: "Cameras",
+      add: "Add camera",
+      remove: "Remove",
+      up: "Move up",
+      auto: "Automatic",
+      options: "Options",
+      audio: "Audio output",
+      audio_auto: "Automatic (sound on as soon as the live view runs)",
+      audio_manual: "Manual (with the speaker button)"
+    }
+  };
+
+  // src/translations/fr.json
+  var fr_default = {
+    card: {
       play_res: "Résolution",
       play_res_low: "Basse",
       play_res_high: "Haute",
@@ -472,7 +563,14 @@
       q_fluent: "Fluide",
       q_balanced: "Équilibrée",
       q_clear: "Nette",
-      not_enabled: "non activé",
+      q_tele: "Télé",
+      dir_u: "haut",
+      dir_d: "bas",
+      dir_l: "gauche",
+      dir_r: "droite",
+      q_lens2: "2e objectif",
+      not_enabled: "non activé – touchez pour l’aide",
+      q_off_hint: "Le flux « {q} » de {name} est désactivé dans Home Assistant (Reolink le désactive par défaut). Activez-le sous Paramètres → Appareils et services → Reolink → {name} → Entités.",
       no_talk_url: "Aucun lien vers l’app Reolink n’est configuré sur cet appareil (option « talk_url »).",
       grid: "Toutes les caméras",
       single: "Vue unique",
@@ -482,6 +580,11 @@
       evt_animal: "Animal",
       evt_motion: "Mouvement",
       evt_other: "Enregistrement",
+      evt_doorbell: "Sonnette",
+      evt_package: "Colis",
+      evt_face: "Visage",
+      evt_smart: "Événement intelligent",
+      evt_crying: "Pleurs",
       all: "Tous",
       today: "Aujourd’hui",
       yesterday: "Hier",
@@ -557,73 +660,8 @@
       test_missing: "Fichier de test introuvable – la version stable est active. Touchez pour arrêter",
       test_back: "Revenir à la version stable ? La page sera rechargée.",
       test_back_btn: "Revenir"
-    }
-  };
-  var LANGS = ["en", "de", "fr"];
-  var LOCALES = { de: "de-CH", fr: "fr-CH", en: void 0 };
-  var pickLang = (opt, hass) => {
-    const l = String((opt && opt !== "auto" ? opt : hass && (hass.locale && hass.locale.language || hass.language)) || "en").toLowerCase();
-    return LANGS.find((x) => l.startsWith(x)) || "en";
-  };
-  var fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
-  var ED_LABELS = {
-    de: {
-      mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
-      default_quality: "Startqualität",
-      live_timeout: "Live-Limit (Sekunden, 0 = kein Limit)",
-      auto_live: "Live automatisch starten",
-      auto_switch: "Bei Erkennung zur Kamera springen",
-      autoplay_next: "Nächsten Clip automatisch abspielen",
-      battery_warning: "Akku-Warnung ab (%)",
-      temperature_warning: "Temperatur-Warnung ab (°C)",
-      show_hub: "Hub anzeigen (Szenenmodus, SD-Karte)",
-      hub_prefix: "Hub-Präfix",
-      language: "Sprache",
-      prefix: "Kamera",
-      doorbell: "Klingel-Auslöser (optional, z. B. Taster oder Besucher-Sensor)",
-      doorbell_timeout: "Klingeln anzeigen für (Sekunden)",
-      doorbell_sound: "Klingelton abspielen",
-      name: "Anzeigename",
-      media_name: "Name in der Medienquelle (für Wiedergabe)",
-      cameras: "Kameras",
-      add: "Kamera hinzufügen",
-      remove: "Entfernen",
-      up: "Nach oben",
-      auto: "Automatisch",
-      options: "Optionen",
-      audio: "Audioausgabe",
-      audio_auto: "Automatisch (Ton an, sobald das Livebild läuft)",
-      audio_manual: "Manuell (mit dem Lautsprecher-Button)"
     },
-    en: {
-      mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
-      default_quality: "Start quality",
-      live_timeout: "Live limit (seconds, 0 = no limit)",
-      auto_live: "Start live automatically",
-      auto_switch: "Jump to camera on detection",
-      autoplay_next: "Autoplay next clip",
-      battery_warning: "Battery warning at (%)",
-      temperature_warning: "Temperature warning at (°C)",
-      show_hub: "Show hub (scene mode, SD card)",
-      hub_prefix: "Hub prefix",
-      language: "Language",
-      prefix: "Camera",
-      doorbell: "Doorbell trigger (optional, e.g. a button or visitor sensor)",
-      doorbell_timeout: "Show ringing for (seconds)",
-      doorbell_sound: "Play ring tone",
-      name: "Display name",
-      media_name: "Name in the media source (for playback)",
-      cameras: "Cameras",
-      add: "Add camera",
-      remove: "Remove",
-      up: "Move up",
-      auto: "Automatic",
-      options: "Options",
-      audio: "Audio output",
-      audio_auto: "Automatic (sound on as soon as the live view runs)",
-      audio_manual: "Manual (with the speaker button)"
-    },
-    fr: {
+    editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
       default_quality: "Qualité au démarrage",
       live_timeout: "Limite du direct (secondes, 0 = sans limite)",
@@ -653,13 +691,28 @@
     }
   };
 
+  // src/i18n.js
+  var ALL = { de: de_default, en: en_default, fr: fr_default };
+  var STR = Object.fromEntries(Object.entries(ALL).map(([l, t]) => [l, t.card]));
+  var LANGS = ["en", "de", "fr"];
+  var LOCALES = { de: "de-CH", fr: "fr-CH", en: void 0 };
+  var pickLang = (opt, hass) => {
+    const l = String((opt && opt !== "auto" ? opt : hass && (hass.locale && hass.locale.language || hass.language)) || "en").toLowerCase();
+    return LANGS.find((x) => l.startsWith(x)) || "en";
+  };
+  var fmt = (s, v = {}) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
+  var ED_LABELS = Object.fromEntries(Object.entries(ALL).map(([l, t]) => [l, t.editor]));
+
   // src/constants.js
   var Q = {
     fluent: { key: "q_fluent", icon: "mdi:quality-low" },
     balanced: { key: "q_balanced", icon: "mdi:quality-medium" },
-    clear: { key: "q_clear", icon: "mdi:quality-high" }
+    clear: { key: "q_clear", icon: "mdi:quality-high" },
+    // zweites Objektiv: Tele der TrackMix bzw. zweite Linse der Duo
+    tele: { key: "q_tele", icon: "mdi:magnify-plus-outline" }
   };
-  var Q_ORDER = ["fluent", "balanced", "clear"];
+  var Q_ORDER = ["fluent", "balanced", "clear", "tele"];
+  var Q_BASE = ["fluent", "balanced", "clear"];
   var Q_STORE = "reolink-app-card:quality";
   var PLAY_Q_STORE = "reolink-app-card:playback_quality";
   var Q_ALIAS = { sd: "fluent", low: "fluent", hd: "clear", high: "clear", medium: "balanced" };
@@ -667,13 +720,18 @@
   var REOLINK_COMPANION = `app://${REOLINK_PKG}`;
   var REOLINK_CHROME = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${REOLINK_PKG};end`;
   var EVT = {
+    doorbell: { icon: "mdi:doorbell", color: "#a974ff", re: /doorbell|visitor|klingel/i },
     person: { icon: "mdi:walk", color: "#ff5b5b", re: /person|people|human|mensch/i },
     vehicle: { icon: "mdi:car", color: "#ffa630", re: /vehicle|car|fahrzeug/i },
     animal: { icon: "mdi:paw", color: "#3ccf8e", re: /animal|pet|dog|cat|tier/i },
+    package: { icon: "mdi:package-variant-closed", color: "#c08a4b", re: /package|paket/i },
+    face: { icon: "mdi:face-recognition", color: "#ff7eb6", re: /face|gesicht/i },
+    smart: { icon: "mdi:vector-polyline", color: "#21c7d9", re: /crossline|intrusion|linger|forgotten|taken/i },
+    crying: { icon: "mdi:emoticon-cry-outline", color: "#ffd23f", re: /crying|weinen/i },
     motion: { icon: "mdi:motion-sensor", color: "#4da3ff", re: /motion|md|pir|bewegung/i },
     other: { icon: "mdi:record-rec", color: "#9aa4b2", re: /.^/ }
   };
-  var EVT_ORDER = ["person", "vehicle", "animal", "motion", "other"];
+  var EVT_ORDER = ["doorbell", "person", "vehicle", "animal", "package", "face", "smart", "crying", "motion", "other"];
   var DET = ["person", "vehicle", "animal", "motion"];
   var SPEEDS = [1, 1.5, 2, 4, 0.5];
   var SETTINGS = [
@@ -731,6 +789,59 @@
     return null;
   };
   var esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  function scrollable(el) {
+    if (!el || el._scrollable) return;
+    el._scrollable = true;
+    const edges = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      el.classList.toggle("more-l", el.scrollLeft > 2);
+      el.classList.toggle("more-r", max > 2 && el.scrollLeft < max - 2);
+    };
+    let drag = null, moved = false;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse" || e.button !== 0 || el.scrollWidth <= el.clientWidth) return;
+      drag = { x: e.clientX, left: el.scrollLeft, id: e.pointerId };
+      moved = false;
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      if (!moved && Math.abs(dx) < 6) return;
+      if (!moved) {
+        moved = true;
+        el.classList.add("dragging");
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch (_) {
+        }
+      }
+      el.scrollLeft = drag.left - dx;
+    });
+    const end = () => {
+      if (!drag) return;
+      drag = null;
+      el.classList.remove("dragging");
+    };
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("click", (e) => {
+      if (moved) {
+        moved = false;
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
+    el.addEventListener("wheel", (e) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const before = el.scrollLeft;
+      el.scrollLeft += e.deltaY;
+      if (el.scrollLeft !== before) e.preventDefault();
+    }, { passive: false });
+    el.addEventListener("scroll", edges, { passive: true });
+    new MutationObserver(edges).observe(el, { childList: true });
+    if (window.ResizeObserver) new ResizeObserver(edges).observe(el);
+    edges();
+  }
 
   // src/card/audio.js
   var audio_default = {
@@ -1101,7 +1212,7 @@
       const dev = this._devIndex(cam);
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
-          const id = dev[`${domain}:${tk}`];
+          const id = dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
         if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
@@ -1588,7 +1699,15 @@
       return Q[q] ? q : "fluent";
     },
     _qEntity(q, cam = this._cam) {
-      return this._e({ fluent: "cam_sd", balanced: "cam_bal", clear: "cam_hd" }[q], cam);
+      return this._e({ fluent: "cam_sd", balanced: "cam_bal", clear: "cam_hd", tele: "cam_tele" }[q], cam);
+    },
+    /* Bezeichnung der Stufe: „Tele“ bei der TrackMix, „2. Objektiv“ bei anderen Kameras mit zwei Objektiven (Duo) */
+    _qLabel(q, cam = this._cam) {
+      if (q !== "tele") return this._t(Q[q].key);
+      const dev = this._hass && this._hass.devices && cam._devId && this._hass.devices[cam._devId];
+      const idx = this._devIndex(cam) || {};
+      const tele = idx["camera:telephoto_sub"] || /trackmix/i.test(dev && (dev.model || dev.name) || "");
+      return this._t(tele ? "q_tele" : "q_lens2");
     },
     _qAvail() {
       return Q_ORDER.filter((q) => this._st(this._qEntity(q)));
@@ -1894,7 +2013,7 @@
       const root = await this._browse("media-source://reolink");
       const kids = root.children || [];
       const want = this._cam.media_name.toLowerCase();
-      return kids.find((k) => k.title.toLowerCase() === want) || kids.find((k) => k.title.toLowerCase().includes(want) || want.includes(k.title.toLowerCase())) || kids[this._idx];
+      return kids.find((k) => k.title.toLowerCase() === want) || kids.find((k) => k.title.toLowerCase() === `${want} lens 0`) || kids.find((k) => k.title.toLowerCase().includes(want) || want.includes(k.title.toLowerCase())) || kids[this._idx];
     },
     /* Auflösungsebene der Reolink-Medienquelle: „Low resolution“ (…|sub) und „High resolution“ (…|main) */
     _resNodes(kids) {
@@ -2079,6 +2198,7 @@
         v.addEventListener("ended", () => {
           if (this._config.autoplay_next) this._playNext(true);
         });
+        v.addEventListener("timeupdate", () => this._updatePlayhead());
       }
     },
     _removeHls() {
@@ -2113,6 +2233,46 @@
         this._toast({ text: `${this._t("play_error")}: ${e.message || e}`, color: "#636366", icon: "mdi:alert-circle-outline", wrap: true });
       }
       this._update();
+    },
+    /* Laufende Stelle auf der Zeitleiste */
+    _updatePlayhead() {
+      const ph = this.$ && this.$("ph");
+      if (!ph) return;
+      const f = this._playing, v = this._vid();
+      if (!f) {
+        ph.style.display = "none";
+        return;
+      }
+      ph.style.display = "";
+      ph.style.left = `${((f.start + (v && v.currentTime || 0)) / 864).toFixed(3)}%`;
+    },
+    /* Zeitlich späterer Clip (die Liste ist absteigend sortiert, „nächster Clip“ ist der ältere) */
+    _playNewer() {
+      const files = this._visibleFiles;
+      const i = files.findIndex((f) => this._playing && f.node.media_content_id === this._playing.node.media_content_id);
+      if (i > 0) this._play(files[i - 1]);
+    },
+    /* Tastenkürzel in der Wiedergabe: Leertaste Pause/Weiter, ←/→ vorheriger/nächster Clip, Umschalt+←/→ 10 Sekunden */
+    _playbackKey(e) {
+      if (this._mode !== "play" || e.altKey || e.ctrlKey || e.metaKey) return;
+      const tgt = e.composedPath()[0];
+      if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return;
+      const v = this._vid();
+      if (e.key === " " || e.key === "k") {
+        if (tgt && tgt.tagName === "BUTTON" && e.key === " ") return;
+        if (!this._playing) {
+          const f = this._visibleFiles[0];
+          if (f) this._play(f);
+        } else if (v.paused) v.play().catch(() => {
+        });
+        else v.pause();
+      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        if (!this._playing) return;
+        if (e.shiftKey) v.currentTime = Math.max(0, v.currentTime + (e.key === "ArrowRight" ? 10 : -10));
+        else if (e.key === "ArrowRight") this._playNewer();
+        else this._playNext();
+      } else return;
+      e.preventDefault();
     },
     _playNext(auto) {
       const files = this._visibleFiles;
@@ -2150,10 +2310,16 @@
         this._autoLive();
       }
     },
+    /* Filter-Chips: Person, Fahrzeug, Tier, Bewegung immer; seltenere Typen (Klingeln, Paket …) nur, wenn sie am Tag vorkommen */
     _renderFilters() {
       const box = this.$("filters");
+      const seen = new Set(Array.isArray(this._files) ? this._files.flatMap((f) => f.types) : []);
+      const keys = ["all", ...EVT_ORDER.filter((k) => k !== "other" && (DET.includes(k) || seen.has(k) || this._filter === k))];
+      const sig = `${keys.join()}|${this._lang}`;
+      if (box.dataset.sig === sig) return;
+      box.dataset.sig = sig;
       box.innerHTML = "";
-      ["all", ...DET].forEach((k) => {
+      keys.forEach((k) => {
         const b = document.createElement("button");
         b.className = "chip";
         b.dataset.k = k;
@@ -2202,6 +2368,7 @@
           b.classList.toggle("sel", b.dataset.q === this._res.used);
         });
       }
+      this._renderFilters();
       this.shadowRoot.querySelectorAll(".chip").forEach((b) => b.classList.toggle("sel", b.dataset.k === this._filter));
       const list = $("list"), bar = $("tlbar");
       const msg = (t) => {
@@ -2219,14 +2386,26 @@
       const sig = `${this._idx}|${this._dayIdx}|${this._filter}|${files.length}|${this._playing ? this._playing.node.media_content_id : ""}|${this._lang}`;
       if (list.dataset.sig === sig) return;
       list.dataset.sig = sig;
+      const cur = this._playing && this._playing.node.media_content_id;
       bar.innerHTML = files.map((f, i) => {
         const l = (f.start / 864).toFixed(3);
         const w = Math.max(0.35, f.dur / 864).toFixed(3);
-        return `<i data-i="${i}" style="left:${l}%;width:${w}%;background:${EVT[f.type].color}"></i>`;
-      }).join("");
+        return `<i data-i="${i}" class="${f.node.media_content_id === cur ? "cur" : ""}" style="left:${l}%;width:${w}%;background:${EVT[f.type].color}"></i>`;
+      }).join("") + '<b class="ph" id="ph"></b>';
       bar.querySelectorAll("i").forEach((el) => {
-        el.onclick = () => this._play(files[+el.dataset.i]);
+        el.onclick = (e) => {
+          e.stopPropagation();
+          this._play(files[+el.dataset.i]);
+        };
       });
+      bar.onclick = (e) => {
+        const r = bar.getBoundingClientRect();
+        const t = (e.clientX - r.left) / r.width * 86400;
+        const byTime = [...files].sort((a, b) => a.start - b.start);
+        const f = byTime.find((x) => x.start + x.dur >= t) || byTime[byTime.length - 1];
+        if (f) this._play(f);
+      };
+      this._updatePlayhead();
       if (!files.length) {
         list.innerHTML = `<div class="msg">${this._t("no_filter")}</div>`;
         return;
@@ -2289,7 +2468,7 @@
       const sig = `${this._idx}|${this._lang}|${opts.join(",")}|${["ptz_up", "ptz_down", "ptz_left", "ptz_right", "ptz_zoom_in", "ptz_zoom_out"].map(has).join()}`;
       if (box.dataset.sig !== sig) {
         box.dataset.sig = sig;
-        const dir = (k, icon, cls) => has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(this._t("ptz"))}"><ha-icon icon="${icon}"></ha-icon></button>` : "";
+        const dir = (k, icon, cls) => has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(`${this._t("ptz")}: ${this._t(`dir_${cls}`)}`)}"><ha-icon icon="${icon}"></ha-icon></button>` : "";
         box.innerHTML = `<div class="pwrap">
           <div class="pad">${dir("ptz_up", "mdi:chevron-up", "u")}${dir("ptz_left", "mdi:chevron-left", "l")}<button class="pd c" id="pstop" title="${esc(this._t("ptz_stop"))}"><ha-icon icon="mdi:stop"></ha-icon></button>${dir("ptz_right", "mdi:chevron-right", "r")}${dir("ptz_down", "mdi:chevron-down", "d")}</div>
           <div class="pzoom">${has("ptz_zoom_in") ? `<button class="pz" data-k="ptz_zoom_in" title="${esc(this._t("zoom_in"))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button>` : ""}${has("ptz_zoom_out") ? `<button class="pz" data-k="ptz_zoom_out" title="${esc(this._t("zoom_out"))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ""}</div>
@@ -2323,6 +2502,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .testbar.missing { background: #c0392b; }
 .testbar ha-icon { --mdc-icon-size: 18px; flex: none; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
+button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outline-offset: 2px; }
+.stage:focus { outline: none; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 18px; background: var(--secondary-background-color); white-space: nowrap; font-size: 14px; }
 .tab.sel { background: var(--ra); color: #fff; }
@@ -2337,6 +2518,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .scene button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 4px; border-radius: 9px; font-size: 13px; opacity: .75; }
 .scene button ha-icon { --mdc-icon-size: 17px; }
 .scene button.sel { background: var(--rb); color: var(--ra); opacity: 1; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.hub.wrap .scene { flex-basis: 100%; }
+.scene button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene.compact button:not(.sel) span { display: none; }
+.scene.compact button.sel { flex: 2.4; }
 .sd { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; }
 .sd ha-icon { --mdc-icon-size: 16px; }
 .warns:empty { display: none; }
@@ -2460,7 +2645,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .qopt ha-icon { --mdc-icon-size: 20px; }
 .qopt.sel { color: var(--ra); }
 .qopt .chk { margin-left: auto; }
-.qopt[disabled] { opacity: .45; cursor: default; }
+.qopt[aria-disabled] { opacity: .45; }
 .qopt small { margin-left: auto; font-size: 11px; }
 .more { display: flex; align-items: center; gap: 8px; width: calc(100% - 20px); margin: 6px 10px 0; padding: 8px 4px; border-top: 1px solid var(--divider-color); font-size: 14px; }
 .more span { flex: 1; text-align: left; }
@@ -2481,6 +2666,11 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .row select { background: var(--rb); color: inherit; border: 0; border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; max-width: 50%; }
 .rowbtn { padding: 6px 12px; border-radius: 8px; background: var(--rb); font-size: 13px; }
 .days, .filters { display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px 2px; scrollbar-width: none; }
+.days::-webkit-scrollbar, .filters::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+.dragging { cursor: grabbing; user-select: none; } .dragging * { pointer-events: none; }
 .day { display: flex; flex-direction: column; align-items: center; min-width: 56px; padding: 6px 8px; border-radius: 10px; background: var(--secondary-background-color); }
 .day small { font-size: 11px; opacity: .7; } .day b { font-size: 13px; }
 .day.sel { background: var(--ra); color: #fff; }
@@ -2494,7 +2684,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .pq button.sel { background: var(--rb); color: var(--ra); opacity: 1; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .tl { padding: 12px 12px 2px; }
 .tlbar { position: relative; height: 22px; border-radius: 6px; background: var(--secondary-background-color); overflow: hidden; }
+.tlbar { cursor: pointer; }
 .tlbar i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; border-radius: 2px; cursor: pointer; }
+.tlbar i.cur { top: 0; bottom: 0; box-shadow: 0 0 0 2px var(--primary-text-color); }
+.tlbar .ph { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--primary-text-color); pointer-events: none; }
 .tlh { display: flex; justify-content: space-between; font-size: 10px; color: var(--secondary-text-color); padding-top: 2px; }
 .list { padding: 4px 6px 0; max-height: 420px; overflow-y: auto; }
 .item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 6px; border-radius: 10px; text-align: left; }
@@ -2507,7 +2700,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.0";
+  var RAC_VERSION = "0.3.1";
 
   // src/card/render.js
   var render_default = {
@@ -2522,7 +2715,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
         <div class="top"><div class="tabs" id="tabs"></div><button class="gridbtn" id="gridbtn"><ha-icon></ha-icon></button></div>
         <div class="hub" id="hub"></div>
         <div class="warns" id="warns"></div>
-        <div class="stage" id="stage">
+        <div class="stage" id="stage" tabindex="-1">
           <div class="media" id="media">
             <img class="prev" id="prev" alt="">
             <div class="pic" id="pic"></div>
@@ -2641,7 +2834,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
       v.addEventListener("loadedmetadata", () => {
         v.playbackRate = this._speed;
       });
+      v.addEventListener("timeupdate", () => this._updatePlayhead());
+      this.addEventListener("keydown", (e) => this._playbackKey(e));
       this._setupZoom();
+      ["tabs", "days", "filters"].forEach((id) => scrollable($(id)));
       if (this.isConnected) this._observe();
     },
     _controls() {
@@ -2743,6 +2939,12 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
       if (t.textContent !== txt) t.textContent = txt;
       t.style.display = timed ? "" : "none";
     },
+    /* Bezeichnungen für Screenreader: Symbol-Knöpfe ohne Text bekommen ihren Tooltip als aria-label */
+    _a11y() {
+      this.shadowRoot.querySelectorAll("button[title]").forEach((b) => {
+        if (b.getAttribute("aria-label") !== b.title) b.setAttribute("aria-label", b.title);
+      });
+    },
     _update() {
       if (!this._built || !this._hass) return;
       const $ = this.$, c = this._cam, root = this.shadowRoot;
@@ -2837,6 +3039,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
       $("pane-play").style.display = this._mode === "play" ? "" : "none";
       if (this._mode === "live") this._updateLivePane();
       else this._updatePlayPane();
+      this._a11y();
     },
     /* Kopfzeile: eigener Modus (z. B. input_select für Benachrichtigungen) oder Reolink-Szenenmodus, dazu SD-Karte */
     _updateHub() {
@@ -2876,7 +3079,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
       const sig = `${this._lang}|${rows.map((r) => `${r.id}:${r.opts.join()}:${r.st.state}`).join("|")}|${sd === null ? "" : Math.round(sd * 10)}`;
       if (box.dataset.sig === sig) return;
       box.dataset.sig = sig;
-      box.innerHTML = rows.map((r, i) => `<div class="scene" data-r="${i}">${r.opts.map((o) => `<button data-o="${esc(o)}" class="${r.st.state === o ? "sel" : ""}">
+      box.innerHTML = rows.map((r, i) => `<div class="scene" data-r="${i}" role="radiogroup">${r.opts.map((o) => `<button data-o="${esc(o)}" class="${r.st.state === o ? "sel" : ""}" role="radio" aria-checked="${r.st.state === o}" title="${esc(r.label(o))}" aria-label="${esc(r.label(o))}">
       <ha-icon icon="${esc(r.icon(o))}"></ha-icon><span>${esc(r.label(o))}</span></button>`).join("")}</div>`).join("") + (sd !== null ? `<span class="sd"><ha-icon icon="mdi:micro-sd"></ha-icon>${this._t("sd", { v: sd < 10 ? sd.toFixed(1) : Math.round(sd) })}</span>` : "");
       box.querySelectorAll(".scene").forEach((row) => {
         const r = rows[+row.dataset.r];
@@ -2885,6 +3088,32 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
             if (b.dataset.o !== r.st.state) this._call(r.id.split(".")[0], "select_option", r.id, { option: b.dataset.o });
           };
         });
+      });
+      if (window.ResizeObserver) {
+        if (!this._hubRO) this._hubRO = new ResizeObserver(() => {
+          cancelAnimationFrame(this._hubRaf);
+          this._hubRaf = requestAnimationFrame(() => this._fitHub());
+        });
+        this._hubRO.disconnect();
+        this._hubRO.observe(box);
+        box.querySelectorAll(".scene ha-icon, .scene span").forEach((el) => this._hubRO.observe(el));
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
+      this._fitHub();
+    },
+    /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,
+       reicht es dann noch nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
+    _fitHub() {
+      const box = this.$ && this.$("hub");
+      if (!box || box.style.display === "none" || !box.clientWidth) return;
+      const rows = [...box.querySelectorAll(".scene")];
+      const over = () => rows.some((r) => r.scrollWidth > r.clientWidth + 1);
+      box.classList.remove("wrap");
+      rows.forEach((r) => r.classList.remove("compact"));
+      if (!over()) return;
+      if (box.querySelector(".sd")) box.classList.add("wrap");
+      rows.forEach((r) => {
+        if (r.scrollWidth > r.clientWidth + 1) r.classList.add("compact");
       });
     },
     _updateWarnings() {
@@ -2923,6 +3152,8 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
         if (icon.getAttribute("icon") !== x.icon) icon.setAttribute("icon", x.icon);
         b.title = x.label;
         b.setAttribute("aria-label", x.label);
+        if (x.on !== void 0) b.setAttribute("aria-pressed", String(!!x.on));
+        b.toggleAttribute("aria-disabled", !!x.dis);
         b.classList.toggle("on", !!x.on && !x.warn);
         b.classList.toggle("warn", !!x.on && !!x.warn);
         b.classList.toggle("dis", !!x.dis);
@@ -2935,10 +3166,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
         const qsig = `${this._idx}|${this._quality}|${avail.join()}|${this._lang}`;
         if (qm.dataset.sig !== qsig) {
           qm.dataset.sig = qsig;
-          qm.innerHTML = Q_ORDER.map((q) => `<button class="qopt${q === this._quality ? " sel" : ""}" data-q="${q}"${avail.includes(q) ? "" : " disabled"}>
-          <ha-icon icon="${Q[q].icon}"></ha-icon><span>${this._t(Q[q].key)}</span>${avail.includes(q) ? q === this._quality ? '<ha-icon class="chk" icon="mdi:check"></ha-icon>' : "" : `<small>${this._t("not_enabled")}</small>`}</button>`).join("");
-          qm.querySelectorAll(".qopt:not([disabled])").forEach((el) => {
-            el.onclick = () => this._setQuality(el.dataset.q);
+          qm.innerHTML = Q_ORDER.filter((q) => q !== "tele" || avail.includes(q)).map((q) => `<button class="qopt${q === this._quality ? " sel" : ""}" data-q="${q}" role="menuitemradio" aria-checked="${q === this._quality}"${avail.includes(q) ? "" : ' aria-disabled="true"'}>
+          <ha-icon icon="${Q[q].icon}"></ha-icon><span>${this._qLabel(q)}</span>${avail.includes(q) ? q === this._quality ? '<ha-icon class="chk" icon="mdi:check"></ha-icon>' : "" : `<small>${this._t("not_enabled")}</small>`}</button>`).join("");
+          qm.querySelectorAll(".qopt").forEach((el) => {
+            el.onclick = () => el.getAttribute("aria-disabled") ? this._toast({ text: this._t("q_off_hint", { q: this._qLabel(el.dataset.q), name: this._cam.name }), color: "#636366", icon: "mdi:video-off-outline", wrap: true }) : this._setQuality(el.dataset.q);
           });
         }
       }
@@ -3101,7 +3332,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
           { name: "doorbell_sound", selector: { boolean: {} } }
         ] },
         { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
-        { name: "default_quality", selector: { select: { mode: "dropdown", options: Q_ORDER.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
+        { name: "default_quality", selector: { select: { mode: "dropdown", options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
         { name: "live_timeout", selector: { number: { min: 0, max: 3600, step: 30, mode: "box", unit_of_measurement: "s" } } },
         { type: "grid", name: "", schema: [
           { name: "auto_live", selector: { boolean: {} } },

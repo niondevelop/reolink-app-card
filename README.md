@@ -50,6 +50,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
 - **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
 - **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move.
+- **Two lenses:** for the TrackMix and Duo, the second lens (telephoto) is an extra quality level in the quality menu.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
@@ -57,7 +58,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **All cameras at once:** grid view with every live stream; tap one to open it.
 - **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel.
 - **Grouped settings:** general, detection (PIR and AI sensitivity), image (brightness, contrast, saturation, sharpness), floodlight, audio & recording – with sliders and dropdowns.
-- **Playback:** day picker, event type filter, coloured 24-hour timeline, speed (0.5× to 4×), autoplay next clip, clip download, and a **Low / High** resolution switch that is remembered on each device (independent of the live view quality).
+- **Playback:** day picker, event type filter (person, vehicle, animal, motion, plus doorbell, package, face and smart events when they occur), coloured 24-hour timeline (tap an empty spot to jump to the next clip; on a PC: space = pause, ←/→ = previous/next clip, shift + ←/→ = 10 s), speed (0.5× to 4×), autoplay next clip, clip download, and a **Low / High** resolution switch that is remembered on each device (independent of the live view quality).
 - **Battery warnings** for low charge and for battery temperature that is too high or too low.
 - **Visual editor:** cameras are detected automatically and can be added with one click.
 - **Card suggestions:** under *Add to dashboard* on a Reolink camera (or the hub), the card shows up under the community suggestions, ready configured.
@@ -249,6 +250,7 @@ The card can show your own mode at the top, e.g. **Away / Home / Night / Off**, 
 | --------- | ------------ | - |
 | Camera notification by mode | When a camera detects something (e.g. a person), it sends a notification with a snapshot and the buttons **Live** and **Recording**, but only in the modes you choose, e.g. Away and Night. One automation per camera | [![Import camera notification blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_notification_by_mode.yaml) |
 | Camera mode automatic | **Away** when everybody has left, **Home** or **Night** when somebody comes home, and Home ↔ Night at the night times you set | [![Import camera mode blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fcamera_mode_automatic.yaml) |
+| Doorbell call | When the doorbell rings, your phones get a call-like notification that repeats until somebody answers or declines. **Answer** opens the card with two-way audio on; once somebody answers, it stops on all phones | [![Import doorbell call blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fniondevelop%2Freolink-app-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freolink_app_card%2Fdoorbell_call.yaml) |
 
 Both need Home Assistant 2026.7 or later. If your helper uses other names (e.g. German *Abwesend / Zuhause / Nacht*), enter them in the blueprint. The mode **Off** is never set automatically; choose it in the card when you want no notifications.
 
@@ -274,7 +276,7 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 This is an alpha version. What has been tested, and how:
 
 - **Tested on real hardware with one setup only:** Reolink Home Hub with two Argus battery cameras, Android Companion app, Home Assistant 2026.11. Other models, an NVR or several hubs have not been tested.
-- **Only tested in a simulated Home Assistant, not with real devices:** cameras connected directly to Home Assistant without a hub (including recordings that Home Assistant streams as HLS), the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
+- **Only tested in a simulated Home Assistant, not with real devices:** the second lens of TrackMix and Duo cameras, the doorbell call blueprint, recordings that Home Assistant streams as HLS, the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
 - **Cameras from another Home Assistant:** recordings come from the media source of the Reolink integration, which only exists on the Home Assistant instance where the camera is added. A camera that only reaches this Home Assistant from another instance (e.g. via *Remote Home-Assistant* or go2rtc) shows the live view, and controls only if their entities are shared too (map them with `entities:`), but no recordings. Use the card on the other instance, or add the camera to this Home Assistant directly (the Reolink integration also reaches cameras at other places through a VPN such as Tailscale).
 - **High resolution recordings** are usually H.265, which Chrome and Firefox often can't play; the low resolution (H.264) plays everywhere.
 - **Two-way audio** is a Labs (preview) feature of Home Assistant. Some Reolink models have known problems with it (no sound arriving at the camera, or an echo). In a browser it needs HTTPS.

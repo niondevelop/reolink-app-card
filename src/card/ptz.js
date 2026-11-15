@@ -32,7 +32,7 @@ export default {
     const sig = `${this._idx}|${this._lang}|${opts.join(',')}|${['ptz_up', 'ptz_down', 'ptz_left', 'ptz_right', 'ptz_zoom_in', 'ptz_zoom_out'].map(has).join()}`;
     if (box.dataset.sig !== sig) {
       box.dataset.sig = sig;
-      const dir = (k, icon, cls) => (has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(this._t('ptz'))}"><ha-icon icon="${icon}"></ha-icon></button>` : '');
+      const dir = (k, icon, cls) => (has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(`${this._t('ptz')}: ${this._t(`dir_${cls}`)}`)}"><ha-icon icon="${icon}"></ha-icon></button>` : '');
       box.innerHTML = `<div class="pwrap">
           <div class="pad">${dir('ptz_up', 'mdi:chevron-up', 'u')}${dir('ptz_left', 'mdi:chevron-left', 'l')}<button class="pd c" id="pstop" title="${esc(this._t('ptz_stop'))}"><ha-icon icon="mdi:stop"></ha-icon></button>${dir('ptz_right', 'mdi:chevron-right', 'r')}${dir('ptz_down', 'mdi:chevron-down', 'd')}</div>
           <div class="pzoom">${has('ptz_zoom_in') ? `<button class="pz" data-k="ptz_zoom_in" title="${esc(this._t('zoom_in'))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button>` : ''}${has('ptz_zoom_out') ? `<button class="pz" data-k="ptz_zoom_out" title="${esc(this._t('zoom_out'))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ''}</div>

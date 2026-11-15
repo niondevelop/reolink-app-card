@@ -5,9 +5,13 @@ export const Q = {
   fluent: { key: 'q_fluent', icon: 'mdi:quality-low' },
   balanced: { key: 'q_balanced', icon: 'mdi:quality-medium' },
   clear: { key: 'q_clear', icon: 'mdi:quality-high' },
+  // zweites Objektiv: Tele der TrackMix bzw. zweite Linse der Duo
+  tele: { key: 'q_tele', icon: 'mdi:magnify-plus-outline' },
 };
 
-export const Q_ORDER = ['fluent', 'balanced', 'clear'];
+export const Q_ORDER = ['fluent', 'balanced', 'clear', 'tele'];
+/* Stufen eines Objektivs (Startqualität im Editor) */
+export const Q_BASE = ['fluent', 'balanced', 'clear'];
 
 export const Q_STORE = 'reolink-app-card:quality';
 /* Auflösung der Wiedergabe (unabhängig von der Livebild-Qualität): 'low' | 'high' */
@@ -23,15 +27,21 @@ export const REOLINK_COMPANION = `app://${REOLINK_PKG}`;
 // Chrome auf Android: vollständiger Launcher-Intent
 export const REOLINK_CHROME = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${REOLINK_PKG};end`;
 
+/* Ereignistypen der Aufnahmen; Home Assistant hängt die Auslöser an den Titel, z. B. „08:00:00 0:00:30 Person Doorbell“ */
 export const EVT = {
+  doorbell: { icon: 'mdi:doorbell', color: '#a974ff', re: /doorbell|visitor|klingel/i },
   person: { icon: 'mdi:walk', color: '#ff5b5b', re: /person|people|human|mensch/i },
   vehicle: { icon: 'mdi:car', color: '#ffa630', re: /vehicle|car|fahrzeug/i },
   animal: { icon: 'mdi:paw', color: '#3ccf8e', re: /animal|pet|dog|cat|tier/i },
+  package: { icon: 'mdi:package-variant-closed', color: '#c08a4b', re: /package|paket/i },
+  face: { icon: 'mdi:face-recognition', color: '#ff7eb6', re: /face|gesicht/i },
+  smart: { icon: 'mdi:vector-polyline', color: '#21c7d9', re: /crossline|intrusion|linger|forgotten|taken/i },
+  crying: { icon: 'mdi:emoticon-cry-outline', color: '#ffd23f', re: /crying|weinen/i },
   motion: { icon: 'mdi:motion-sensor', color: '#4da3ff', re: /motion|md|pir|bewegung/i },
   other: { icon: 'mdi:record-rec', color: '#9aa4b2', re: /.^/ },
 };
 
-export const EVT_ORDER = ['person', 'vehicle', 'animal', 'motion', 'other'];
+export const EVT_ORDER = ['doorbell', 'person', 'vehicle', 'animal', 'package', 'face', 'smart', 'crying', 'motion', 'other'];
 
 export const DET = ['person', 'vehicle', 'animal', 'motion'];
 

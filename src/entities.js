@@ -6,6 +6,7 @@ export const ENT = {
   cam_bal: ['camera', 'ausgewogen', 'balanced'],
   cam_hd: ['camera', 'hochauflosung', 'clear'],
   snap: ['camera', 'schnappschusse_in_standardauflosung', 'snapshots_fluent'],
+  cam_tele: ['camera', 'tele_standardauflosung', 'telephoto_fluent'],
   light: ['light', 'flutlicht', 'floodlight'],
   status_led: ['light', 'status_led'],
   siren: ['siren', 'sirene', 'siren'],
@@ -59,6 +60,8 @@ export const ENT = {
 /* Interne Schlüssel (translation_key) der Reolink-Integration – unabhängig von Sprache und Umbenennungen */
 export const TK = {
   cam_sd: 'sub', cam_bal: 'ext', cam_hd: 'main', snap: 'snapshots_sub',
+  // Tele (TrackMix an Hub/NVR) bzw. zweites Objektiv (direkt eingebundene TrackMix, Duo)
+  cam_tele: ['telephoto_sub', 'sub_lens_1'],
   light: 'floodlight', status_led: 'status_led', siren: 'siren', prealarm: 'pre_siren',
   manual_rec: 'manual_record', rec: 'record', pir: 'pir_enabled', pir_reduce: 'pir_reduce_alarm', push: 'push_notifications',
   ir: 'ir_lights', rec_audio: 'record_audio', siren_event: 'siren_on_event', prealarm_event: 'pre_siren_on_event', hub_ring_event: 'hub_ringtone_on_event',
@@ -100,7 +103,11 @@ export function modeIcon(o) {
 }
 
 /* Gemeinsamen Teil der Entity-IDs aus einer Kamera-Entität ableiten, z. B. camera.kamera_eingang_standardauflosung → kamera_eingang */
-export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))$/;
+/* Kameras mit zwei Objektiven (direkt eingebundene TrackMix, Duo): Streams heissen „… lens 0“ / „… lens 1“ */
+export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
+
+/* Interner Schlüssel einer Kamera-Entität ohne Objektiv-Zusatz: sub_lens_0 → sub */
+export const baseKey = (tk) => String(tk || '').replace(/_lens_\d$/, '');
 
 export function prefixOf(entityId) {
   const m = String(entityId || '').match(/^camera\.(.+)$/);
@@ -120,17 +127,17 @@ export function detectCameras(hass) {
   };
   // 1. Über die Namensendung (deutsche/englische Entity-IDs)
   Object.keys(hass.states).forEach((id) => {
-    const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)$/);
+    const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)(_(lens|objektiv|linse)_0)?$/);
     if (!m) return;
     const reg = hass.entities && hass.entities[id];
     if (reg && reg.platform && reg.platform !== 'reolink') return;
-    add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)$/i, '').trim());
+    add(id, m[1], String(hass.states[id].attributes.friendly_name || m[1]).replace(/\s*(Standardauflösung|Fluent)(\s+(lens|Objektiv|Linse)\s+0)?$/i, '').trim());
   });
   // 2. Über das Geräteregister: Fluent-Stream jeder Reolink-Kamera (andere Sprachen, umbenannte IDs),
   //    gleich ob über einen Hub/NVR oder direkt in Home Assistant eingebunden
   Object.keys(hass.entities || {}).forEach((id) => {
     const r = hass.entities[id];
-    if (!id.startsWith('camera.') || r.platform !== 'reolink' || r.translation_key !== TK.cam_sd || !hass.states[id]) return;
+    if (!id.startsWith('camera.') || r.platform !== 'reolink' || !['sub', 'sub_lens_0'].includes(r.translation_key) || !hass.states[id]) return;
     add(id, prefixOf(id) || id.slice(7), String(hass.states[id].attributes.friendly_name || '').trim());
   });
   return out.sort((a, b) => a.name.localeCompare(b.name));
