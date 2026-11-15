@@ -2507,7 +2507,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.2.1";
+  var RAC_VERSION = "0.3.0";
 
   // src/card/render.js
   var render_default = {
