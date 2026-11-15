@@ -1,6 +1,6 @@
 {
   "name": "reolink-app-card",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Lovelace card for Reolink cameras, on a Reolink Home Hub or connected directly",
   "license": "MIT",
@@ -10,7 +10,8 @@
     "watch": "node scripts/build.mjs --watch",
     "test": "node --test \"test/unit/*.test.js\"",
     "test:browser": "node --test --test-concurrency=1 \"test/browser/*.test.js\"",
-    "check": "npm run build && npm test && npm run test:browser"
+    "check": "npm run build && npm test && npm run test:browser",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -17,6 +17,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .testbar.missing { background: #c0392b; }
 .testbar ha-icon { --mdc-icon-size: 18px; flex: none; }
 .top { display: flex; align-items: center; gap: 6px; padding: 10px 10px 8px; }
+button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outline-offset: 2px; }
+.stage:focus { outline: none; }
 .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
 .tab { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 18px; background: var(--secondary-background-color); white-space: nowrap; font-size: 14px; }
 .tab.sel { background: var(--ra); color: #fff; }
@@ -31,6 +33,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .scene button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 4px; border-radius: 9px; font-size: 13px; opacity: .75; }
 .scene button ha-icon { --mdc-icon-size: 17px; }
 .scene button.sel { background: var(--rb); color: var(--ra); opacity: 1; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.hub.wrap .scene { flex-basis: 100%; }
+.scene button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene.compact button:not(.sel) span { display: none; }
+.scene.compact button.sel { flex: 2.4; }
 .sd { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; }
 .sd ha-icon { --mdc-icon-size: 16px; }
 .warns:empty { display: none; }
@@ -154,7 +160,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .qopt ha-icon { --mdc-icon-size: 20px; }
 .qopt.sel { color: var(--ra); }
 .qopt .chk { margin-left: auto; }
-.qopt[disabled] { opacity: .45; cursor: default; }
+.qopt[aria-disabled] { opacity: .45; }
 .qopt small { margin-left: auto; font-size: 11px; }
 .more { display: flex; align-items: center; gap: 8px; width: calc(100% - 20px); margin: 6px 10px 0; padding: 8px 4px; border-top: 1px solid var(--divider-color); font-size: 14px; }
 .more span { flex: 1; text-align: left; }
@@ -175,6 +181,11 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .row select { background: var(--rb); color: inherit; border: 0; border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; max-width: 50%; }
 .rowbtn { padding: 6px 12px; border-radius: 8px; background: var(--rb); font-size: 13px; }
 .days, .filters { display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px 2px; scrollbar-width: none; }
+.days::-webkit-scrollbar, .filters::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+.dragging { cursor: grabbing; user-select: none; } .dragging * { pointer-events: none; }
 .day { display: flex; flex-direction: column; align-items: center; min-width: 56px; padding: 6px 8px; border-radius: 10px; background: var(--secondary-background-color); }
 .day small { font-size: 11px; opacity: .7; } .day b { font-size: 13px; }
 .day.sel { background: var(--ra); color: #fff; }
@@ -188,7 +199,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .pq button.sel { background: var(--rb); color: var(--ra); opacity: 1; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .tl { padding: 12px 12px 2px; }
 .tlbar { position: relative; height: 22px; border-radius: 6px; background: var(--secondary-background-color); overflow: hidden; }
+.tlbar { cursor: pointer; }
 .tlbar i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; border-radius: 2px; cursor: pointer; }
+.tlbar i.cur { top: 0; bottom: 0; box-shadow: 0 0 0 2px var(--primary-text-color); }
+.tlbar .ph { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--primary-text-color); pointer-events: none; }
 .tlh { display: flex; justify-content: space-between; font-size: 10px; color: var(--secondary-text-color); padding-top: 2px; }
 .list { padding: 4px 6px 0; max-height: 420px; overflow-y: auto; }
 .item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 6px; border-radius: 10px; text-align: left; }

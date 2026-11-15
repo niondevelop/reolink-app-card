@@ -1,0 +1,176 @@
+blueprint:
+  name: Reolink App Card – doorbell call
+  author: niondevelop
+  description: >-
+    When the doorbell rings, your phones get a call-like notification with a
+    snapshot that repeats until somebody answers or declines, or the ring time is
+    over.
+
+
+    **Answer** opens the Reolink App Card with the camera live and two-way audio on
+    (`rac=talk`). **Decline** stops the call on all phones. As soon as one person
+    answers in the card, the notifications stop on all phones (the card fires the
+    `reolink_app_card` event; only for users with admin rights).
+
+
+    Works with the visitor sensor of a Reolink doorbell or any binary sensor or
+    toggle you use as a bell, e.g. for a camera used as a doorbell.
+  domain: automation
+  homeassistant:
+    min_version: 2026.7.0
+  source_url: https://github.com/niondevelop/reolink-app-card/blob/main/blueprints/automation/reolink_app_card/doorbell_call.yaml
+  input:
+    bell:
+      name: Doorbell
+      icon: mdi:doorbell-video
+      input:
+        bell_entity:
+          name: Bell
+          description: What rings, e.g. the visitor sensor of the Reolink doorbell, or a button/switch sensor.
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - binary_sensor
+                    - input_boolean
+        camera:
+          name: Camera
+          description: Camera entity for the picture in the notification. It also tells the card which camera to open.
+          selector:
+            entity:
+              filter:
+                - domain: camera
+        title:
+          name: Title
+          default: Doorbell
+          selector:
+            text: {}
+        message:
+          name: Message
+          default: Somebody is at the door
+          selector:
+            text: {}
+    call:
+      name: Call
+      icon: mdi:phone-ring
+      input:
+        notify_actions:
+          name: Notify actions
+          description: >-
+            The notify actions of your phones, e.g. notify.mobile_app_my_phone.
+            Find them under Tools → Actions.
+          selector:
+            text:
+              multiple: true
+        dashboard:
+          name: Dashboard path
+          description: Path of the dashboard view with the Reolink App Card, e.g. /dashboard-cameras/cameras.
+          selector:
+            text: {}
+        ring_time:
+          name: Ring time
+          description: How long the call rings at most.
+          default: 30
+          selector:
+            number:
+              min: 5
+              max: 120
+              unit_of_measurement: s
+        interval:
+          name: Repeat every
+          description: The notification is sent again in this interval, so the phone rings again.
+          default: 3
+          selector:
+            number:
+              min: 2
+              max: 30
+              unit_of_measurement: s
+        answer_label:
+          name: Label of the answer button
+          default: Answer
+          selector:
+            text: {}
+        decline_label:
+          name: Label of the decline button
+          default: Decline
+          selector:
+            text: {}
+
+triggers:
+  - trigger: state
+    entity_id: !input bell_entity
+    to: "on"
+
+variables:
+  camera: !input camera
+  title: !input title
+  message: !input message
+  notify_actions: !input notify_actions
+  dashboard: !input dashboard
+  ring_time: !input ring_time
+  interval: !input interval
+  answer_label: !input answer_label
+  decline_label: !input decline_label
+
+actions:
+  - variables:
+      talk_url: "{{ dashboard ~ '?rac=talk&rac_cam=' ~ camera }}"
+      decline_id: "RAC_DECLINE_{{ as_timestamp(now()) | int }}"
+      tag: "reolink-call-{{ camera }}"
+      end_time: "{{ as_timestamp(now()) + (ring_time | float(30)) }}"
+  - repeat:
+      sequence:
+        - repeat:
+            for_each: "{{ notify_actions }}"
+            sequence:
+              - action: "{{ repeat.item }}"
+                continue_on_error: true
+                data:
+                  title: "{{ title }}"
+                  message: "{{ message }} · {{ now().strftime('%H:%M') }}"
+                  data:
+                    image: "/api/camera_proxy/{{ camera }}"
+                    clickAction: "{{ talk_url }}"
+                    url: "{{ talk_url }}"
+                    tag: "{{ tag }}"
+                    channel: Doorbell
+                    importance: high
+                    priority: high
+                    ttl: 0
+                    timeout: "{{ (interval | int(3)) + 2 }}"
+                    push:
+                      interruption-level: time-sensitive
+                    actions:
+                      - action: URI
+                        title: "{{ answer_label }}"
+                        uri: "{{ talk_url }}"
+                      - action: "{{ decline_id }}"
+                        title: "{{ decline_label }}"
+        - wait_for_trigger:
+            - trigger: event
+              event_type: mobile_app_notification_action
+              event_data:
+                action: "{{ decline_id }}"
+            - trigger: event
+              event_type: reolink_app_card
+              event_data:
+                action: talk
+          timeout:
+            seconds: "{{ interval | int(3) }}"
+          continue_on_timeout: true
+      until:
+        - condition: template
+          value_template: "{{ wait.trigger is not none or as_timestamp(now()) >= end_time | float(0) }}"
+  # End the call on all phones
+  - repeat:
+      for_each: "{{ notify_actions }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          continue_on_error: true
+          data:
+            message: clear_notification
+            data:
+              tag: "{{ tag }}"
+
+mode: single
+max_exceeded: silent

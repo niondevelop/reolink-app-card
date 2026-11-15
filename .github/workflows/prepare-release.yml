@@ -1,0 +1,78 @@
+name: Prepare release
+
+# Manuell starten (Actions → Prepare release → Run workflow), neue Version eingeben.
+# Erhöht die Version, baut dist/, führt die Unit-Tests aus und öffnet einen Versions-PR
+# mit fertigem Text für die Release. Veröffentlicht und merged nichts.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version without v, e.g. 0.3.2"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version must look like 1.2.3 (no v)"; exit 1; }
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then echo "::error::Tag v$VERSION already exists"; exit 1; fi
+      - run: npm ci
+      - name: Set version and build
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          sed -i -E "s/RAC_VERSION = '[^']+'/RAC_VERSION = '$VERSION'/" src/version.js
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          npm run build
+          grep -q "RAC_VERSION = \"$VERSION\"" dist/reolink-app-card.js
+          npm test
+      - name: Release notes from merged pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="v$VERSION" -f target_commitish=main ${PREV:+-f previous_tag_name="$PREV"} --jq .body > notes.md
+          {
+            echo "Version bump to **$VERSION** (\`src/version.js\`, \`package.json\`, rebuilt \`dist/\`). Built and unit-tested by the *Prepare release* workflow."
+            echo
+            echo "## After merging"
+            echo
+            echo "Create release **\`v$VERSION\`** on \`main\`: https://github.com/$GITHUB_REPOSITORY/releases/new?tag=v$VERSION&target=main&title=v$VERSION"
+            echo
+            echo "<details><summary>Release notes draft (edit as needed)</summary>"
+            echo
+            cat notes.md
+            echo
+            echo "</details>"
+          } > body.md
+      - name: Open version pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          BRANCH="release/v$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/version.js package.json package-lock.json dist/reolink-app-card.js
+          git commit -m "Version $VERSION"
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "Version $VERSION" --body-file body.md

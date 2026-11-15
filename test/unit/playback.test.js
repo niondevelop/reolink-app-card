@@ -63,3 +63,14 @@ test('frische Meldung ohne Aufnahme: warten und später nochmals suchen', () => 
   assert.deepEqual(r.toasts, ['ev_wait']);
   assert.equal(r.waiting, true);
 });
+
+test('Klingeln, Paket, Gesicht und Smart-Ereignisse werden erkannt', () => {
+  const t = (title) => playback._parseFile({ title, media_content_id: 'x' });
+  assert.deepEqual(t('08:00:00 0:00:30 Person Doorbell').types, ['doorbell', 'person']);
+  assert.equal(t('08:00:00 0:00:30 Doorbell').type, 'doorbell');
+  assert.equal(t('09:00:00 0:00:20 Package').type, 'package');
+  assert.equal(t('10:00:00 0:00:20 Face').type, 'face');
+  assert.deepEqual(t('11:00:00 0:00:20 Crossline Forgotten_Item').types, ['smart']);
+  assert.equal(t('12:00:00 0:00:20 Crying').type, 'crying');
+  assert.equal(t('13:00:00 0:10:00 Timer').type, 'other');
+});

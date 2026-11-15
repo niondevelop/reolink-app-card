@@ -6,7 +6,16 @@ export default {
   /* ---------- Qualität ---------- */
   _normQ(q) { q = Q_ALIAS[String(q).toLowerCase()] || String(q).toLowerCase(); return Q[q] ? q : 'fluent'; },
 
-  _qEntity(q, cam = this._cam) { return this._e({ fluent: 'cam_sd', balanced: 'cam_bal', clear: 'cam_hd' }[q], cam); },
+  _qEntity(q, cam = this._cam) { return this._e({ fluent: 'cam_sd', balanced: 'cam_bal', clear: 'cam_hd', tele: 'cam_tele' }[q], cam); },
+
+  /* Bezeichnung der Stufe: „Tele“ bei der TrackMix, „2. Objektiv“ bei anderen Kameras mit zwei Objektiven (Duo) */
+  _qLabel(q, cam = this._cam) {
+    if (q !== 'tele') return this._t(Q[q].key);
+    const dev = this._hass && this._hass.devices && cam._devId && this._hass.devices[cam._devId];
+    const idx = this._devIndex(cam) || {};
+    const tele = idx['camera:telephoto_sub'] || /trackmix/i.test((dev && (dev.model || dev.name)) || '');
+    return this._t(tele ? 'q_tele' : 'q_lens2');
+  },
 
   _qAvail() { return Q_ORDER.filter((q) => this._st(this._qEntity(q))); },
 

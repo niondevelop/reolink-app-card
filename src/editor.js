@@ -1,5 +1,5 @@
 /* Visueller Editor der Karte */
-import { Q, Q_ORDER } from './constants.js';
+import { Q, Q_BASE } from './constants.js';
 import { detectCameras, prefixOf } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
@@ -38,7 +38,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         { name: 'doorbell_sound', selector: { boolean: {} } },
       ] },
       { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
-      { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_ORDER.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
+      { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
       { type: 'grid', name: '', schema: [
         { name: 'auto_live', selector: { boolean: {} } },
