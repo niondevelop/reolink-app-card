@@ -2838,7 +2838,6 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
       this.addEventListener("keydown", (e) => this._playbackKey(e));
       this._setupZoom();
       ["tabs", "days", "filters"].forEach((id) => scrollable($(id)));
-      if (window.ResizeObserver) new ResizeObserver(() => this._fitHub()).observe($("hub"));
       if (this.isConnected) this._observe();
     },
     _controls() {
@@ -3090,6 +3089,16 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
           };
         });
       });
+      if (window.ResizeObserver) {
+        if (!this._hubRO) this._hubRO = new ResizeObserver(() => {
+          cancelAnimationFrame(this._hubRaf);
+          this._hubRaf = requestAnimationFrame(() => this._fitHub());
+        });
+        this._hubRO.disconnect();
+        this._hubRO.observe(box);
+        box.querySelectorAll(".scene ha-icon, .scene span").forEach((el) => this._hubRO.observe(el));
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
       this._fitHub();
     },
     /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,

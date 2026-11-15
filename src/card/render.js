@@ -116,7 +116,6 @@ export default {
     this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();
     ['tabs', 'days', 'filters'].forEach((id) => scrollable($(id)));
-    if (window.ResizeObserver) new ResizeObserver(() => this._fitHub()).observe($('hub'));
     if (this.isConnected) this._observe();
   },
 
@@ -337,6 +336,14 @@ export default {
         b.onclick = () => { if (b.dataset.o !== r.st.state) this._call(r.id.split('.')[0], 'select_option', r.id, { option: b.dataset.o }); };
       });
     });
+    // Symbole und Schrift laden in Home Assistant erst nach dem Aufbau: bei jeder Grössenänderung neu anpassen
+    if (window.ResizeObserver) {
+      if (!this._hubRO) this._hubRO = new ResizeObserver(() => { cancelAnimationFrame(this._hubRaf); this._hubRaf = requestAnimationFrame(() => this._fitHub()); });
+      this._hubRO.disconnect();
+      this._hubRO.observe(box);
+      box.querySelectorAll('.scene ha-icon, .scene span').forEach((el) => this._hubRO.observe(el));
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
     this._fitHub();
   },
 

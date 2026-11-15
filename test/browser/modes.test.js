@@ -50,3 +50,15 @@ test('wird die Karte breiter, kommen die Namen zurück', async () => {
   assert.equal(s.wrap, false);
   await c.close();
 });
+
+test('Symbole laden später (wie in Home Assistant): Zeile wird neu angepasst', async () => {
+  const c = await open(330);
+  // Symbole erst jetzt „laden“: jedes ha-icon bekommt nachträglich eine Breite
+  await c.run(() => window.__card.shadowRoot.querySelectorAll('.scene ha-icon').forEach((i) => { i.style.display = 'inline-block'; i.style.width = '0px'; }));
+  await c.run(() => { const h = window.__card.shadowRoot.getElementById('hub'); h.classList.remove('wrap'); h.querySelectorAll('.scene').forEach((r) => r.classList.remove('compact')); });
+  await wait(100);
+  await c.run(() => window.__card.shadowRoot.querySelectorAll('.scene ha-icon').forEach((i) => { i.style.width = '40px'; }));
+  await wait(300);
+  assert.equal((await state(c)).fits, true);
+  await c.close();
+});
