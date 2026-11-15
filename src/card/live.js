@@ -128,7 +128,7 @@ export default {
     const el = this.$('stage');
     if (document.fullscreenElement) document.exitFullscreen();
     else if (el.requestFullscreen) el.requestFullscreen();
-    else if (this.$('video').webkitEnterFullscreen && this._playing) this.$('video').webkitEnterFullscreen();
+    else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
   },
 
   /* ---------- Digitaler Zoom ---------- */

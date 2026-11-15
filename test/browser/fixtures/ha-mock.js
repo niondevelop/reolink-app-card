@@ -5,7 +5,7 @@
    - makeHass(): hass-Objekt mit Zuständen, Register, callService/callWS und Medienquelle
    Steuerung über window.__T (Optionen) und Aufzeichnung über window.__R (Aufrufe, Ereignisse). */
 window.__T = window.__T || {};
-window.__R = { calls: [], ws: [], events: [], msgs: [], resolved: [], toggles: 0, connects: 0, lastMuted: null };
+window.__R = { calls: [], ws: [], events: [], msgs: [], resolved: [], hls: [], toggles: 0, connects: 0, lastMuted: null };
 const fire = (el, type, detail) => el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 
 customElements.define('ha-icon', class extends HTMLElement {});
@@ -66,8 +66,17 @@ customElements.define('hui-image', class extends HTMLElement {
 customElements.define('hui-picture-entity-card', class extends HTMLElement {
   constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<hui-image></hui-image>'; }
 });
+/* HLS-Player von Home Assistant: wird wie im echten Frontend erst mit der Livebild-Karte geladen */
+function defineHlsPlayer() {
+  if (customElements.get('ha-hls-player')) return;
+  customElements.define('ha-hls-player', class extends HTMLElement {
+    constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<video></video>'; this.updateComplete = Promise.resolve(true); }
+    set url(u) { this._url = u; window.__R.hls.push(u); }
+    get url() { return this._url; }
+  });
+}
 window.loadCardHelpers = async () => ({
-  createCardElement: (cfg) => { const e = document.createElement('hui-picture-entity-card'); e.cfg = cfg; return e; },
+  createCardElement: (cfg) => { defineHlsPlayer(); const e = document.createElement('hui-picture-entity-card'); e.cfg = cfg; return e; },
 });
 
 /* Medienquelle: ein Tag (heute) je Kamera mit den Clips aus opts.files */
@@ -103,7 +112,11 @@ window.makeHass = (opts = {}) => {
       window.__R.ws.push(m.type);
       if (m.type === 'camera/capabilities') return { frontend_stream_types: ['web_rtc'], two_way_audio: opts.twoWay !== false };
       if (m.type === 'fire_event') { if (opts.noAdmin) throw new Error('Unauthorized'); window.__R.events.push({ type: m.event_type, data: m.event_data }); return {}; }
-      if (m.type === 'media_source/resolve_media') { window.__R.resolved.push(m.media_content_id); return { url: '/clip.mp4' }; }
+      if (m.type === 'media_source/resolve_media') {
+        window.__R.resolved.push(m.media_content_id);
+        // Direkt eingebundene Kamera ohne MP4-Dateien: Home Assistant liefert einen HLS-Stream
+        return opts.hls ? { url: '/api/hls/T1/playlist.m3u8', mime_type: 'application/x-mpegURL' } : { url: '/clip.mp4', mime_type: 'video/mp4' };
+      }
       if (m.type === 'media_source/browse_media') return media(opts, m.media_content_id);
       return {};
     },

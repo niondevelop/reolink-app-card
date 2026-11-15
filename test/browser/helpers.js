@@ -40,6 +40,13 @@ export async function openCard(browser, server, options = {}) {
     Object.entries(s).forEach(([k, v]) => localStorage.setItem(k, v));
   }, options.storage);
   if (options.missingTest) await page.route('**/local/reolink-test/**', (r) => r.fulfill({ status: 404, body: '' }));
+  // Ob der Browser HLS selbst abspielt (Safari: ja, Chrome/Firefox: meist nein)
+  if (options.nativeHls !== undefined) {
+    await page.addInitScript((yes) => {
+      const orig = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (t) { return /mpegurl/i.test(t) ? (yes ? 'maybe' : '') : orig.call(this, t); };
+    }, options.nativeHls);
+  }
   if (options.insecure) await page.addInitScript(() => Object.defineProperty(window, 'isSecureContext', { get: () => false }));
   if (options.fakeActivation) {
     // Headless Chromium meldet die Seite sonst immer als „schon angetippt“

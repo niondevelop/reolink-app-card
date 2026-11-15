@@ -66,7 +66,7 @@ export default {
     if (q === this._playQ) return;
     this._playQ = q;
     const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
-    const v = this.$('video');
+    const v = this._vid();
     const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
     if (this._mode !== 'play') { this._days = null; this._update(); return; }
     await this._loadDays({ day, resume });
@@ -121,10 +121,12 @@ export default {
   _resumeClip({ start, at }) {
     const f = Array.isArray(this._files) && this._files.find((x) => x.start === start);
     if (!f) { this._stopPlayback(); return; }
-    const v = this.$('video');
-    const seek = () => { v.removeEventListener('loadedmetadata', seek); if (at > 0) { try { v.currentTime = at; } catch (_) { /* ignorieren */ } } };
-    v.addEventListener('loadedmetadata', seek);
-    this._play(f);
+    this._play(f).then(() => {
+      const v = this._vid();
+      if (!v || !(at > 0)) return;
+      const seek = () => { v.removeEventListener('loadedmetadata', seek); try { v.currentTime = at; } catch (_) { /* ignorieren */ } };
+      if (v.readyState >= 1) seek(); else v.addEventListener('loadedmetadata', seek);
+    });
   },
 
   _dayOf(k) {
@@ -168,20 +170,76 @@ export default {
     return Array.isArray(this._files) ? this._files.filter((f) => this._filter === 'all' || f.types.includes(this._filter)) : [];
   },
 
+  /* Aktives Videoelement: eigenes <video> oder das im HLS-Player von Home Assistant */
+  _vid() {
+    const inner = this._hls && this._hls.shadowRoot && this._hls.shadowRoot.querySelector('video');
+    return inner || this.$('video');
+  },
+
+  /* Clips als HLS-Stream (z. B. von direkt eingebundenen Kameras ohne MP4-Dateien): Browser ohne eigenes HLS
+     (Chrome, Firefox) spielen sie mit dem HLS-Player von Home Assistant ab */
+  _needsHlsPlayer(r) {
+    const hls = /mpegurl/i.test(r.mime_type || '') || /\.m3u8(\?|$)/i.test(r.url || '');
+    return hls && !this.$('video').canPlayType('application/vnd.apple.mpegurl');
+  },
+
+  async _hlsPlayerReady() {
+    if (customElements.get('ha-hls-player')) return true;
+    try {
+      // Der HLS-Player gehört zum Kamera-Stream von Home Assistant; die Livebild-Karte lädt ihn nach
+      const helpers = await window.loadCardHelpers();
+      helpers.createCardElement({ type: 'picture-entity', entity: this._e('cam_sd') || this._cam.entity || 'camera.none', camera_view: 'live' });
+    } catch (_) { /* ignorieren */ }
+    return Promise.race([customElements.whenDefined('ha-hls-player').then(() => true), new Promise((r) => setTimeout(() => r(false), 8000))]);
+  },
+
+  async _playHls(url, file) {
+    if (!(await this._hlsPlayerReady())) throw new Error('HLS');
+    if (this._playing !== file) return;
+    this._removeHls();
+    this.$('video').removeAttribute('src');
+    const el = document.createElement('ha-hls-player');
+    el.className = 'hls';
+    el.hass = this._hass;
+    el.controls = true; el.autoPlay = true; el.playsInline = true;
+    el.fitMode = 'contain';
+    el.url = url;
+    this.$('media').appendChild(el);
+    this._hls = el;
+    this.$('stage').classList.add('hls');
+    if (el.updateComplete) await el.updateComplete;
+    const v = this._vid();
+    if (v && v !== this.$('video')) {
+      v.playbackRate = this._speed;
+      v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; });
+      v.addEventListener('ended', () => { if (this._config.autoplay_next) this._playNext(true); });
+    }
+  },
+
+  _removeHls() {
+    if (this._hls) { this._hls.remove(); this._hls = null; }
+    if (this.$) this.$('stage').classList.remove('hls');
+  },
+
   async _play(file) {
     this._stopLive(true);
     this._resetZoom();
     this._playing = file;
     this._update();
-    const v = this.$('video');
     try {
       const r = await this._hass.callWS({ type: 'media_source/resolve_media', media_content_id: file.node.media_content_id, expires: 3600 });
       if (this._playing !== file) return;
       this._playUrl = this._hass.hassUrl(r.url);
-      v.src = this._playUrl;
-      v.playbackRate = this._speed;
-      const p = v.play();
-      if (p && p.catch) p.catch(() => {});
+      if (this._needsHlsPlayer(r)) {
+        await this._playHls(this._playUrl, file);
+      } else {
+        this._removeHls();
+        const v = this.$('video');
+        v.src = this._playUrl;
+        v.playbackRate = this._speed;
+        const p = v.play();
+        if (p && p.catch) p.catch(() => {});
+      }
     } catch (e) {
       this._playing = null;
       this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
@@ -198,7 +256,7 @@ export default {
 
   _cycleSpeed() {
     this._speed = SPEEDS[(SPEEDS.indexOf(this._speed) + 1) % SPEEDS.length];
-    this.$('video').playbackRate = this._speed;
+    this._vid().playbackRate = this._speed;
     this._update();
   },
 
@@ -210,8 +268,9 @@ export default {
   },
 
   _stopPlayback(silent) {
-    const v = this.$ && this.$('video');
+    const v = this.$ && this._vid();
     if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) { /* ignorieren */ } }
+    this._removeHls();
     if (!this._playing) return;
     this._playing = null; this._playUrl = null;
     if (!silent) { this._update(); this._autoLive(); }

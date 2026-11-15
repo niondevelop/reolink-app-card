@@ -271,7 +271,7 @@ export default {
     const pi = playing ? files.findIndex((f) => f.node.media_content_id === this._playing.node.media_content_id) : -1;
     $('next').style.display = playing && pi >= 0 && pi + 1 < files.length ? '' : 'none';
     $('next').title = this._t('next');
-    $('dl').style.display = playing && this._playUrl ? '' : 'none';
+    $('dl').style.display = playing && this._playUrl && !this._hls ? '' : 'none';
     $('dl').title = this._t('download');
     $('unzoom').title = this._t('reset_zoom');
     this._applyZoom();

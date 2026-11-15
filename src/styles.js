@@ -51,6 +51,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .pic, .pic > * { position: absolute; inset: 0; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
+ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
+.stage.playing ha-hls-player.hls { display: block; } .stage.hls.playing video#video { display: none; }
 .stage.playing video { display: block; } .stage.playing .pic, .stage.playing .media > .prev { display: none; }
 .grid { display: none; }
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }

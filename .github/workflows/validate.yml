@@ -101,19 +101,19 @@ jobs:
           RAW="https://raw.githubusercontent.com/$HEAD_REPO/$SHA/dist/reolink-app-card.js"
           {
             echo '<!-- reolink-app-card-test-file -->'
-            echo "### 🧪 Testdatei für PR #$PR · Version $VERSION · Commit \`$SHORT\`"
+            echo "### 🧪 Test file for PR #$PR · version $VERSION · commit \`$SHORT\`"
             echo
-            echo "**Home Assistant → Terminal** öffnen, einfügen und ausführen (lädt nach \`/config/www/reolink-test/\` und prüft die Datei, am Ende steht **OK**):"
+            echo "Requires the card **0.2.0 or newer** from HACS / the Marketplace; your stable install stays untouched. Open **Terminal** in Home Assistant, paste and run (saves to \`/config/www/reolink-test/\` and checks the file; the last line must say **OK**):"
             echo
             echo '```bash'
             echo "D=\$( [ -d /homeassistant ] && echo /homeassistant || echo /config )/www/reolink-test; mkdir -p \$D && curl -fsSL -o \$D/reolink-app-card.js $RAW && echo \"$SHA256  \$D/reolink-app-card.js\" | sha256sum -c"
             echo '```'
             echo
-            echo "Danach das Dashboard neu laden. Auf einem Gerät zum ersten Mal: Dashboard einmal mit \`?rac_channel=test\` öffnen ([Anleitung](https://github.com/$GITHUB_REPOSITORY/blob/main/TESTING.de.md))."
+            echo "Then open the dashboard with \`?rac_channel=test\` at the end of the address (once per device, admins only). A purple **Test version** bar shows in the card. Guide: [English](https://github.com/$HEAD_REPO/blob/$SHA/TESTING.md) · [Deutsch](https://github.com/$HEAD_REPO/blob/$SHA/TESTING.de.md)"
             echo
-            echo "- Oder herunterladen: [Artifact \`reolink-app-card-pr-$PR\`]($ARTIFACT_URL) (ZIP, GitHub-Anmeldung, 30 Tage) · [Datei direkt]($RAW)"
-            echo "- SHA-256: \`$SHA256\` – identisch mit \`dist/reolink-app-card.js\` in diesem Commit"
-            echo "- Zurück zur stabilen Version: in der Karte auf den lila Balken **Testversion** tippen"
+            echo "- Or download: [artifact \`reolink-app-card-pr-$PR\`]($ARTIFACT_URL) (zip, GitHub login, 30 days) · [file directly]($RAW)"
+            echo "- SHA-256: \`$SHA256\` – identical to \`dist/reolink-app-card.js\` in this commit"
+            echo "- Back to the stable version: tap the purple bar in the card, then **Go back** (or open the dashboard with \`?rac_channel=stable\`)"
           } > notes.md
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
       # Kommentar im PR (wird bei jedem neuen Commit aktualisiert); bei PRs aus Forks fehlt die Berechtigung

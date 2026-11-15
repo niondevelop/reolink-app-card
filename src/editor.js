@@ -1,6 +1,6 @@
 /* Visueller Editor der Karte */
 import { Q, Q_ORDER } from './constants.js';
-import { detectCameras } from './entities.js';
+import { detectCameras, prefixOf } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
@@ -81,7 +81,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       form.addEventListener('value-changed', (e) => {
         const v = { ...e.detail.value };
         const hit = detected.find((d) => d.prefix === v.prefix);
-        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; }
+        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (!prefixOf(hit.entity)) v.entity = hit.entity; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
         const list = [...this._config.cameras]; list[i] = v;
         this._changed({ ...this._config, cameras: list });
