@@ -84,6 +84,7 @@ export default {
 
   /* Warum Gegensprechen gerade nicht geht – null heisst: bereit */
   _talkReason() {
+    if (this._snapOnly()) return 'nostream';
     const caps = this._talkCaps(this._talkEnt);
     if (caps === undefined) return 'wait';
     if (!caps) return 'feature';

@@ -65,7 +65,7 @@ export default {
         <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
-          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button></div></div>
+          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button><button data-q="tele"></button></div></div>
           <div class="filters" id="filters"></div>
           <div class="tl"><div class="tlbar" id="tlbar"></div><div class="tlh"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
           <div class="list" id="list"></div>
@@ -116,6 +116,7 @@ export default {
     this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();
     ['tabs', 'days', 'filters'].forEach((id) => scrollable($(id)));
+    if (window.ResizeObserver) new ResizeObserver(() => this._applyLayout()).observe(root.querySelector('ha-card'));
     if (this.isConnected) this._observe();
   },
 
@@ -182,6 +183,23 @@ export default {
     t.style.display = timed ? '' : 'none';
   },
 
+  /* Anordnung: hochkant (Handy, schmale Spalte) oder bei breiter Karte Seitenleiste rechts/links bzw. alles unten.
+     layout: auto (breit → rechts) | right | left | bottom */
+  _applyLayout() {
+    const card = this.shadowRoot && this.shadowRoot.querySelector('ha-card');
+    if (!card) return;
+    const wide = card.clientWidth >= 760;
+    const want = String(this._config.layout || 'auto');
+    const lay = !wide ? '' : want === 'auto' ? 'right' : ['right', 'left', 'bottom'].includes(want) ? want : '';
+    if (card.dataset.layout === lay) return;
+    card.dataset.layout = lay;
+    ['right', 'left', 'bottom'].forEach((x) => card.classList.toggle(`lay-${x}`, lay === x));
+    card.classList.toggle('lay-side', lay === 'right' || lay === 'left');
+    this._side = lay === 'right' || lay === 'left';
+    this._update();
+    this._fitHub();
+  },
+
   /* Bezeichnungen für Screenreader: Symbol-Knöpfe ohne Text bekommen ihren Tooltip als aria-label */
   _a11y() {
     this.shadowRoot.querySelectorAll('button[title]').forEach((b) => { if (b.getAttribute('aria-label') !== b.title) b.setAttribute('aria-label', b.title); });
@@ -189,6 +207,7 @@ export default {
 
   _update() {
     if (!this._built || !this._hass) return;
+    if (this.shadowRoot.querySelector('ha-card').dataset.layout === undefined) this._applyLayout();
     const $ = this.$, c = this._cam, root = this.shadowRoot;
     const playing = !!this._playing;
 
@@ -226,7 +245,7 @@ export default {
     $('stage').classList.toggle('talking', talking);
     $('talk').classList.toggle('conn', this._mic === 'connecting');
     $('talk').classList.toggle('lvl', !!this._meterCtx);
-    $('snd').style.display = this._live && !this._grid && !playing ? '' : 'none';
+    $('snd').style.display = this._live && !this._grid && !playing && !this._snapOnly() ? '' : 'none';
     $('snd').classList.toggle('on', this._sound);
     $('snd').querySelector('ha-icon').setAttribute('icon', this._sound ? 'mdi:volume-high' : 'mdi:volume-off');
     $('snd').title = this._sound ? this._t('sound_off') : this._t('sound_on');
@@ -292,9 +311,13 @@ export default {
     $('testbar').style.display = ch === 'stable' ? 'none' : '';
     $('testbar').classList.toggle('missing', ch === 'test-missing');
     if (ch !== 'stable') $('testbar-l').textContent = this._t(ch === 'test' ? 'test_on' : 'test_missing', { v: RAC_VERSION });
+    // Ohne Aufnahmen in Home Assistant gibt es nur Live: Umschalter ausblenden
+    const hasPlay = this._hasPlayback();
+    this.shadowRoot.querySelector('.seg').style.display = hasPlay ? '' : 'none';
+    if (!hasPlay && this._mode === 'play') { this._setMode('live'); return; }
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
-    $('pane-live').style.display = this._mode === 'live' ? '' : 'none';
+    $('pane-live').style.display = this._mode === 'live' ? (this._side ? 'contents' : '') : 'none';
     $('pane-play').style.display = this._mode === 'play' ? '' : 'none';
 
     if (this._mode === 'live') this._updateLivePane();
@@ -423,9 +446,10 @@ export default {
       }
     }
 
+    const setOpen = this._settingsOpen || this._side;
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
-    box.style.display = this._settingsOpen ? '' : 'none';
-    if (this._settingsOpen) this._updateSettings(box);
+    box.style.display = setOpen ? '' : 'none';
+    if (setOpen) this._updateSettings(box);
   },
 };

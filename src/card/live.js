@@ -33,6 +33,32 @@ export default {
   },
 
   /* ---------- Bild: Live-Stream oder letzter Schnappschuss ---------- */
+  /* Entität für das Livebild: gewählte Qualität, sonst Flüssig; null, wenn die Kamera keinen Video-Stream hat */
+  _streamEnt(cam = this._cam, q = cam === this._cam ? this._quality : 'fluent') {
+    const want = this._qEntity(q, cam);
+    if (this._st(want)) return want;
+    const sd = this._e('cam_sd', cam);
+    return this._st(sd) ? sd : null;
+  },
+
+  /* Kamera ohne Video-Stream, nur mit Schnappschüssen (z. B. Akku-Klingel ohne Hub) */
+  _snapOnly(cam = this._cam) {
+    return !this._streamEnt(cam) && !!(this._st(this._e('snap', cam)) || this._st(this._e('snap_hd', cam)));
+  },
+
+  /* Livebild einer Kamera: Player von Home Assistant, oder bei Kameras ohne Video-Stream eine eigene Bildfolge (MJPEG),
+     die wie das Standbild das ganze Bild zeigt (der Player von Home Assistant schneidet sie zu) */
+  async _liveEl(cam) {
+    const ent = this._streamEnt(cam);
+    if (ent || !this._snapOnly(cam)) return this._liveCard(ent || this._e('cam_sd', cam));
+    const id = this._st(this._e('snap', cam)) ? this._e('snap', cam) : this._e('snap_hd', cam);
+    const img = document.createElement('img');
+    img.className = 'mjpeg';
+    img.alt = '';
+    img.src = this._hass.hassUrl(`/api/camera_proxy_stream/${id}?token=${this._st(id).attributes.access_token}`);
+    return img;
+  },
+
   async _liveCard(entity) {
     const helpers = await window.loadCardHelpers();
     const el = helpers.createCardElement({
@@ -51,14 +77,13 @@ export default {
     this._streamType = null;
     if (!this._live) { host.innerHTML = ''; this._renderGrid([]); return; }
     if (this._grid) {
-      const els = await Promise.all(this._cams.map((c) => this._liveCard(this._e('cam_sd', c))));
+      const els = await Promise.all(this._cams.map((c) => this._liveEl(c)));
       if (token !== this._picToken) return;
       host.innerHTML = '';
       this._pics = els;
       this._renderGrid(els);
     } else {
-      const want = this._qEntity(this._quality);
-      const el = await this._liveCard(this._st(want) ? want : this._e('cam_sd'));
+      const el = await this._liveEl(this._cam);
       if (token !== this._picToken) return;
       grid.innerHTML = '';
       host.innerHTML = '';

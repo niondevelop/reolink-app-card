@@ -7,6 +7,7 @@ export const ENT = {
   cam_hd: ['camera', 'hochauflosung', 'clear'],
   snap: ['camera', 'schnappschusse_in_standardauflosung', 'snapshots_fluent'],
   cam_tele: ['camera', 'tele_standardauflosung', 'telephoto_fluent'],
+  snap_hd: ['camera', 'schnappschusse_in_hochauflosung', 'snapshots_clear'],
   light: ['light', 'flutlicht', 'floodlight'],
   status_led: ['light', 'status_led'],
   siren: ['siren', 'sirene', 'siren'],
@@ -59,7 +60,7 @@ export const ENT = {
 
 /* Interne Schlüssel (translation_key) der Reolink-Integration – unabhängig von Sprache und Umbenennungen */
 export const TK = {
-  cam_sd: 'sub', cam_bal: 'ext', cam_hd: 'main', snap: 'snapshots_sub',
+  cam_sd: 'sub', cam_bal: 'ext', cam_hd: 'main', snap: 'snapshots_sub', snap_hd: 'snapshots_main',
   // Tele (TrackMix an Hub/NVR) bzw. zweites Objektiv (direkt eingebundene TrackMix, Duo)
   cam_tele: ['telephoto_sub', 'sub_lens_1'],
   light: 'floodlight', status_led: 'status_led', siren: 'siren', prealarm: 'pre_siren',
@@ -140,12 +141,28 @@ export function detectCameras(hass) {
     if (!id.startsWith('camera.') || r.platform !== 'reolink' || !['sub', 'sub_lens_0'].includes(r.translation_key) || !hass.states[id]) return;
     add(id, prefixOf(id) || id.slice(7), String(hass.states[id].attributes.friendly_name || '').trim());
   });
+  // 3. Kameras ohne Video-Stream, nur mit Schnappschüssen (z. B. direkt eingebundene Akku-Klingel)
+  Object.keys(hass.entities || {}).forEach((id) => {
+    const r = hass.entities[id];
+    if (!id.startsWith('camera.') || r.platform !== 'reolink' || r.translation_key !== 'snapshots_sub' || !hass.states[id]) return;
+    add(id, prefixOf(id) || id.slice(7), '');
+  });
+  Object.keys(hass.states).forEach((id) => {
+    const m = id.match(/^camera\.(.+)_(schnappschusse_in_standardauflosung|snapshots_fluent)$/);
+    if (!m || out.some((c) => c.prefix === m[1])) return;
+    const reg = hass.entities && hass.entities[id];
+    if (reg && reg.platform && reg.platform !== 'reolink') return;
+    add(id, m[1], '');
+  });
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /* Hub finden: Szenenmodus- oder SD-Karten-Entität, die keiner Kamera gehört */
 /* Kamera-Eintrag für eine Konfiguration; die Entität nur, wenn sich der Präfix nicht aus ihr ableiten lässt */
-export const camConfig = (c) => ({ name: c.name, prefix: c.prefix, media_name: c.name, ...(c.entity && !prefixOf(c.entity) ? { entity: c.entity } : {}) });
+/* Braucht die Konfiguration die volle Entität? Ja, wenn sich der Präfix nicht ableiten lässt oder die Kamera
+   zwei Objektive hat (Streams enden auf _lens_0 / _objektiv_0, die Namensendungen allein finden sie nicht) */
+export const needsEntity = (id) => !!id && (!prefixOf(id) || /_(lens|objektiv|linse)_\d$/.test(id));
+export const camConfig = (c) => ({ name: c.name, prefix: c.prefix, media_name: c.name, ...(needsEntity(c.entity) ? { entity: c.entity } : {}) });
 
 export function findHubPrefix(hass) {
   if (!hass) return null;

@@ -9,7 +9,8 @@ window.__R = { calls: [], ws: [], events: [], msgs: [], resolved: [], hls: [], t
 const fire = (el, type, detail) => el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 
 customElements.define('ha-icon', class extends HTMLElement {});
-customElements.define('ha-card', class extends HTMLElement { connectedCallback() { this.style.display = 'block'; } });
+/* wie in Home Assistant: Anzeige über :host, damit die Karte sie mit eigenem CSS überschreiben kann */
+customElements.define('ha-card', class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block}</style><slot></slot>'; } });
 
 customElements.define('ha-web-rtc-player', class extends HTMLElement {
   constructor() { super(); this.microphoneState = 'off'; this.muted = true; this._eid = undefined; this.updateComplete = Promise.resolve(true); }
@@ -82,13 +83,13 @@ window.loadCardHelpers = async () => ({
 /* Medienquelle: ein Tag (heute) je Kamera mit den Clips aus opts.files */
 function media(opts, id) {
   const d = new Date();
-  if (id === 'media-source://reolink') return { children: (opts.mediaCameras || []).map((t, i) => ({ title: t, media_content_id: `R|${i}`, can_expand: true })) };
+  if (id === 'media-source://reolink') return { children: (opts.mediaCameras || []).map((t, i) => ({ ...(typeof t === 'object' ? t : { title: t }), media_content_id: `R|${i}`, can_expand: true })) };
   // Mit opts.resolutions wie die Reolink-Integration: erst „Low/High resolution“, dann die Tage
   if (opts.resolutions && /^R\|\d+$/.test(id)) {
     return { children: [
       { title: 'Low resolution', media_content_id: `${id}|RES|sub`, can_expand: true },
       { title: 'High resolution', media_content_id: `${id}|RES|main`, can_expand: true },
-      { title: 'Autotrack low resolution', media_content_id: `${id}|RES|autotrack_sub`, can_expand: true },
+      ...(opts.telephoto ? [{ title: 'Telephoto low resolution', media_content_id: `${id}|RES|autotrack_sub`, can_expand: true }, { title: 'Telephoto high resolution', media_content_id: `${id}|RES|autotrack_main`, can_expand: true }] : []),
     ] };
   }
   if (/^R\|\d+(\|RES\|\w+)?$/.test(id)) return { children: [{ title: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, media_content_id: `${id}|${d.getFullYear()}|${d.getMonth() + 1}|${d.getDate()}`, can_expand: true }] };

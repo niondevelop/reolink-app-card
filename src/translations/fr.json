@@ -132,7 +132,8 @@
     "test_on": "Version de test {v} – touchez pour la version stable",
     "test_missing": "Fichier de test introuvable – la version stable est active. Touchez pour arrêter",
     "test_back": "Revenir à la version stable ? La page sera rechargée.",
-    "test_back_btn": "Revenir"
+    "test_back_btn": "Revenir",
+    "talk_na_nostream": "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -160,6 +161,12 @@
     "options": "Options",
     "audio": "Sortie audio",
     "audio_auto": "Automatique (son activé dès que le direct démarre)",
-    "audio_manual": "Manuelle (avec le bouton haut-parleur)"
+    "audio_manual": "Manuelle (avec le bouton haut-parleur)",
+    "layout": "Disposition (carte large)",
+    "layout_auto": "Automatique (barre latérale à droite si assez large)",
+    "layout_right": "Barre latérale à droite",
+    "layout_left": "Barre latérale à gauche",
+    "layout_bottom": "Tout en dessous",
+    "playback": "Afficher la lecture"
   }
 }

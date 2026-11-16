@@ -23,7 +23,7 @@ customElements.define('ha-icon', class extends HTMLElement {
   }
 });
 customElements.define('ha-card', class extends HTMLElement {
-  connectedCallback() { Object.assign(this.style, { display: 'block', background: '#1c1c1e', borderRadius: '16px', overflow: 'hidden' }); }
+  constructor() { super(); this.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block;background:#1c1c1e;border-radius:16px;overflow:hidden}</style><slot></slot>'; }
 });
 customElements.define('ha-web-rtc-player', class extends HTMLElement {
   constructor() { super(); this.microphoneState = 'off'; this.muted = true; this.updateComplete = Promise.resolve(true); }

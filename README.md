@@ -50,7 +50,8 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
 - **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
 - **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move.
-- **Two lenses:** for the TrackMix and Duo, the second lens (telephoto) is an extra quality level in the quality menu.
+- **Two lenses:** for the TrackMix and Duo, the second lens (telephoto) is an extra quality level in the quality menu and in playback.
+- **Wide screens:** on a wide card the live view or playback list moves into a sidebar (right, left or below, option `layout`), with the control buttons compact under the image.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
@@ -69,6 +70,9 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/grid.png" width="300" alt="Grid view">
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/doorbell.png" width="300" alt="Doorbell">
+</p>
+<p>
+  <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/landscape.png" width="606" alt="Wide layout with sidebar">
 </p>
 
 ## Installation
@@ -124,6 +128,8 @@ cameras:
 | `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
+| `layout`                  | `auto`        | Arrangement on a wide card (from about 760 px): `auto` (sidebar right), `right`, `left` or `bottom`. Narrow cards and phones always stack everything |
+| `playback`                | `true`        | `false` hides the playback tab. It is hidden automatically for cameras that Home Assistant offers no recordings for |
 | `doorbell_timeout`        | `30`          | How long the doorbell call screen stays (seconds) |
 | `doorbell_sound`          | `true`        | Play a short ring tone on the device when the bell rings |
 | `talk_url`                | –             | Optional: open this link (e.g. the Reolink app) with the talk button when two-way audio is not available. Can also be set per camera |
@@ -139,6 +145,7 @@ cameras:
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
 | `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
+| `playback`   | `false` hides the playback tab for this camera |
 
 The card finds the entities on its own through the device registry, so it works in any language and with renamed entities. If that's not possible, it falls back to English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
 
@@ -277,6 +284,8 @@ This is an alpha version. What has been tested, and how:
 
 - **Tested on real hardware with one setup only:** Reolink Home Hub with two Argus battery cameras, Android Companion app, Home Assistant 2026.11. Other models, an NVR or several hubs have not been tested.
 - **Only tested in a simulated Home Assistant, not with real devices:** the second lens of TrackMix and Duo cameras, the doorbell call blueprint, recordings that Home Assistant streams as HLS, the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
+- **Battery cameras connected directly (no hub):** the Reolink integration gives some of them (e.g. a battery Video Doorbell) only snapshot entities and no video stream. The card then shows the live view as a sequence of images, without sound and two-way audio. Home Assistant offers no recordings for them, so the playback tab is hidden.
+- **TrackMix / Duo connected directly:** if a camera with two lenses was set up in an older version and shows no picture, update the card; `entity: camera.<…>_fluent_lens_0` in YAML works in any version.
 - **Cameras from another Home Assistant:** recordings come from the media source of the Reolink integration, which only exists on the Home Assistant instance where the camera is added. A camera that only reaches this Home Assistant from another instance (e.g. via *Remote Home-Assistant* or go2rtc) shows the live view, and controls only if their entities are shared too (map them with `entities:`), but no recordings. Use the card on the other instance, or add the camera to this Home Assistant directly (the Reolink integration also reaches cameras at other places through a VPN such as Tailscale).
 - **High resolution recordings** are usually H.265, which Chrome and Firefox often can't play; the low resolution (H.264) plays everywhere.
 - **Two-way audio** is a Labs (preview) feature of Home Assistant. Some Reolink models have known problems with it (no sound arriving at the camera, or an echo). In a browser it needs HTTPS.

@@ -55,6 +55,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
 .prev.ok { opacity: 1; }
 .stage.live .media > .prev { opacity: 0; }
 .pic, .pic > * { position: absolute; inset: 0; }
+.mjpeg { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
 ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
@@ -212,4 +213,31 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .ed { font-size: 12px; color: var(--secondary-text-color); }
 .ep { color: var(--ra); }
 .msg { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 18px; color: var(--secondary-text-color); font-size: 14px; }
+
+/* ---------- Querformat (breite Karte) ---------- */
+ha-card.lay-side, ha-card.lay-bottom { --bar-max: 560px; }
+ha-card.lay-side .barwrap, ha-card.lay-bottom .barwrap { box-sizing: border-box; max-width: var(--bar-max); width: 100%; margin-left: auto; margin-right: auto; }
+ha-card.lay-side { display: grid; align-items: start; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); }
+ha-card.lay-left { grid-template-columns: minmax(320px, 1fr) minmax(0, 1.75fr); }
+ha-card.lay-side > .testbar, ha-card.lay-side > .top, ha-card.lay-side > #hub, ha-card.lay-side > #warns, ha-card.lay-side > #stage,
+ha-card.lay-side .barwrap, ha-card.lay-side .ptz { grid-column: 1; }
+ha-card.lay-left > .testbar, ha-card.lay-left > .top, ha-card.lay-left > #hub, ha-card.lay-left > #warns, ha-card.lay-left > #stage,
+ha-card.lay-left .barwrap, ha-card.lay-left .ptz { grid-column: 2; }
+ha-card.lay-side > .testbar { grid-row: 1; }
+ha-card.lay-side > .top { grid-row: 2; } ha-card.lay-side > #hub { grid-row: 3; } ha-card.lay-side > #warns { grid-row: 4; }
+ha-card.lay-side > #stage { grid-row: 5; } ha-card.lay-side .barwrap { grid-row: 6; } ha-card.lay-side .ptz { grid-row: 7; }
+ha-card.lay-side > .seg, ha-card.lay-side .more, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { grid-column: 2; }
+ha-card.lay-left > .seg, ha-card.lay-left .more, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { grid-column: 1; }
+ha-card.lay-side > .seg { grid-row: 1 / span 2; align-self: start; margin: 10px 12px 4px; }
+ha-card.lay-side .more { display: none; }
+ha-card.lay-side .settings { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
+ha-card.lay-side > #pane-play { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
+ha-card.lay-right > .seg, ha-card.lay-right .settings, ha-card.lay-right > #pane-play { border-left: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-left > .seg, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { border-right: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-side .filters { flex-wrap: wrap; }
+ha-card.lay-side > .dlg { grid-column: 1 / -1; }
+ha-card.lay-bottom > #stage { max-height: 62vh; width: min(100%, calc(62vh * 16 / 9)); margin: 0 auto; }
+ha-card.lay-bottom > .seg { max-width: var(--bar-max); margin-left: auto; margin-right: auto; }
+ha-card.lay-bottom .days, ha-card.lay-bottom .filters { justify-content: center; flex-wrap: wrap; }
+ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
 `;

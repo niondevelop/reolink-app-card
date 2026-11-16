@@ -56,8 +56,9 @@ const FILES = [['18:21:40', '0:00:19', 'Person Doorbell'], ['13:01:44', '0:00:21
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 420, height: 1100 }, deviceScaleFactor: 2 });
 
-async function shot(name, setup, extra = {}) {
+async function shot(name, setup, extra = {}, width = 420) {
   const page = await ctx.newPage();
+  if (width !== 420) await page.setViewportSize({ width: width + 40, height: 800 });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(`${base}/page.html`);
@@ -81,6 +82,7 @@ async function shot(name, setup, extra = {}) {
     c.hass = hass;
     window.__c = c; window.__hass = hass;
   }, { states: demoStates(), files: FILES, lang, extra });
+  if (width !== 420) await page.evaluate((w) => { document.getElementById('wrap').style.width = `${w}px`; }, width);
   await page.waitForTimeout(500);
   await page.evaluate(async (setup) => {
     const c = window.__c, wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -103,6 +105,7 @@ try {
   await shot('settings', 'settings');
   await shot('grid', 'grid');
   await shot('doorbell', 'ring', { auto_live: false });
+  await shot('landscape', 'play', { auto_live: false }, 1140);
 } finally {
   await browser.close();
   server.close();

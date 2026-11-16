@@ -11,14 +11,16 @@ export default {
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
       default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
-      hub_prefix: 'reolink_hub', show_hub: true, alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
+      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
       ...config,
     };
     this._cams = config.cameras.map((c) => {
       const over = { ...(c.entities || {}) };
       Object.entries(LEGACY).forEach(([k, v]) => { if (c[k]) over[v] = c[k]; });
-      const prefix = c.prefix || prefixOf(c.entity) || String(c.entity).split('.').pop();
-      return { prefix, entity: c.entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, over };
+      // Steht unter prefix versehentlich eine ganze Entity-ID (camera.…), wie entity behandeln
+      const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
+      const prefix = (c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop();
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -31,7 +33,7 @@ export default {
     // Auflösung der Wiedergabe: zuletzt gewählte, sonst niedrig (schneller, akkuschonend)
     let playQ = null;
     try { playQ = localStorage.getItem(PLAY_Q_STORE); } catch (_) { /* privater Modus o. ä. */ }
-    this._playQ = playQ === 'high' ? 'high' : 'low';
+    this._playQ = ['high', 'tele'].includes(playQ) ? playQ : 'low';
     this._res = null;
     this._live = false;
     this._filter = 'all';
@@ -82,7 +84,8 @@ export default {
     if (!reg) return null;
     if (cam._reg === reg) return cam._dev;
     cam._reg = reg; cam._dev = null; cam._devId = null;
-    const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).map((x) => `camera.${cam.prefix}_${x}`))];
+    // Namensendungen, bei Kameras mit zwei Objektiven auch mit Zusatz für das erste Objektiv
+    const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).flatMap((x) => ['', '_lens_0', '_objektiv_0', '_linse_0'].map((l) => `camera.${cam.prefix}_${x}${l}`)))];
     const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
     if (!hit) return null;
     cam._devId = reg[hit].device_id;
@@ -162,7 +165,7 @@ export default {
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._cams.forEach((c) => this._devIndex(c)); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDoorbell(old, hass);
     this._checkDetections();
