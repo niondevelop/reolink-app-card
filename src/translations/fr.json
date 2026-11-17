@@ -136,7 +136,8 @@
     "talk_na_nostream": "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant",
     "events": "Événements",
     "panel_hide": "Masquer le panneau latéral",
-    "panel_show": "Afficher le panneau latéral"
+    "panel_show": "Afficher le panneau latéral",
+    "back_live": "Retour au direct"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",

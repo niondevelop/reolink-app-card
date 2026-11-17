@@ -63,6 +63,7 @@ export default {
         </div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
+          <button class="backlive" id="backlive"><ha-icon icon="mdi:cctv"></ha-icon><span id="backlive-l"></span></button>
           <div class="ptz" id="ptz"></div>
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="more-l"></span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
@@ -91,6 +92,8 @@ export default {
       else { this._expired = true; this._stopLive(); }
     };
     $('fs').onclick = () => this._fullscreen();
+    // Seitenleiste: während eine Aufnahme läuft, führt dieser Knopf unter dem Bild zurück zum Livebild
+    $('backlive').onclick = () => { this._expired = false; this._stopPlayback(true); this._startLive(); };
     $('gridbtn').onclick = () => this._setGrid(!this._grid);
     $('m-live').onclick = () => this._setMode('live');
     $('m-play').onclick = () => this._setMode('play');
@@ -341,6 +344,7 @@ export default {
       const left = this._config.layout === 'left';
       $('p-ev').style.display = hasPlay ? '' : 'none';
       $('p-ev-l').textContent = this._t('events');
+      $('backlive-l').textContent = this._t('back_live');
       $('p-set-l').textContent = this._t('settings');
       $('p-ev').classList.toggle('sel', pan === 'events');
       $('p-set').classList.toggle('sel', pan === 'settings');

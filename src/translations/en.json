@@ -136,7 +136,8 @@
     "talk_na_nostream": "Two-way audio needs a video stream – this camera only provides still images in Home Assistant",
     "events": "Events",
     "panel_hide": "Hide side panel",
-    "panel_show": "Show side panel"
+    "panel_show": "Show side panel",
+    "back_live": "Back to live view"
   },
   "editor": {
     "mode_entity": "Mode selector on top (e.g. an input_select for notifications)",

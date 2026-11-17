@@ -85,6 +85,27 @@ test('Seitenleiste: Ereignis antippen spielt im Bild, Steuerleiste verschwindet 
   await c.close();
 });
 
+test('Seitenleiste: während einer Aufnahme führt „Zurück zum Livebild“ ins Livebild', async () => {
+  for (const layout of ['right', 'left']) {
+    const c = await open(1100, layout);
+    await wait(300);
+    await c.click('#list .item');
+    await wait(400);
+    const vis = () => c.run(() => { const e = window.__card.shadowRoot.getElementById('backlive'); return e.getClientRects().length > 0; });
+    assert.equal(await vis(), true, layout);
+    const g = await geo(c);
+    const b = await c.run(() => window.__card.shadowRoot.getElementById('backlive').getBoundingClientRect().toJSON());
+    assert.ok(b.top >= g.stage.bottom - 1 && b.left >= g.stage.left && b.right <= g.stage.right, `${layout}: unter dem Bild`);
+    await c.click('#backlive');
+    await wait(400);
+    const st = await c.run(() => ({ live: window.__card._live, playing: !!window.__card._playing }));
+    assert.deepEqual(st, { live: true, playing: false });
+    assert.equal(await vis(), false);
+    assert.equal((await geo(c)).barShown, true);
+    await c.close();
+  }
+});
+
 test('Seitenleiste: Einstellungen als eigenes Panel, zuklappen und am Bildrand wieder öffnen', async () => {
   const c = await open(1100);
   await wait(300);

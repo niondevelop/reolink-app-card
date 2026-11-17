@@ -136,7 +136,8 @@
     "talk_na_nostream": "Gegensprechen braucht einen Video-Stream – diese Kamera liefert in Home Assistant nur Einzelbilder",
     "events": "Ereignisse",
     "panel_hide": "Seitenleiste ausblenden",
-    "panel_show": "Seitenleiste einblenden"
+    "panel_show": "Seitenleiste einblenden",
+    "back_live": "Zurück zum Livebild"
   },
   "editor": {
     "mode_entity": "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",

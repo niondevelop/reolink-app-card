@@ -253,6 +253,10 @@ ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-
 ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
 ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+.backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
+.backlive ha-icon { --mdc-icon-size: 20px; }
+ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }
+ha-card.lay-left.playing .backlive { grid-column: 2; }
 .pedge { display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4; width: 28px; height: 64px; border-radius: 12px 0 0 12px;
   background: rgba(0,0,0,.45); color: #fff; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .pedge.left { right: auto; left: 0; border-radius: 0 12px 12px 0; }

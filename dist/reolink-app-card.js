@@ -344,7 +344,8 @@
       talk_na_nostream: "Gegensprechen braucht einen Video-Stream – diese Kamera liefert in Home Assistant nur Einzelbilder",
       events: "Ereignisse",
       panel_hide: "Seitenleiste ausblenden",
-      panel_show: "Seitenleiste einblenden"
+      panel_show: "Seitenleiste einblenden",
+      back_live: "Zurück zum Livebild"
     },
     editor: {
       mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -525,7 +526,8 @@
       talk_na_nostream: "Two-way audio needs a video stream – this camera only provides still images in Home Assistant",
       events: "Events",
       panel_hide: "Hide side panel",
-      panel_show: "Show side panel"
+      panel_show: "Show side panel",
+      back_live: "Back to live view"
     },
     editor: {
       mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
@@ -706,7 +708,8 @@
       talk_na_nostream: "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant",
       events: "Événements",
       panel_hide: "Masquer le panneau latéral",
-      panel_show: "Afficher le panneau latéral"
+      panel_show: "Afficher le panneau latéral",
+      back_live: "Retour au direct"
     },
     editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -2893,6 +2896,10 @@ ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-
 ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
 ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+.backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
+.backlive ha-icon { --mdc-icon-size: 20px; }
+ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }
+ha-card.lay-left.playing .backlive { grid-column: 2; }
 .pedge { display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4; width: 28px; height: 64px; border-radius: 12px 0 0 12px;
   background: rgba(0,0,0,.45); color: #fff; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .pedge.left { right: auto; left: 0; border-radius: 0 12px 12px 0; }
@@ -2963,6 +2970,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         </div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
+          <button class="backlive" id="backlive"><ha-icon icon="mdi:cctv"></ha-icon><span id="backlive-l"></span></button>
           <div class="ptz" id="ptz"></div>
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="more-l"></span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
@@ -2998,6 +3006,11 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         }
       };
       $("fs").onclick = () => this._fullscreen();
+      $("backlive").onclick = () => {
+        this._expired = false;
+        this._stopPlayback(true);
+        this._startLive();
+      };
       $("gridbtn").onclick = () => this._setGrid(!this._grid);
       $("m-live").onclick = () => this._setMode("live");
       $("m-play").onclick = () => this._setMode("play");
@@ -3288,6 +3301,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const left = this._config.layout === "left";
         $("p-ev").style.display = hasPlay ? "" : "none";
         $("p-ev-l").textContent = this._t("events");
+        $("backlive-l").textContent = this._t("back_live");
         $("p-set-l").textContent = this._t("settings");
         $("p-ev").classList.toggle("sel", pan === "events");
         $("p-set").classList.toggle("sel", pan === "settings");
