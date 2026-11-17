@@ -32,6 +32,7 @@ export default {
           </div>
           <div class="ov det" id="det"></div>
           <div class="toast" id="toast"></div>
+          <button class="pedge" id="pedge"><ha-icon></ha-icon></button>
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
           <div class="ring" id="ring">
             <div class="rhead"><span class="rbell"><ha-icon icon="mdi:doorbell-video"></ha-icon></span><b id="ring-t"></b><span id="ring-n"></span></div>
@@ -56,8 +57,13 @@ export default {
           </div>
         </div>
         <div class="seg"><button id="m-live"></button><button id="m-play"></button></div>
+        <div class="phead" id="phead">
+          <div class="ptabs"><button id="p-ev"><ha-icon icon="mdi:motion-sensor"></ha-icon><span id="p-ev-l"></span></button><button id="p-set"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="p-set-l"></span></button></div>
+          <button class="pclose" id="pclose"><ha-icon></ha-icon></button>
+        </div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
+          <button class="backlive" id="backlive"><ha-icon icon="mdi:cctv"></ha-icon><span id="backlive-l"></span></button>
           <div class="ptz" id="ptz"></div>
           <button class="more" id="more"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="more-l"></span><ha-icon id="chev" icon="mdi:chevron-down"></ha-icon></button>
           <div class="settings" id="settings"></div>
@@ -65,7 +71,7 @@ export default {
         <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dbox"><div class="dtext" id="dtext"></div><div class="dbtns"><button id="dno"></button><button id="dyes"></button></div></div></div>
         <div id="pane-play">
           <div class="days" id="days"></div>
-          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button></div></div>
+          <div class="pqrow" id="pqrow"><span id="pq-l"></span><div class="pq" id="pq"><button data-q="low"></button><button data-q="high"></button><button data-q="tele"></button></div></div>
           <div class="filters" id="filters"></div>
           <div class="tl"><div class="tlbar" id="tlbar"></div><div class="tlh"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
           <div class="list" id="list"></div>
@@ -86,10 +92,17 @@ export default {
       else { this._expired = true; this._stopLive(); }
     };
     $('fs').onclick = () => this._fullscreen();
+    // Seitenleiste: während eine Aufnahme läuft, führt dieser Knopf unter dem Bild zurück zum Livebild
+    $('backlive').onclick = () => { this._expired = false; this._stopPlayback(true); this._startLive(); };
     $('gridbtn').onclick = () => this._setGrid(!this._grid);
     $('m-live').onclick = () => this._setMode('live');
     $('m-play').onclick = () => this._setMode('play');
     $('more').onclick = () => { this._settingsOpen = !this._settingsOpen; this._update(); };
+    // Seitenleiste: Ereignisse / Einstellungen umschalten, zuklappen und am Bildrand wieder aufklappen
+    $('p-ev').onclick = () => this._setPanel('events');
+    $('p-set').onclick = () => this._setPanel('settings');
+    $('pclose').onclick = () => this._setPanel('none');
+    $('pedge').onclick = () => this._setPanel(this._lastPanel || (this._hasPlayback() ? 'events' : 'settings'));
     $('speed').onclick = () => this._cycleSpeed();
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
@@ -116,6 +129,7 @@ export default {
     this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();
     ['tabs', 'days', 'filters'].forEach((id) => scrollable($(id)));
+    if (window.ResizeObserver) new ResizeObserver(() => this._applyLayout()).observe(root.querySelector('ha-card'));
     if (this.isConnected) this._observe();
   },
 
@@ -182,6 +196,24 @@ export default {
     t.style.display = timed ? '' : 'none';
   },
 
+  /* Anordnung: hochkant (Handy, schmale Spalte) oder bei breiter Karte Seitenleiste rechts/links bzw. alles unten.
+     layout: auto (breit → rechts) | right | left | bottom */
+  _applyLayout() {
+    const card = this.shadowRoot && this.shadowRoot.querySelector('ha-card');
+    if (!card) return;
+    const wide = card.clientWidth >= 760;
+    const want = String(this._config.layout || 'auto');
+    const lay = !wide ? '' : want === 'auto' ? 'right' : ['right', 'left', 'bottom'].includes(want) ? want : '';
+    if (card.dataset.layout === lay) return;
+    card.dataset.layout = lay;
+    ['right', 'left', 'bottom'].forEach((x) => card.classList.toggle(`lay-${x}`, lay === x));
+    card.classList.toggle('lay-side', lay === 'right' || lay === 'left');
+    this._side = lay === 'right' || lay === 'left';
+    if (this._side && this._mode === 'play') { this._mode = 'live'; this._panel = 'events'; }
+    this._update();
+    this._fitHub();
+  },
+
   /* Bezeichnungen für Screenreader: Symbol-Knöpfe ohne Text bekommen ihren Tooltip als aria-label */
   _a11y() {
     this.shadowRoot.querySelectorAll('button[title]').forEach((b) => { if (b.getAttribute('aria-label') !== b.title) b.setAttribute('aria-label', b.title); });
@@ -189,6 +221,7 @@ export default {
 
   _update() {
     if (!this._built || !this._hass) return;
+    if (this.shadowRoot.querySelector('ha-card').dataset.layout === undefined) this._applyLayout();
     const $ = this.$, c = this._cam, root = this.shadowRoot;
     const playing = !!this._playing;
 
@@ -226,7 +259,7 @@ export default {
     $('stage').classList.toggle('talking', talking);
     $('talk').classList.toggle('conn', this._mic === 'connecting');
     $('talk').classList.toggle('lvl', !!this._meterCtx);
-    $('snd').style.display = this._live && !this._grid && !playing ? '' : 'none';
+    $('snd').style.display = this._live && !this._grid && !playing && !this._snapOnly() ? '' : 'none';
     $('snd').classList.toggle('on', this._sound);
     $('snd').querySelector('ha-icon').setAttribute('icon', this._sound ? 'mdi:volume-high' : 'mdi:volume-off');
     $('snd').title = this._sound ? this._t('sound_off') : this._t('sound_on');
@@ -292,12 +325,45 @@ export default {
     $('testbar').style.display = ch === 'stable' ? 'none' : '';
     $('testbar').classList.toggle('missing', ch === 'test-missing');
     if (ch !== 'stable') $('testbar-l').textContent = this._t(ch === 'test' ? 'test_on' : 'test_missing', { v: RAC_VERSION });
+    // Ohne Aufnahmen in Home Assistant gibt es nur Live: Umschalter ausblenden
+    const hasPlay = this._hasPlayback();
+    const side = !!this._side, pan = side ? this._panelNow() : null;
+    if (pan && pan !== 'none') this._lastPanel = pan;
+    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side ? '' : 'none';
+    if (!hasPlay && this._mode === 'play') { this._setMode('live'); return; }
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
-    $('pane-live').style.display = this._mode === 'live' ? '' : 'none';
-    $('pane-play').style.display = this._mode === 'play' ? '' : 'none';
+    // Seitenleiste (breite Karte): Livebild links, im Panel Ereignisse oder Einstellungen – oder zugeklappt
+    const card = root.querySelector('ha-card');
+    card.classList.toggle('pan-none', side && pan === 'none');
+    card.classList.toggle('pan-set', side && pan === 'settings');
+    card.classList.toggle('playing', playing);
+    $('phead').style.display = side && pan !== 'none' ? '' : 'none';
+    $('pedge').style.display = side && pan === 'none' && !this._grid ? 'grid' : 'none';
+    if (side) {
+      const left = this._config.layout === 'left';
+      $('p-ev').style.display = hasPlay ? '' : 'none';
+      $('p-ev-l').textContent = this._t('events');
+      $('backlive-l').textContent = this._t('back_live');
+      $('p-set-l').textContent = this._t('settings');
+      $('p-ev').classList.toggle('sel', pan === 'events');
+      $('p-set').classList.toggle('sel', pan === 'settings');
+      $('pclose').title = this._t('panel_hide');
+      $('pclose').querySelector('ha-icon').setAttribute('icon', left ? 'mdi:chevron-left' : 'mdi:chevron-right');
+      $('pedge').title = this._t('panel_show');
+      $('pedge').classList.toggle('left', left);
+      $('pedge').querySelector('ha-icon').setAttribute('icon', left ? 'mdi:chevron-right' : 'mdi:chevron-left');
+    }
+    $('pane-live').style.display = side ? 'contents' : this._mode === 'live' ? '' : 'none';
+    $('pane-play').style.display = side ? (pan === 'events' ? '' : 'none') : this._mode === 'play' ? '' : 'none';
 
-    if (this._mode === 'live') this._updateLivePane();
+    if (side) {
+      this._updateLivePane();
+      if (pan === 'events') {
+        if (!this._days) this._loadDays();
+        else this._updatePlayPane();
+      }
+    } else if (this._mode === 'live') this._updateLivePane();
     else this._updatePlayPane();
     this._a11y();
   },
@@ -423,9 +489,10 @@ export default {
       }
     }
 
+    const setOpen = this._side ? this._panelNow() === 'settings' : this._settingsOpen;
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
-    box.style.display = this._settingsOpen ? '' : 'none';
-    if (this._settingsOpen) this._updateSettings(box);
+    box.style.display = setOpen ? '' : 'none';
+    if (setOpen) this._updateSettings(box);
   },
 };

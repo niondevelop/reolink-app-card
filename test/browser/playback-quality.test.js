@@ -19,7 +19,7 @@ const pq = (c) => c.run(() => {
   return {
     shown: r.getElementById('pqrow').style.display !== 'none',
     label: r.getElementById('pq-l').textContent,
-    buttons: [...r.querySelectorAll('#pq button')].map((b) => `${b.textContent}${b.classList.contains('sel') ? '*' : ''}`),
+    buttons: [...r.querySelectorAll('#pq button')].filter((b) => b.style.display !== 'none').map((b) => `${b.textContent}${b.classList.contains('sel') ? '*' : ''}`),
   };
 });
 const playFirst = async (c) => { await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click()); await wait(200); };
@@ -76,5 +76,17 @@ test('ohne Auflösungsebene kein Umschalter', async () => {
   assert.equal((await pq(c)).shown, false);
   await playFirst(c);
   assert.ok((await c.info()).playing);
+  await c.close();
+});
+
+test('TrackMix an Hub: Tele-Ordner als dritte Wahl', async () => {
+  const c = await open({ hass: { ...HASS, telephoto: true } });
+  await toPlayback(c);
+  assert.deepEqual((await pq(c)).buttons, ['Niedrig*', 'Hoch', 'Tele']);
+  await c.click('#pq [data-q="tele"]');
+  await wait(400);
+  await playFirst(c);
+  assert.match(await lastRes(c), /\|RES\|autotrack_sub\|/);
+  assert.equal(await c.run((k) => localStorage.getItem(k), PLAY_KEY), 'tele');
   await c.close();
 });

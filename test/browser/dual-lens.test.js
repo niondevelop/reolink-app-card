@@ -62,6 +62,41 @@ test('Wiedergabe nimmt das erste Objektiv', async () => {
 test('Editor und Vorschläge finden die TrackMix', async () => {
   const c = await openCard(browser, server, { config: CFG, hass: HASS('TrackMix WiFi') });
   const stub = await c.run(() => customElements.get('reolink-app-card').getStubConfig(window.__hass));
-  assert.deepEqual(stub.cameras, [{ name: 'TrackMix', prefix: 'trackmix', media_name: 'TrackMix' }]);
+  assert.deepEqual(stub.cameras, [{ name: 'TrackMix', prefix: 'trackmix', media_name: 'TrackMix', entity: 'camera.trackmix_fluent_lens_0' }]);
+  await c.close();
+});
+
+/* So, wie die Card bisher eingerichtet wurde bzw. wie man sich vertippen kann */
+for (const [label, cam] of [['nur prefix (alte Konfiguration)', { prefix: 'trackmix' }], ['Entity-ID unter prefix', { prefix: 'camera.trackmix_fluent_lens_0' }]]) {
+  test(`TrackMix mit ${label}: Bild und Tele`, async () => {
+    const c = await openCard(browser, server, { config: { ...CFG, cameras: [cam] }, hass: HASS('TrackMix WiFi') });
+    const r = await c.run(() => ({ sd: window.__card._e('cam_sd'), avail: window.__card._qAvail() }));
+    assert.deepEqual(r, { sd: 'camera.trackmix_fluent_lens_0', avail: ['fluent', 'clear', 'tele'] });
+    await c.close();
+  });
+}
+
+test('deutsche Entity-IDs mit „objektiv“', async () => {
+  const ids = { 'camera.garten_standardauflosung_objektiv_0': 'sub_lens_0', 'camera.garten_standardauflosung_objektiv_1': 'sub_lens_1' };
+  const st = {}, en = {};
+  Object.entries(ids).forEach(([id, tk]) => { st[id] = img; en[id] = { entity_id: id, device_id: 'dG', platform: 'reolink', translation_key: tk }; });
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'garten' }], auto_live: false, show_hub: false },
+    hass: { states: st, entities: en, devices: { dG: { name: 'Garten', model: 'TrackMix WiFi' } } } });
+  const r = await c.run(() => ({ sd: window.__card._e('cam_sd'), tele: window.__card._e('cam_tele') }));
+  assert.deepEqual(r, { sd: 'camera.garten_standardauflosung_objektiv_0', tele: 'camera.garten_standardauflosung_objektiv_1' });
+  await c.close();
+});
+
+test('TrackMix ohne Hub: Tele-Aufnahmen vom zweiten Objektiv', async () => {
+  const c = await openCard(browser, server, { config: CFG, hass: { ...HASS('TrackMix WiFi'), resolutions: true } });
+  await c.click('#m-play');
+  await wait(400);
+  const btns = () => c.run(() => [...window.__card.shadowRoot.querySelectorAll('#pq button')].filter((b) => b.style.display !== 'none').map((b) => b.textContent));
+  assert.deepEqual(await btns(), ['Niedrig', 'Hoch', 'Tele']);
+  await c.click('#pq [data-q="tele"]');
+  await wait(400);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /^R\|1\|/); // „TrackMix lens 1“
   await c.close();
 });

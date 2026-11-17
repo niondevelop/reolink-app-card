@@ -34,7 +34,7 @@ const pick = (time, files, now = time + 3600) => {
   const ctx = {
     _pendingEvent: at(...time), _days: [{ date: today }], _dayIdx: 0, _eventTries: 0, _mode: 'play',
     _files: files.map((t) => parse(t)),
-    _play(f) { played.push(f.time); }, _toast(t) { toasts.push(t.text); }, _t: (k) => k, _loadDays() {},
+    _play(f) { played.push(f.time); }, _toast(t) { toasts.push(t.text); }, _t: (k) => k, _loadDays() {}, _eventsShown() { return true; },
   };
   const realNow = Date.now;
   Date.now = () => at(...now) * 1000;

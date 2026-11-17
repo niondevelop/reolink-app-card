@@ -16,6 +16,7 @@ export const Q_BASE = ['fluent', 'balanced', 'clear'];
 export const Q_STORE = 'reolink-app-card:quality';
 /* Auflösung der Wiedergabe (unabhängig von der Livebild-Qualität): 'low' | 'high' */
 export const PLAY_Q_STORE = 'reolink-app-card:playback_quality';
+export const PANEL_STORE = 'reolink-app-card:panel';
 
 export const Q_ALIAS = { sd: 'fluent', low: 'fluent', hd: 'clear', high: 'clear', medium: 'balanced' };
 

@@ -1,5 +1,5 @@
 /* Wiedergabe der SD-Karten-Aufnahmen – Methoden der Klasse ReolinkAppCard */
-import { DET, EVT, EVT_ORDER, PLAY_Q_STORE, SPEEDS } from '../constants.js';
+import { DET, EVT, EVT_ORDER, PANEL_STORE, PLAY_Q_STORE, SPEEDS } from '../constants.js';
 import { LOCALES } from '../i18n.js';
 import { esc } from '../util.js';
 
@@ -27,7 +27,7 @@ export default {
       this._toast({ text: this._t('ev_wait'), color: '#636366', icon: 'mdi:timer-sand', wrap: true });
       clearTimeout(this._eventT);
       this._eventT = setTimeout(async () => {
-        if (!this._pendingEvent || this._mode !== 'play') return;
+        if (!this._pendingEvent || !this._eventsShown()) return;
         await this._loadDays();
       }, 15000);
       return;
@@ -36,41 +36,89 @@ export default {
     this._toast({ text: this._t('ev_missing'), color: '#636366', icon: 'mdi:filmstrip-off', wrap: true });
   },
 
+  /* Aufnahmen sichtbar: Wiedergabe-Reiter oder Ereignisse in der Seitenleiste */
+  _eventsShown() { return this._mode === 'play' || (!!this._side && this._panelNow() === 'events'); },
+
+  /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
+  _panelNow() {
+    const p = this._panel || 'events';
+    return p === 'events' && !this._hasPlayback() ? 'none' : p;
+  },
+
+  _setPanel(p) {
+    this._panel = p;
+    try { localStorage.setItem(PANEL_STORE, p); } catch (_) { /* privater Modus o. ä. */ }
+    this._update();
+  },
+
   /* ---------- Wiedergabe (Reolink-Medienquelle) ---------- */
   _browse(id) { return this._hass.callWS({ type: 'media_source/browse_media', media_content_id: id }); },
 
-  async _findCameraNode() {
+  /* Eintrag einer Kamera in der Reolink-Medienquelle: über das Gerät (das Vorschaubild verweist auf die Kamera-Entität),
+     sonst über den Namen. Kameras mit zwei Objektiven erscheinen als „Name lens 0“ und „Name lens 1“. */
+  _mediaNodeOf(kids, cam = this._cam, lens = 0) {
+    const reg = (this._hass && this._hass.entities) || {};
+    this._devIndex(cam);
+    const lensRe = / lens (\d)$/i;
+    const t = (k) => String(k.title || '').toLowerCase();
+    const pickLens = (list) => list.find((k) => (t(k).match(lensRe) || [0, '0'])[1] === String(lens)) || (lens === 0 ? list[0] : null);
+    const devOf = (k) => { const m = String(k.thumbnail || '').match(/camera_proxy\/(camera\.[^?/]+)/); return m && reg[m[1]] && reg[m[1]].device_id; };
+    const byDev = cam._devId ? kids.filter((k) => devOf(k) === cam._devId) : [];
+    if (byDev.length) return pickLens(byDev);
+    const want = String(cam.media_name || '').toLowerCase();
+    const named = kids.filter((k) => t(k) === want || t(k).replace(lensRe, '') === want);
+    if (named.length) return pickLens(named);
+    if (lens) return null;
+    return kids.find((k) => t(k).includes(want) || want.includes(t(k))) || null;
+  },
+
+  async _findCameraNode(lens = 0) {
     const root = await this._browse('media-source://reolink');
-    const kids = root.children || [];
-    const want = this._cam.media_name.toLowerCase();
-    // Kameras mit zwei Objektiven erscheinen als „Name lens 0“ und „Name lens 1“: das erste Objektiv nehmen
-    return kids.find((k) => k.title.toLowerCase() === want)
-      || kids.find((k) => k.title.toLowerCase() === `${want} lens 0`)
-      || kids.find((k) => k.title.toLowerCase().includes(want) || want.includes(k.title.toLowerCase()))
-      || kids[this._idx];
+    this._mediaKids = root.children || [];
+    return this._mediaNodeOf(this._mediaKids, this._cam, lens);
+  },
+
+  /* Einmal nachsehen, welche Kameras Home Assistant mit Aufnahmen anbietet (weckt keine Kamera) */
+  async _loadMediaRoot() {
+    try {
+      const root = await this._browse('media-source://reolink');
+      this._mediaKids = root.children || [];
+    } catch (_) {
+      this._mediaKids = null; // unbekannt: Wiedergabe wie bisher anbieten
+    }
+    this._update();
+  },
+
+  /* Hat die Kamera Aufnahmen in Home Assistant? Direkt eingebundene Klingeln z. B. erscheinen nicht in der Reolink-Medienquelle */
+  _hasPlayback(cam = this._cam) {
+    if (this._config.playback === false || cam.playback === false) return false;
+    if (!Array.isArray(this._mediaKids)) return true;
+    return !!this._mediaNodeOf(this._mediaKids, cam);
   },
 
   /* Auflösungsebene der Reolink-Medienquelle: „Low resolution“ (…|sub) und „High resolution“ (…|main) */
   _resNodes(kids) {
     const txt = (k) => `${k.media_content_id} ${k.title}`;
-    const plain = kids.filter((k) => !/autotrack/i.test(txt(k)));
+    const plain = kids.filter((k) => !/autotrack|telephoto/i.test(txt(k)));
     return {
       low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
       high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
+      // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
+      tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
     };
   },
 
   /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
      Tag und laufender Clip (samt Stelle) bleiben erhalten. */
   async _setPlayQ(q) {
-    if (q !== 'low' && q !== 'high') return;
+    if (!['low', 'high', 'tele'].includes(q)) return;
     try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     if (q === this._playQ) return;
     this._playQ = q;
     const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
     const v = this._vid();
     const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
-    if (this._mode !== 'play') { this._days = null; this._update(); return; }
+    if (!this._eventsShown()) { this._days = null; this._update(); return; }
     await this._loadDays({ day, resume });
   },
 
@@ -80,14 +128,18 @@ export default {
     try {
       const camNode = await this._findCameraNode();
       if (!camNode) throw new Error(this._t('cam_not_found'));
-      let node = await this._browse(camNode.media_content_id);
+      // Direkt eingebundene TrackMix/Duo: zweites Objektiv als eigener Eintrag „Name lens 1“
+      const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
+      const useLens1 = this._playQ === 'tele' && lens1;
+      let node = await this._browse((useLens1 ? lens1 : camNode).media_content_id);
       let kids = node.children || [];
       // Auflösungsebene (falls vorhanden): gewählte Auflösung, sonst die andere
       let res = null;
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
         res = this._resNodes(kids);
-        const pick = res[this._playQ] || res.low || res.high || kids[0];
-        res.used = pick === res.high ? 'high' : 'low';
+        if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
+        const pick = useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
+        res.used = useLens1 || pick === res.tele ? 'tele' : pick === res.high ? 'high' : 'low';
         node = await this._browse(pick.media_content_id);
         kids = node.children || [];
       }
@@ -269,7 +321,7 @@ export default {
 
   /* Tastenkürzel in der Wiedergabe: Leertaste Pause/Weiter, ←/→ vorheriger/nächster Clip, Umschalt+←/→ 10 Sekunden */
   _playbackKey(e) {
-    if (this._mode !== 'play' || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!this._eventsShown() || e.altKey || e.ctrlKey || e.metaKey) return;
     const tgt = e.composedPath()[0];
     if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return;
     const v = this._vid();
@@ -355,14 +407,18 @@ export default {
 
   _updatePlayPane() {
     const $ = this.$;
-    // Umschalter Niedrig/Hoch nur, wenn die Kamera beide Auflösungen anbietet
-    const both = !!(this._res && this._res.low && this._res.high);
-    $('pqrow').style.display = both ? '' : 'none';
-    if (both) {
+    // Umschalter Niedrig/Hoch(/Tele) nur, wenn es etwas zu wählen gibt
+    const r = this._res || {};
+    const avail = { low: !!r.low, high: !!r.high, tele: !!r.tele };
+    const show = Object.values(avail).filter(Boolean).length > 1;
+    $('pqrow').style.display = show ? '' : 'none';
+    if (show) {
       $('pq-l').textContent = this._t('play_res');
       $('pq').querySelectorAll('button').forEach((b) => {
-        b.textContent = this._t(`play_res_${b.dataset.q}`);
-        b.classList.toggle('sel', b.dataset.q === this._res.used);
+        b.style.display = avail[b.dataset.q] ? '' : 'none';
+        // „Telephoto“-Ordner gibt es nur bei der TrackMix, sonst richtet sich der Name nach dem Modell (Tele / 2. Objektiv)
+        b.textContent = b.dataset.q === 'tele' ? (r.teleFolder ? this._t('q_tele') : this._qLabel('tele')) : this._t(`play_res_${b.dataset.q}`);
+        b.classList.toggle('sel', b.dataset.q === r.used);
       });
     }
     this._renderFilters();

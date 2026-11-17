@@ -55,6 +55,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
 .prev.ok { opacity: 1; }
 .stage.live .media > .prev { opacity: 0; }
 .pic, .pic > * { position: absolute; inset: 0; }
+.mjpeg { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
 ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
@@ -212,4 +213,56 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .ed { font-size: 12px; color: var(--secondary-text-color); }
 .ep { color: var(--ra); }
 .msg { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 18px; color: var(--secondary-text-color); font-size: 14px; }
+
+/* ---------- Querformat (breite Karte) ---------- */
+ha-card.lay-side, ha-card.lay-bottom { --bar-max: 560px; }
+ha-card.lay-side .barwrap, ha-card.lay-bottom .barwrap { box-sizing: border-box; max-width: var(--bar-max); width: 100%; margin-left: auto; margin-right: auto; }
+ha-card.lay-side { display: grid; align-items: start; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); }
+ha-card.lay-left { grid-template-columns: minmax(320px, 1fr) minmax(0, 1.75fr); }
+ha-card.lay-side > .testbar, ha-card.lay-side > .top, ha-card.lay-side > #hub, ha-card.lay-side > #warns, ha-card.lay-side > #stage,
+ha-card.lay-side .barwrap, ha-card.lay-side .ptz { grid-column: 1; }
+ha-card.lay-left > .testbar, ha-card.lay-left > .top, ha-card.lay-left > #hub, ha-card.lay-left > #warns, ha-card.lay-left > #stage,
+ha-card.lay-left .barwrap, ha-card.lay-left .ptz { grid-column: 2; }
+ha-card.lay-side > .testbar { grid-row: 1; }
+ha-card.lay-side > .top { grid-row: 2; } ha-card.lay-side > #hub { grid-row: 3; } ha-card.lay-side > #warns { grid-row: 4; }
+ha-card.lay-side > #stage { grid-row: 5; } ha-card.lay-side .barwrap { grid-row: 6; } ha-card.lay-side .ptz { grid-row: 7; }
+ha-card.lay-side > .seg, ha-card.lay-side > .phead, ha-card.lay-side .more, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { grid-column: 2; }
+ha-card.lay-left > .seg, ha-card.lay-left > .phead, ha-card.lay-left .more, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { grid-column: 1; }
+ha-card.lay-side > .seg, ha-card.lay-side > .phead { grid-row: 1 / span 2; align-self: start; margin: 10px 12px 4px; }
+ha-card.lay-side .more { display: none; }
+ha-card.lay-side .settings { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
+ha-card.lay-side > #pane-play { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
+ha-card.lay-right > .seg, ha-card.lay-right > .phead, ha-card.lay-right .settings, ha-card.lay-right > #pane-play { border-left: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-left > .seg, ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { border-right: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-side > .dlg { grid-column: 1 / -1; }
+/* Seitenleiste als Slide-Panel: Ereignisse oder Einstellungen, zuklappbar */
+.phead { display: none; align-items: center; gap: 8px; }
+.ptabs { flex: 1; display: flex; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); min-width: 0; }
+.ptabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 8px; font-weight: 600; font-size: 14px; opacity: .7; min-width: 0; white-space: nowrap; }
+.ptabs button span { overflow: hidden; text-overflow: ellipsis; }
+.ptabs button ha-icon { --mdc-icon-size: 18px; flex: none; }
+.ptabs button.sel { background: var(--rb); opacity: 1; color: var(--ra); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.pclose { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--secondary-background-color); flex: none; }
+.pclose ha-icon { --mdc-icon-size: 22px; }
+ha-card.lay-side > .phead { display: flex; }
+ha-card.lay-side > .phead, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { animation: rac-slide .22s ease-out; }
+ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { animation-name: rac-slide-l; }
+@keyframes rac-slide { from { opacity: 0; transform: translateX(24px); } }
+@keyframes rac-slide-l { from { opacity: 0; transform: translateX(-24px); } }
+/* Zugeklappt: die Spalte des Panels bleibt mit Breite 0 stehen, damit die Zuordnung der Spalten (rechts/links) gleich bleibt */
+ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
+ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
+ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+.backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
+.backlive ha-icon { --mdc-icon-size: 20px; }
+ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }
+ha-card.lay-left.playing .backlive { grid-column: 2; }
+.pedge { display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4; width: 28px; height: 64px; border-radius: 12px 0 0 12px;
+  background: rgba(0,0,0,.45); color: #fff; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.pedge.left { right: auto; left: 0; border-radius: 0 12px 12px 0; }
+.pedge ha-icon { --mdc-icon-size: 22px; }
+ha-card.lay-bottom > #stage { max-height: 62vh; width: min(100%, calc(62vh * 16 / 9)); margin: 0 auto; }
+ha-card.lay-bottom > .seg { max-width: var(--bar-max); margin-left: auto; margin-right: auto; }
+ha-card.lay-bottom .days, ha-card.lay-bottom .filters { justify-content: center; flex-wrap: wrap; }
+ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }
 `;

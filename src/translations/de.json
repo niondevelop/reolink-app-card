@@ -132,7 +132,12 @@
     "test_on": "Testversion {v} – tippen für die stabile Version",
     "test_missing": "Testdatei nicht gefunden – die stabile Version läuft. Tippen zum Beenden",
     "test_back": "Zur stabilen Version zurückkehren? Die Seite wird neu geladen.",
-    "test_back_btn": "Zurück"
+    "test_back_btn": "Zurück",
+    "talk_na_nostream": "Gegensprechen braucht einen Video-Stream – diese Kamera liefert in Home Assistant nur Einzelbilder",
+    "events": "Ereignisse",
+    "panel_hide": "Seitenleiste ausblenden",
+    "panel_show": "Seitenleiste einblenden",
+    "back_live": "Zurück zum Livebild"
   },
   "editor": {
     "mode_entity": "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -160,6 +165,16 @@
     "options": "Optionen",
     "audio": "Audioausgabe",
     "audio_auto": "Automatisch (Ton an, sobald das Livebild läuft)",
-    "audio_manual": "Manuell (mit dem Lautsprecher-Button)"
+    "audio_manual": "Manuell (mit dem Lautsprecher-Button)",
+    "layout": "Anordnung (bei breiter Karte)",
+    "layout_auto": "Automatisch (Seitenleiste rechts, wenn breit genug)",
+    "layout_right": "Seitenleiste rechts",
+    "layout_left": "Seitenleiste links",
+    "layout_bottom": "Alles unten",
+    "playback": "Wiedergabe anzeigen",
+    "panel": "Seitenleiste beim Start (bei breiter Karte)",
+    "panel_events": "Ereignisse",
+    "panel_settings": "Einstellungen",
+    "panel_none": "Zugeklappt"
   }
 }

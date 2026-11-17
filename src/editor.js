@@ -1,6 +1,6 @@
 /* Visueller Editor der Karte */
 import { Q, Q_BASE } from './constants.js';
-import { detectCameras, prefixOf } from './entities.js';
+import { detectCameras, needsEntity } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
@@ -37,6 +37,11 @@ export class ReolinkAppCardEditor extends HTMLElement {
         { name: 'doorbell_timeout', selector: { number: { min: 10, max: 120, step: 5, mode: 'box', unit_of_measurement: 's' } } },
         { name: 'doorbell_sound', selector: { boolean: {} } },
       ] },
+      { type: 'grid', name: '', schema: [
+        { name: 'layout', selector: { select: { mode: 'dropdown', options: ['auto', 'right', 'left', 'bottom'].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
+        { name: 'panel', selector: { select: { mode: 'dropdown', options: ['events', 'settings', 'none'].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
+        { name: 'playback', selector: { boolean: {} } },
+      ] },
       { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
       { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
       { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
@@ -57,7 +62,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
@@ -81,7 +86,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       form.addEventListener('value-changed', (e) => {
         const v = { ...e.detail.value };
         const hit = detected.find((d) => d.prefix === v.prefix);
-        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (!prefixOf(hit.entity)) v.entity = hit.entity; }
+        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
         const list = [...this._config.cameras]; list[i] = v;
         this._changed({ ...this._config, cameras: list });
