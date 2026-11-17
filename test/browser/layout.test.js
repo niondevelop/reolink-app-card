@@ -110,6 +110,28 @@ test('Seitenleiste: Einstellungen als eigenes Panel, zuklappen und am Bildrand w
   await c.close();
 });
 
+test('Seitenleiste links zugeklappt: Bild und Knöpfe über die ganze Breite', async () => {
+  const c = await open(1100, 'left', { storage: { 'reolink-app-card:panel': 'none' } });
+  const g = await geo(c);
+  assert.equal(g.edge, true);
+  assert.ok(g.stage.width > 1000, `Bild ${g.stage.width}px`);
+  assert.ok(g.bar.top >= g.stage.bottom - 1, 'Knöpfe unter dem Bild');
+  assert.ok(Math.abs((g.bar.left + g.bar.right) / 2 - (g.stage.left + g.stage.right) / 2) < 2, 'Knöpfe mittig unter dem Bild');
+  await c.close();
+});
+
+test('Seitenleiste: Filter in einer Zeile, seitlich scrollbar', async () => {
+  const c = await open(1100);
+  await wait(300);
+  const r = await c.run(() => {
+    const f = window.__card.shadowRoot.getElementById('filters');
+    const tops = new Set([...f.querySelectorAll('.chip')].map((b) => Math.round(b.getBoundingClientRect().top)));
+    return { rows: tops.size, wrap: getComputedStyle(f).flexWrap };
+  });
+  assert.deepEqual(r, { rows: 1, wrap: 'nowrap' });
+  await c.close();
+});
+
 test('Seitenleiste: zugeklappt bleibt zugeklappt (gespeichert) und panel: settings als Start', async () => {
   let c = await open(1100, null, { storage: { 'reolink-app-card:panel': 'none' } });
   let g = await geo(c);

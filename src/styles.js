@@ -234,7 +234,6 @@ ha-card.lay-side .settings { grid-row: 3 / span 5; align-self: stretch; contain:
 ha-card.lay-side > #pane-play { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
 ha-card.lay-right > .seg, ha-card.lay-right > .phead, ha-card.lay-right .settings, ha-card.lay-right > #pane-play { border-left: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
 ha-card.lay-left > .seg, ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { border-right: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
-ha-card.lay-side .filters { flex-wrap: wrap; }
 ha-card.lay-side > .dlg { grid-column: 1 / -1; }
 /* Seitenleiste als Slide-Panel: Ereignisse oder Einstellungen, zuklappbar */
 .phead { display: none; align-items: center; gap: 8px; }
@@ -250,8 +249,9 @@ ha-card.lay-side > .phead, ha-card.lay-side .settings, ha-card.lay-side > #pane-
 ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { animation-name: rac-slide-l; }
 @keyframes rac-slide { from { opacity: 0; transform: translateX(24px); } }
 @keyframes rac-slide-l { from { opacity: 0; transform: translateX(-24px); } }
-ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr); }
-ha-card.lay-side.pan-none > *, ha-card.lay-side.pan-none .barwrap, ha-card.lay-side.pan-none .ptz { grid-column: 1; }
+/* Zugeklappt: die Spalte des Panels bleibt mit Breite 0 stehen, damit die Zuordnung der Spalten (rechts/links) gleich bleibt */
+ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
+ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
 .pedge { display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4; width: 28px; height: 64px; border-radius: 12px 0 0 12px;
   background: rgba(0,0,0,.45); color: #fff; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
