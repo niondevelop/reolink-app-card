@@ -39,6 +39,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       ] },
       { type: 'grid', name: '', schema: [
         { name: 'layout', selector: { select: { mode: 'dropdown', options: ['auto', 'right', 'left', 'bottom'].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
+        { name: 'panel', selector: { select: { mode: 'dropdown', options: ['events', 'settings', 'none'].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
         { name: 'playback', selector: { boolean: {} } },
       ] },
       { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
@@ -61,7 +62,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: 'auto', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }

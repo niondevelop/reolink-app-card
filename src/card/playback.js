@@ -1,5 +1,5 @@
 /* Wiedergabe der SD-Karten-Aufnahmen – Methoden der Klasse ReolinkAppCard */
-import { DET, EVT, EVT_ORDER, PLAY_Q_STORE, SPEEDS } from '../constants.js';
+import { DET, EVT, EVT_ORDER, PANEL_STORE, PLAY_Q_STORE, SPEEDS } from '../constants.js';
 import { LOCALES } from '../i18n.js';
 import { esc } from '../util.js';
 
@@ -27,13 +27,28 @@ export default {
       this._toast({ text: this._t('ev_wait'), color: '#636366', icon: 'mdi:timer-sand', wrap: true });
       clearTimeout(this._eventT);
       this._eventT = setTimeout(async () => {
-        if (!this._pendingEvent || this._mode !== 'play') return;
+        if (!this._pendingEvent || !this._eventsShown()) return;
         await this._loadDays();
       }, 15000);
       return;
     }
     this._pendingEvent = null;
     this._toast({ text: this._t('ev_missing'), color: '#636366', icon: 'mdi:filmstrip-off', wrap: true });
+  },
+
+  /* Aufnahmen sichtbar: Wiedergabe-Reiter oder Ereignisse in der Seitenleiste */
+  _eventsShown() { return this._mode === 'play' || (!!this._side && this._panelNow() === 'events'); },
+
+  /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
+  _panelNow() {
+    const p = this._panel || 'events';
+    return p === 'events' && !this._hasPlayback() ? 'none' : p;
+  },
+
+  _setPanel(p) {
+    this._panel = p;
+    try { localStorage.setItem(PANEL_STORE, p); } catch (_) { /* privater Modus o. ä. */ }
+    this._update();
   },
 
   /* ---------- Wiedergabe (Reolink-Medienquelle) ---------- */
@@ -103,7 +118,7 @@ export default {
     const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
     const v = this._vid();
     const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
-    if (this._mode !== 'play') { this._days = null; this._update(); return; }
+    if (!this._eventsShown()) { this._days = null; this._update(); return; }
     await this._loadDays({ day, resume });
   },
 
@@ -306,7 +321,7 @@ export default {
 
   /* Tastenkürzel in der Wiedergabe: Leertaste Pause/Weiter, ←/→ vorheriger/nächster Clip, Umschalt+←/→ 10 Sekunden */
   _playbackKey(e) {
-    if (this._mode !== 'play' || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!this._eventsShown() || e.altKey || e.ctrlKey || e.metaKey) return;
     const tgt = e.composedPath()[0];
     if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return;
     const v = this._vid();

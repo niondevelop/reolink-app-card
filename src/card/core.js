@@ -1,5 +1,5 @@
 /* Grundlagen: Konfiguration, Entitäten, hass, Sichtbarkeit, Kamera- und Moduswechsel, Dialoge – Methoden der Klasse ReolinkAppCard */
-import { DET, EVT, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
+import { DET, EVT, PANEL_STORE, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
 import { DC, ENT, HUB_ENT, LEGACY, TK, findHubPrefix, prefixOf } from '../entities.js';
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
@@ -39,6 +39,10 @@ export default {
     this._filter = 'all';
     this._days = null; this._dayIdx = 0; this._files = null; this._playing = null;
     this._settingsOpen = false; this._group = null;
+    // Seitenleiste bei breiter Karte: Ereignisse, Einstellungen oder zugeklappt (zuletzt auf diesem Gerät gewählt)
+    let panel = null;
+    try { panel = localStorage.getItem(PANEL_STORE); } catch (_) { /* privater Modus o. ä. */ }
+    this._panel = ['events', 'settings', 'none'].includes(panel) ? panel : ['events', 'settings', 'none'].includes(this._config.panel) ? this._config.panel : 'events';
     this._speed = 1;
     this._zoom = { s: 1, x: 0, y: 0 };
     this._snaps = {};
@@ -254,11 +258,13 @@ export default {
     this._loadSnap(this._idx);
     if (this._canAutoLive || (wasLive && this._mode === 'live')) this._startLive();
     else this._makePic();
-    if (this._mode === 'play') this._loadDays();
+    if (this._eventsShown()) this._loadDays();
     this._update();
   },
 
   _setMode(m) {
+    // Mit Seitenleiste läuft das Livebild weiter, die Aufnahmen stehen im Panel
+    if (m === 'play' && this._side) { this._panel = 'events'; m = 'live'; }
     this._mode = m;
     if (m === 'play' && this._grid) { this._grid = false; this._makePic(); }
     if (m === 'play' && !this._days) this._loadDays();

@@ -341,7 +341,10 @@
       test_missing: "Testdatei nicht gefunden – die stabile Version läuft. Tippen zum Beenden",
       test_back: "Zur stabilen Version zurückkehren? Die Seite wird neu geladen.",
       test_back_btn: "Zurück",
-      talk_na_nostream: "Gegensprechen braucht einen Video-Stream – diese Kamera liefert in Home Assistant nur Einzelbilder"
+      talk_na_nostream: "Gegensprechen braucht einen Video-Stream – diese Kamera liefert in Home Assistant nur Einzelbilder",
+      events: "Ereignisse",
+      panel_hide: "Seitenleiste ausblenden",
+      panel_show: "Seitenleiste einblenden"
     },
     editor: {
       mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -375,7 +378,11 @@
       layout_right: "Seitenleiste rechts",
       layout_left: "Seitenleiste links",
       layout_bottom: "Alles unten",
-      playback: "Wiedergabe anzeigen"
+      playback: "Wiedergabe anzeigen",
+      panel: "Seitenleiste beim Start (bei breiter Karte)",
+      panel_events: "Ereignisse",
+      panel_settings: "Einstellungen",
+      panel_none: "Zugeklappt"
     }
   };
 
@@ -515,7 +522,10 @@
       test_missing: "Test file not found – the stable version is running. Tap to end",
       test_back: "Go back to the stable version? The page will reload.",
       test_back_btn: "Go back",
-      talk_na_nostream: "Two-way audio needs a video stream – this camera only provides still images in Home Assistant"
+      talk_na_nostream: "Two-way audio needs a video stream – this camera only provides still images in Home Assistant",
+      events: "Events",
+      panel_hide: "Hide side panel",
+      panel_show: "Show side panel"
     },
     editor: {
       mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
@@ -549,7 +559,11 @@
       layout_right: "Sidebar right",
       layout_left: "Sidebar left",
       layout_bottom: "Everything below",
-      playback: "Show playback"
+      playback: "Show playback",
+      panel: "Side panel at start (wide card)",
+      panel_events: "Events",
+      panel_settings: "Settings",
+      panel_none: "Collapsed"
     }
   };
 
@@ -689,7 +703,10 @@
       test_missing: "Fichier de test introuvable – la version stable est active. Touchez pour arrêter",
       test_back: "Revenir à la version stable ? La page sera rechargée.",
       test_back_btn: "Revenir",
-      talk_na_nostream: "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant"
+      talk_na_nostream: "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant",
+      events: "Événements",
+      panel_hide: "Masquer le panneau latéral",
+      panel_show: "Afficher le panneau latéral"
     },
     editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -723,7 +740,11 @@
       layout_right: "Barre latérale à droite",
       layout_left: "Barre latérale à gauche",
       layout_bottom: "Tout en dessous",
-      playback: "Afficher la lecture"
+      playback: "Afficher la lecture",
+      panel: "Panneau latéral au démarrage (carte large)",
+      panel_events: "Événements",
+      panel_settings: "Réglages",
+      panel_none: "Replié"
     }
   };
 
@@ -751,6 +772,7 @@
   var Q_BASE = ["fluent", "balanced", "clear"];
   var Q_STORE = "reolink-app-card:quality";
   var PLAY_Q_STORE = "reolink-app-card:playback_quality";
+  var PANEL_STORE = "reolink-app-card:panel";
   var Q_ALIAS = { sd: "fluent", low: "fluent", hd: "clear", high: "clear", medium: "balanced" };
   var REOLINK_PKG = "com.mcu.reolink";
   var REOLINK_COMPANION = `app://${REOLINK_PKG}`;
@@ -1205,6 +1227,12 @@
       this._playing = null;
       this._settingsOpen = false;
       this._group = null;
+      let panel = null;
+      try {
+        panel = localStorage.getItem(PANEL_STORE);
+      } catch (_) {
+      }
+      this._panel = ["events", "settings", "none"].includes(panel) ? panel : ["events", "settings", "none"].includes(this._config.panel) ? this._config.panel : "events";
       this._speed = 1;
       this._zoom = { s: 1, x: 0, y: 0 };
       this._snaps = {};
@@ -1454,10 +1482,14 @@
       this._loadSnap(this._idx);
       if (this._canAutoLive || wasLive && this._mode === "live") this._startLive();
       else this._makePic();
-      if (this._mode === "play") this._loadDays();
+      if (this._eventsShown()) this._loadDays();
       this._update();
     },
     _setMode(m) {
+      if (m === "play" && this._side) {
+        this._panel = "events";
+        m = "live";
+      }
       this._mode = m;
       if (m === "play" && this._grid) {
         this._grid = false;
@@ -2059,13 +2091,30 @@
         this._toast({ text: this._t("ev_wait"), color: "#636366", icon: "mdi:timer-sand", wrap: true });
         clearTimeout(this._eventT);
         this._eventT = setTimeout(async () => {
-          if (!this._pendingEvent || this._mode !== "play") return;
+          if (!this._pendingEvent || !this._eventsShown()) return;
           await this._loadDays();
         }, 15e3);
         return;
       }
       this._pendingEvent = null;
       this._toast({ text: this._t("ev_missing"), color: "#636366", icon: "mdi:filmstrip-off", wrap: true });
+    },
+    /* Aufnahmen sichtbar: Wiedergabe-Reiter oder Ereignisse in der Seitenleiste */
+    _eventsShown() {
+      return this._mode === "play" || !!this._side && this._panelNow() === "events";
+    },
+    /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
+    _panelNow() {
+      const p = this._panel || "events";
+      return p === "events" && !this._hasPlayback() ? "none" : p;
+    },
+    _setPanel(p) {
+      this._panel = p;
+      try {
+        localStorage.setItem(PANEL_STORE, p);
+      } catch (_) {
+      }
+      this._update();
     },
     /* ---------- Wiedergabe (Reolink-Medienquelle) ---------- */
     _browse(id) {
@@ -2136,7 +2185,7 @@
       const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
       const v = this._vid();
       const resume = this._playing ? { start: this._playing.start, at: v.currentTime || 0 } : null;
-      if (this._mode !== "play") {
+      if (!this._eventsShown()) {
         this._days = null;
         this._update();
         return;
@@ -2357,7 +2406,7 @@
     },
     /* Tastenkürzel in der Wiedergabe: Leertaste Pause/Weiter, ←/→ vorheriger/nächster Clip, Umschalt+←/→ 10 Sekunden */
     _playbackKey(e) {
-      if (this._mode !== "play" || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (!this._eventsShown() || e.altKey || e.ctrlKey || e.metaKey) return;
       const tgt = e.composedPath()[0];
       if (tgt && /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName)) return;
       const v = this._vid();
@@ -2817,16 +2866,37 @@ ha-card.lay-left .barwrap, ha-card.lay-left .ptz { grid-column: 2; }
 ha-card.lay-side > .testbar { grid-row: 1; }
 ha-card.lay-side > .top { grid-row: 2; } ha-card.lay-side > #hub { grid-row: 3; } ha-card.lay-side > #warns { grid-row: 4; }
 ha-card.lay-side > #stage { grid-row: 5; } ha-card.lay-side .barwrap { grid-row: 6; } ha-card.lay-side .ptz { grid-row: 7; }
-ha-card.lay-side > .seg, ha-card.lay-side .more, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { grid-column: 2; }
-ha-card.lay-left > .seg, ha-card.lay-left .more, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { grid-column: 1; }
-ha-card.lay-side > .seg { grid-row: 1 / span 2; align-self: start; margin: 10px 12px 4px; }
+ha-card.lay-side > .seg, ha-card.lay-side > .phead, ha-card.lay-side .more, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { grid-column: 2; }
+ha-card.lay-left > .seg, ha-card.lay-left > .phead, ha-card.lay-left .more, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { grid-column: 1; }
+ha-card.lay-side > .seg, ha-card.lay-side > .phead { grid-row: 1 / span 2; align-self: start; margin: 10px 12px 4px; }
 ha-card.lay-side .more { display: none; }
 ha-card.lay-side .settings { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
 ha-card.lay-side > #pane-play { grid-row: 3 / span 5; align-self: stretch; contain: size; overflow-y: auto; }
-ha-card.lay-right > .seg, ha-card.lay-right .settings, ha-card.lay-right > #pane-play { border-left: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
-ha-card.lay-left > .seg, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { border-right: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-right > .seg, ha-card.lay-right > .phead, ha-card.lay-right .settings, ha-card.lay-right > #pane-play { border-left: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
+ha-card.lay-left > .seg, ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { border-right: 1px solid var(--divider-color, rgba(255,255,255,.08)); }
 ha-card.lay-side .filters { flex-wrap: wrap; }
 ha-card.lay-side > .dlg { grid-column: 1 / -1; }
+/* Seitenleiste als Slide-Panel: Ereignisse oder Einstellungen, zuklappbar */
+.phead { display: none; align-items: center; gap: 8px; }
+.ptabs { flex: 1; display: flex; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); min-width: 0; }
+.ptabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 8px; font-weight: 600; font-size: 14px; opacity: .7; min-width: 0; white-space: nowrap; }
+.ptabs button span { overflow: hidden; text-overflow: ellipsis; }
+.ptabs button ha-icon { --mdc-icon-size: 18px; flex: none; }
+.ptabs button.sel { background: var(--rb); opacity: 1; color: var(--ra); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.pclose { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--secondary-background-color); flex: none; }
+.pclose ha-icon { --mdc-icon-size: 22px; }
+ha-card.lay-side > .phead { display: flex; }
+ha-card.lay-side > .phead, ha-card.lay-side .settings, ha-card.lay-side > #pane-play { animation: rac-slide .22s ease-out; }
+ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-play { animation-name: rac-slide-l; }
+@keyframes rac-slide { from { opacity: 0; transform: translateX(24px); } }
+@keyframes rac-slide-l { from { opacity: 0; transform: translateX(-24px); } }
+ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr); }
+ha-card.lay-side.pan-none > *, ha-card.lay-side.pan-none .barwrap, ha-card.lay-side.pan-none .ptz { grid-column: 1; }
+ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+.pedge { display: none; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 4; width: 28px; height: 64px; border-radius: 12px 0 0 12px;
+  background: rgba(0,0,0,.45); color: #fff; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.pedge.left { right: auto; left: 0; border-radius: 0 12px 12px 0; }
+.pedge ha-icon { --mdc-icon-size: 22px; }
 ha-card.lay-bottom > #stage { max-height: 62vh; width: min(100%, calc(62vh * 16 / 9)); margin: 0 auto; }
 ha-card.lay-bottom > .seg { max-width: var(--bar-max); margin-left: auto; margin-right: auto; }
 ha-card.lay-bottom .days, ha-card.lay-bottom .filters { justify-content: center; flex-wrap: wrap; }
@@ -2862,6 +2932,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           </div>
           <div class="ov det" id="det"></div>
           <div class="toast" id="toast"></div>
+          <button class="pedge" id="pedge"><ha-icon></ha-icon></button>
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
           <div class="ring" id="ring">
             <div class="rhead"><span class="rbell"><ha-icon icon="mdi:doorbell-video"></ha-icon></span><b id="ring-t"></b><span id="ring-n"></span></div>
@@ -2886,6 +2957,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           </div>
         </div>
         <div class="seg"><button id="m-live"></button><button id="m-play"></button></div>
+        <div class="phead" id="phead">
+          <div class="ptabs"><button id="p-ev"><ha-icon icon="mdi:motion-sensor"></ha-icon><span id="p-ev-l"></span></button><button id="p-set"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="p-set-l"></span></button></div>
+          <button class="pclose" id="pclose"><ha-icon></ha-icon></button>
+        </div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
           <div class="ptz" id="ptz"></div>
@@ -2930,6 +3005,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         this._settingsOpen = !this._settingsOpen;
         this._update();
       };
+      $("p-ev").onclick = () => this._setPanel("events");
+      $("p-set").onclick = () => this._setPanel("settings");
+      $("pclose").onclick = () => this._setPanel("none");
+      $("pedge").onclick = () => this._setPanel(this._lastPanel || (this._hasPlayback() ? "events" : "settings"));
       $("speed").onclick = () => this._cycleSpeed();
       $("next").onclick = () => this._playNext();
       $("dl").onclick = () => this._download();
@@ -3087,6 +3166,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       ["right", "left", "bottom"].forEach((x) => card.classList.toggle(`lay-${x}`, lay === x));
       card.classList.toggle("lay-side", lay === "right" || lay === "left");
       this._side = lay === "right" || lay === "left";
+      if (this._side && this._mode === "play") {
+        this._mode = "live";
+        this._panel = "events";
+      }
       this._update();
       this._fitHub();
     },
@@ -3186,16 +3269,43 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       $("testbar").classList.toggle("missing", ch === "test-missing");
       if (ch !== "stable") $("testbar-l").textContent = this._t(ch === "test" ? "test_on" : "test_missing", { v: RAC_VERSION });
       const hasPlay = this._hasPlayback();
-      this.shadowRoot.querySelector(".seg").style.display = hasPlay ? "" : "none";
+      const side = !!this._side, pan = side ? this._panelNow() : null;
+      if (pan && pan !== "none") this._lastPanel = pan;
+      this.shadowRoot.querySelector(".seg").style.display = hasPlay && !side ? "" : "none";
       if (!hasPlay && this._mode === "play") {
         this._setMode("live");
         return;
       }
       $("m-live").classList.toggle("sel", this._mode === "live");
       $("m-play").classList.toggle("sel", this._mode === "play");
-      $("pane-live").style.display = this._mode === "live" ? this._side ? "contents" : "" : "none";
-      $("pane-play").style.display = this._mode === "play" ? "" : "none";
-      if (this._mode === "live") this._updateLivePane();
+      const card = root.querySelector("ha-card");
+      card.classList.toggle("pan-none", side && pan === "none");
+      card.classList.toggle("pan-set", side && pan === "settings");
+      card.classList.toggle("playing", playing);
+      $("phead").style.display = side && pan !== "none" ? "" : "none";
+      $("pedge").style.display = side && pan === "none" && !this._grid ? "grid" : "none";
+      if (side) {
+        const left = this._config.layout === "left";
+        $("p-ev").style.display = hasPlay ? "" : "none";
+        $("p-ev-l").textContent = this._t("events");
+        $("p-set-l").textContent = this._t("settings");
+        $("p-ev").classList.toggle("sel", pan === "events");
+        $("p-set").classList.toggle("sel", pan === "settings");
+        $("pclose").title = this._t("panel_hide");
+        $("pclose").querySelector("ha-icon").setAttribute("icon", left ? "mdi:chevron-left" : "mdi:chevron-right");
+        $("pedge").title = this._t("panel_show");
+        $("pedge").classList.toggle("left", left);
+        $("pedge").querySelector("ha-icon").setAttribute("icon", left ? "mdi:chevron-right" : "mdi:chevron-left");
+      }
+      $("pane-live").style.display = side ? "contents" : this._mode === "live" ? "" : "none";
+      $("pane-play").style.display = side ? pan === "events" ? "" : "none" : this._mode === "play" ? "" : "none";
+      if (side) {
+        this._updateLivePane();
+        if (pan === "events") {
+          if (!this._days) this._loadDays();
+          else this._updatePlayPane();
+        }
+      } else if (this._mode === "live") this._updateLivePane();
       else this._updatePlayPane();
       this._a11y();
     },
@@ -3331,7 +3441,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           });
         }
       }
-      const setOpen = this._settingsOpen || this._side;
+      const setOpen = this._side ? this._panelNow() === "settings" : this._settingsOpen;
       $("chev").setAttribute("icon", this._settingsOpen ? "mdi:chevron-up" : "mdi:chevron-down");
       const box = $("settings");
       box.style.display = setOpen ? "" : "none";
@@ -3492,6 +3602,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         ] },
         { type: "grid", name: "", schema: [
           { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
+          { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
           { name: "playback", selector: { boolean: {} } }
         ] },
         { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
@@ -3514,7 +3625,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         { type: "grid", name: "", schema: [{ name: "name", selector: { text: {} } }, { name: "media_name", selector: { text: {} } }] },
         { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: "auto", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }

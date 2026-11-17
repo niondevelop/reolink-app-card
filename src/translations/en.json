@@ -133,7 +133,10 @@
     "test_missing": "Test file not found – the stable version is running. Tap to end",
     "test_back": "Go back to the stable version? The page will reload.",
     "test_back_btn": "Go back",
-    "talk_na_nostream": "Two-way audio needs a video stream – this camera only provides still images in Home Assistant"
+    "talk_na_nostream": "Two-way audio needs a video stream – this camera only provides still images in Home Assistant",
+    "events": "Events",
+    "panel_hide": "Hide side panel",
+    "panel_show": "Show side panel"
   },
   "editor": {
     "mode_entity": "Mode selector on top (e.g. an input_select for notifications)",
@@ -167,6 +170,10 @@
     "layout_right": "Sidebar right",
     "layout_left": "Sidebar left",
     "layout_bottom": "Everything below",
-    "playback": "Show playback"
+    "playback": "Show playback",
+    "panel": "Side panel at start (wide card)",
+    "panel_events": "Events",
+    "panel_settings": "Settings",
+    "panel_none": "Collapsed"
   }
 }

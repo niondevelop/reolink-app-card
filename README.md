@@ -51,7 +51,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
 - **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move.
 - **Two lenses:** for the TrackMix and Duo, the second lens (telephoto) is an extra quality level in the quality menu and in playback.
-- **Wide screens:** on a wide card the live view or playback list moves into a sidebar (right, left or below, option `layout`), with the control buttons compact under the image.
+- **Wide screens:** on a wide card the live view keeps running and a side panel sits next to it (right or left, option `layout`; or everything below). The panel shows the **events** – tap one to play it in the image. **Settings** open as their own panel only when you want them. The panel can be collapsed and reopened with the handle at the image edge; the device remembers the choice. The control buttons sit compact under the image.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
@@ -129,6 +129,7 @@ cameras:
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
 | `layout`                  | `auto`        | Arrangement on a wide card (from about 760 px): `auto` (sidebar right), `right`, `left` or `bottom`. Narrow cards and phones always stack everything |
+| `panel`                   | `events`      | Side panel on first open: `events`, `settings` or `none` (collapsed). After that the choice last made on the device applies |
 | `playback`                | `true`        | `false` hides the playback tab. It is hidden automatically for cameras that Home Assistant offers no recordings for |
 | `doorbell_timeout`        | `30`          | How long the doorbell call screen stays (seconds) |
 | `doorbell_sound`          | `true`        | Play a short ring tone on the device when the bell rings |

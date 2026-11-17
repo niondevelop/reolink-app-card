@@ -48,7 +48,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Klingel:** für eine Reolink-Klingel oder eine Kamera, die du als Klingel nutzt: Beim Klingeln erscheint eine Anrufansicht mit Ablehnen und Annehmen. Annehmen startet das Gegensprechen.
 - **Schwenken & Neigen (PTZ):** Steuerkreuz, Zoom und gespeicherte Positionen für schwenkbare Kameras.
 - **Zwei Objektive:** Bei TrackMix und Duo ist das zweite Objektiv (Tele) eine zusätzliche Stufe im Qualitätsmenü und in der Wiedergabe.
-- **Breite Bildschirme:** Bei einer breiten Karte kommen Livebild-Steuerung bzw. Wiedergabeliste in eine Seitenleiste (rechts, links oder unten, Option `layout`); die Knöpfe sitzen kompakt unter dem Bild.
+- **Breite Bildschirme:** Bei einer breiten Karte läuft das Livebild links weiter, daneben steht ein Panel (rechts oder links, Option `layout`; oder alles unten). Im Panel stehen die **Ereignisse** – antippen spielt die Aufnahme im Bild ab. Die **Einstellungen** öffnen sich als eigenes Panel nur auf Wunsch. Das Panel lässt sich zuklappen und über den Griff am Bildrand wieder öffnen; die Wahl merkt sich das Gerät. Die Knöpfe sitzen kompakt unter dem Bild.
 - **Öffnen aus einer Mitteilung:** Ein Link in deiner Push-Mitteilung öffnet die richtige Kamera live oder spielt die passende Aufnahme ab.
 - **Steuerleiste wie in der Reolink-App:** Sprechen, Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar). Die gewählte Qualität merkt sich jedes Gerät.
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte.
@@ -126,6 +126,7 @@ cameras:
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` oder `fr` |
 | `layout`                  | `auto`        | Anordnung bei breiter Karte (ab etwa 760 px): `auto` (Seitenleiste rechts), `right`, `left` oder `bottom`. Schmale Karten und Handys zeigen immer alles untereinander |
+| `panel`                   | `events`      | Seitenleiste beim ersten Öffnen: `events` (Ereignisse), `settings` (Einstellungen) oder `none` (zugeklappt). Danach gilt die zuletzt auf dem Gerät gewählte |
 | `playback`                | `true`        | `false` blendet den Reiter „Wiedergabe“ aus. Bei Kameras, für die Home Assistant keine Aufnahmen anbietet, geschieht das automatisch |
 | `doorbell_timeout`        | `30`          | Wie lange die Anrufansicht der Klingel bleibt (Sekunden) |
 | `doorbell_sound`          | `true`        | Beim Klingeln einen kurzen Klingelton auf dem Gerät abspielen |

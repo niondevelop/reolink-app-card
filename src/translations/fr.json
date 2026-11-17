@@ -133,7 +133,10 @@
     "test_missing": "Fichier de test introuvable – la version stable est active. Touchez pour arrêter",
     "test_back": "Revenir à la version stable ? La page sera rechargée.",
     "test_back_btn": "Revenir",
-    "talk_na_nostream": "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant"
+    "talk_na_nostream": "L’audio bidirectionnel nécessite un flux vidéo – cette caméra ne fournit que des images fixes dans Home Assistant",
+    "events": "Événements",
+    "panel_hide": "Masquer le panneau latéral",
+    "panel_show": "Afficher le panneau latéral"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -167,6 +170,10 @@
     "layout_right": "Barre latérale à droite",
     "layout_left": "Barre latérale à gauche",
     "layout_bottom": "Tout en dessous",
-    "playback": "Afficher la lecture"
+    "playback": "Afficher la lecture",
+    "panel": "Panneau latéral au démarrage (carte large)",
+    "panel_events": "Événements",
+    "panel_settings": "Réglages",
+    "panel_none": "Replié"
   }
 }

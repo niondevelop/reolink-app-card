@@ -88,6 +88,8 @@ async function shot(name, setup, extra = {}, width = 420) {
     const c = window.__c, wait = (ms) => new Promise((r) => setTimeout(r, ms));
     if (setup === 'play') { c._setMode('play'); await wait(400); }
     if (setup === 'settings') { c._settingsOpen = true; c._group = 'g_detect'; c._update(); }
+    if (setup === 'panel-settings') { c._group = 'g_detect'; c._setPanel('settings'); await wait(400); }
+    if (setup === 'panel-none') { c._setPanel('none'); await wait(400); }
     if (setup === 'grid') { c._setGrid(true); await wait(300); }
     if (setup === 'ring') { c._select(1); await wait(200); const h = window.__hass; c.hass = { ...h, states: { ...h.states, 'input_boolean.doorbell': { state: 'on', attributes: {} } } }; }
     c.shadowRoot.getElementById('toast').classList.remove('show');
@@ -106,6 +108,10 @@ try {
   await shot('grid', 'grid');
   await shot('doorbell', 'ring', { auto_live: false });
   await shot('landscape', 'play', { auto_live: false }, 1140);
+  if (process.env.SHOTS_ALL) {
+    await shot('landscape-settings', 'panel-settings', { auto_live: false }, 1140);
+    await shot('landscape-collapsed', 'panel-none', { auto_live: false }, 1140);
+  }
 } finally {
   await browser.close();
   server.close();

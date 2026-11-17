@@ -32,6 +32,7 @@ export default {
           </div>
           <div class="ov det" id="det"></div>
           <div class="toast" id="toast"></div>
+          <button class="pedge" id="pedge"><ha-icon></ha-icon></button>
           <button class="bigplay" id="bigplay"><ha-icon icon="mdi:play"></ha-icon></button>
           <div class="ring" id="ring">
             <div class="rhead"><span class="rbell"><ha-icon icon="mdi:doorbell-video"></ha-icon></span><b id="ring-t"></b><span id="ring-n"></span></div>
@@ -56,6 +57,10 @@ export default {
           </div>
         </div>
         <div class="seg"><button id="m-live"></button><button id="m-play"></button></div>
+        <div class="phead" id="phead">
+          <div class="ptabs"><button id="p-ev"><ha-icon icon="mdi:motion-sensor"></ha-icon><span id="p-ev-l"></span></button><button id="p-set"><ha-icon icon="mdi:tune-variant"></ha-icon><span id="p-set-l"></span></button></div>
+          <button class="pclose" id="pclose"><ha-icon></ha-icon></button>
+        </div>
         <div id="pane-live">
           <div class="barwrap"><div class="bar" id="ctrls"></div><div class="qmenu" id="qmenu"></div></div>
           <div class="ptz" id="ptz"></div>
@@ -90,6 +95,11 @@ export default {
     $('m-live').onclick = () => this._setMode('live');
     $('m-play').onclick = () => this._setMode('play');
     $('more').onclick = () => { this._settingsOpen = !this._settingsOpen; this._update(); };
+    // Seitenleiste: Ereignisse / Einstellungen umschalten, zuklappen und am Bildrand wieder aufklappen
+    $('p-ev').onclick = () => this._setPanel('events');
+    $('p-set').onclick = () => this._setPanel('settings');
+    $('pclose').onclick = () => this._setPanel('none');
+    $('pedge').onclick = () => this._setPanel(this._lastPanel || (this._hasPlayback() ? 'events' : 'settings'));
     $('speed').onclick = () => this._cycleSpeed();
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
@@ -196,6 +206,7 @@ export default {
     ['right', 'left', 'bottom'].forEach((x) => card.classList.toggle(`lay-${x}`, lay === x));
     card.classList.toggle('lay-side', lay === 'right' || lay === 'left');
     this._side = lay === 'right' || lay === 'left';
+    if (this._side && this._mode === 'play') { this._mode = 'live'; this._panel = 'events'; }
     this._update();
     this._fitHub();
   },
@@ -313,14 +324,42 @@ export default {
     if (ch !== 'stable') $('testbar-l').textContent = this._t(ch === 'test' ? 'test_on' : 'test_missing', { v: RAC_VERSION });
     // Ohne Aufnahmen in Home Assistant gibt es nur Live: Umschalter ausblenden
     const hasPlay = this._hasPlayback();
-    this.shadowRoot.querySelector('.seg').style.display = hasPlay ? '' : 'none';
+    const side = !!this._side, pan = side ? this._panelNow() : null;
+    if (pan && pan !== 'none') this._lastPanel = pan;
+    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side ? '' : 'none';
     if (!hasPlay && this._mode === 'play') { this._setMode('live'); return; }
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
-    $('pane-live').style.display = this._mode === 'live' ? (this._side ? 'contents' : '') : 'none';
-    $('pane-play').style.display = this._mode === 'play' ? '' : 'none';
+    // Seitenleiste (breite Karte): Livebild links, im Panel Ereignisse oder Einstellungen – oder zugeklappt
+    const card = root.querySelector('ha-card');
+    card.classList.toggle('pan-none', side && pan === 'none');
+    card.classList.toggle('pan-set', side && pan === 'settings');
+    card.classList.toggle('playing', playing);
+    $('phead').style.display = side && pan !== 'none' ? '' : 'none';
+    $('pedge').style.display = side && pan === 'none' && !this._grid ? 'grid' : 'none';
+    if (side) {
+      const left = this._config.layout === 'left';
+      $('p-ev').style.display = hasPlay ? '' : 'none';
+      $('p-ev-l').textContent = this._t('events');
+      $('p-set-l').textContent = this._t('settings');
+      $('p-ev').classList.toggle('sel', pan === 'events');
+      $('p-set').classList.toggle('sel', pan === 'settings');
+      $('pclose').title = this._t('panel_hide');
+      $('pclose').querySelector('ha-icon').setAttribute('icon', left ? 'mdi:chevron-left' : 'mdi:chevron-right');
+      $('pedge').title = this._t('panel_show');
+      $('pedge').classList.toggle('left', left);
+      $('pedge').querySelector('ha-icon').setAttribute('icon', left ? 'mdi:chevron-right' : 'mdi:chevron-left');
+    }
+    $('pane-live').style.display = side ? 'contents' : this._mode === 'live' ? '' : 'none';
+    $('pane-play').style.display = side ? (pan === 'events' ? '' : 'none') : this._mode === 'play' ? '' : 'none';
 
-    if (this._mode === 'live') this._updateLivePane();
+    if (side) {
+      this._updateLivePane();
+      if (pan === 'events') {
+        if (!this._days) this._loadDays();
+        else this._updatePlayPane();
+      }
+    } else if (this._mode === 'live') this._updateLivePane();
     else this._updatePlayPane();
     this._a11y();
   },
@@ -446,7 +485,7 @@ export default {
       }
     }
 
-    const setOpen = this._settingsOpen || this._side;
+    const setOpen = this._side ? this._panelNow() === 'settings' : this._settingsOpen;
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
     box.style.display = setOpen ? '' : 'none';
