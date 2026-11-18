@@ -137,7 +137,11 @@
     "events": "Événements",
     "panel_hide": "Masquer le panneau latéral",
     "panel_show": "Afficher le panneau latéral",
-    "back_live": "Retour au direct"
+    "back_live": "Retour au direct",
+    "confirm_action": "Exécuter « {name} » ?",
+    "confirm_btn": "Exécuter",
+    "sd_full": "Carte SD {name} presque pleine ({v} %)",
+    "hub": "Hub"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -148,7 +152,7 @@
     "autoplay_next": "Lire automatiquement le clip suivant",
     "battery_warning": "Alerte batterie à partir de (%)",
     "temperature_warning": "Alerte température à partir de (°C)",
-    "show_hub": "Afficher le hub (mode scène, carte SD)",
+    "show_hub": "Afficher le mode scène et la carte SD",
     "hub_prefix": "Préfixe du hub",
     "language": "Langue",
     "prefix": "Caméra",
@@ -175,6 +179,18 @@
     "panel": "Panneau latéral au démarrage (carte large)",
     "panel_events": "Événements",
     "panel_settings": "Réglages",
-    "panel_none": "Replié"
+    "panel_none": "Replié",
+    "general": "Réglages généraux de la carte",
+    "buttons": "Barre de boutons",
+    "buttons_hint": "Afficher ou masquer les boutons et les ordonner avec les flèches. Un bouton n’apparaît que si la caméra a la fonction. Le bouton de conversation reste au centre : ce qui le précède va à gauche, ce qui le suit à droite.",
+    "own_buttons": "Barre de boutons propre à cette caméra",
+    "add_button": "Bouton personnalisé (p. ex. lumière ou gâche)",
+    "custom_button": "bouton personnalisé",
+    "down": "Descendre",
+    "btn_entity": "Entité",
+    "btn_name": "Nom (facultatif)",
+    "btn_icon": "Icône (facultatif)",
+    "btn_service": "Service (facultatif, p. ex. lock.open)",
+    "btn_confirm": "Demander une confirmation"
   }
 }

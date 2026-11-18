@@ -137,7 +137,11 @@
     "events": "Ereignisse",
     "panel_hide": "Seitenleiste ausblenden",
     "panel_show": "Seitenleiste einblenden",
-    "back_live": "Zurück zum Livebild"
+    "back_live": "Zurück zum Livebild",
+    "confirm_action": "„{name}“ ausführen?",
+    "confirm_btn": "Ausführen",
+    "sd_full": "SD-Karte {name} fast voll ({v} %)",
+    "hub": "Hub"
   },
   "editor": {
     "mode_entity": "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -148,7 +152,7 @@
     "autoplay_next": "Nächsten Clip automatisch abspielen",
     "battery_warning": "Akku-Warnung ab (%)",
     "temperature_warning": "Temperatur-Warnung ab (°C)",
-    "show_hub": "Hub anzeigen (Szenenmodus, SD-Karte)",
+    "show_hub": "Szenenmodus und SD-Karte anzeigen",
     "hub_prefix": "Hub-Präfix",
     "language": "Sprache",
     "prefix": "Kamera",
@@ -175,6 +179,18 @@
     "panel": "Seitenleiste beim Start (bei breiter Karte)",
     "panel_events": "Ereignisse",
     "panel_settings": "Einstellungen",
-    "panel_none": "Zugeklappt"
+    "panel_none": "Zugeklappt",
+    "general": "Allgemeine Karteneinstellungen",
+    "buttons": "Knopfleiste",
+    "buttons_hint": "Knöpfe ein- und ausblenden und mit den Pfeilen anordnen. Ein Knopf erscheint nur, wenn die Kamera die Funktion hat. Der Hörer steht immer in der Mitte: links davon, was vor ihm steht, rechts, was danach kommt.",
+    "own_buttons": "Eigene Knopfleiste für diese Kamera",
+    "add_button": "Eigener Knopf (z. B. Licht oder Türöffner)",
+    "custom_button": "eigener Knopf",
+    "down": "Nach unten",
+    "btn_entity": "Entität",
+    "btn_name": "Name (optional)",
+    "btn_icon": "Symbol (optional)",
+    "btn_service": "Dienst (optional, z. B. lock.open)",
+    "btn_confirm": "Mit Rückfrage"
   }
 }

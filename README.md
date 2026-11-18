@@ -54,7 +54,8 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Wide screens:** on a wide card the live view keeps running and a side panel sits next to it (right or left, option `layout`; or everything below). The panel shows the **events** – tap one to play it in the image. **Settings** open as their own panel only when you want them. The panel can be collapsed and reopened with the handle at the image edge; the device remembers the choice. The control buttons sit compact under the image.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
-- **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage.
+- **Your own button bar:** show or hide the built-in buttons, put them in any order, and add your own buttons, e.g. a door opener or the patio light. For the whole card or per camera, in the visual editor (see [Button bar](#button-bar)).
+- **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage: of the selected camera if it has its own SD card, otherwise of the hub, with a warning when it is almost full.
 - **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice.
 - **All cameras at once:** grid view with every live stream; tap one to open it.
 - **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel.
@@ -124,7 +125,8 @@ cameras:
 | `mode_entity`             | –             | Your own mode selector on top of the card, e.g. an `input_select` with “Away / Home / Night / Off” for your notification automation. Replaces the Reolink scene mode there |
 | `mode_icons`              | –             | Custom icons per option, e.g. `{ Night: mdi:weather-night }`. Without it, the card picks fitting icons for common names |
 | `show_scene`              | `true` / `false` with `mode_entity` | Show the Reolink scene mode of the hub |
-| `show_hub`                | `true`        | Show the hub row (scene mode and SD card) |
+| `show_hub`                | `true`        | Show the scene mode and the SD card usage (of the selected camera, otherwise of the hub) |
+| `buttons`                 | all           | Buttons of the control bar and their order, see [Button bar](#button-bar). Can also be set per camera |
 | `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` or `fr` |
@@ -147,8 +149,43 @@ cameras:
 | `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
 | `playback`   | `false` hides the playback tab for this camera |
+| `buttons`    | Own button bar for this camera, see [Button bar](#button-bar) |
 
 The card finds the entities on its own through the device registry, so it works in any language and with renamed entities. If that's not possible, it falls back to English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
+
+### Button bar
+
+`buttons` lists the buttons of the control bar in the order you want. Built-in buttons: `talk`, `siren`, `light`, `rec`, `snap`, `ptz`, `q`. A built-in button you leave out is hidden; it only appears if the camera has the feature. The talk button always sits in the middle: buttons listed before it go to the left, the others to the right.
+
+Your own buttons take any entity:
+
+| Key       | Description |
+| --------- | ----------- |
+| `entity`  | **Required.** Light, switch, lock, cover, fan, button, script, scene or automation |
+| `name`    | Label (tooltip). Default: name of the entity |
+| `icon`    | Icon. Default: icon of the entity |
+| `service` | Service to call instead of the default, e.g. `lock.open` for a door opener |
+| `confirm` | Ask before running. Default: on for unlocking a lock |
+
+By default a button toggles lights, switches, fans and covers, presses buttons, runs scripts and scenes, and locks or unlocks locks. It lights up while the entity is on or unlocked.
+
+```yaml
+type: custom:reolink-app-card
+buttons: [talk, siren, light, snap, q, { entity: light.patio, icon: mdi:outdoor-lamp }]
+cameras:
+  - entity: camera.front_door_fluent
+    buttons:
+      - siren
+      - talk
+      - entity: lock.front_door
+        name: Door opener
+        service: lock.open
+        confirm: true
+      - snap
+  - entity: camera.garden_fluent
+```
+
+In the visual editor: *General card settings → Button bar* for the whole card, and *Own button bar for this camera* inside each camera.
 
 ### Open from a notification
 
@@ -251,7 +288,7 @@ Notes:
 The card can show your own mode at the top, e.g. **Away / Home / Night / Off**, and your automations decide what happens in each mode. Two blueprints make this easy to set up:
 
 1. **Create the mode helper:** *Settings → Devices & services → Helpers → Create helper → Dropdown*, name it e.g. "Camera mode", options `Away`, `Home`, `Night`, `Off`.
-2. **Show it in the card:** in the card editor under *Options → Mode selector on top*, or `mode_entity: input_select.camera_mode` in YAML. The card picks fitting icons for these names; set your own with `mode_icons`.
+2. **Show it in the card:** in the card editor under *General card settings → Mode selector on top*, or `mode_entity: input_select.camera_mode` in YAML. The card picks fitting icons for these names; set your own with `mode_icons`.
 3. **Import the blueprints** and create an automation from each:
 
 | Blueprint | What it does | |

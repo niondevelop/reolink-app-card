@@ -21,7 +21,7 @@ export default {
       const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -126,6 +126,20 @@ export default {
       for (const s of suf) { const id = `${domain}.${pre}_${s}`; if (this._st(id)) return id; }
     }
     return null;
+  },
+
+  /* SD-Karte der Kamera selbst (direkt eingebundene Kamera mit eigener Karte); Kameras am Hub haben keine */
+  _camSdE(cam = this._cam) {
+    if (cam.over.storage) return cam.over.storage;
+    this._devIndex(cam);
+    const reg = this._hass && this._hass.entities;
+    if (!reg || !cam._devId) return null;
+    if (cam._sdReg !== reg) {
+      cam._sdReg = reg;
+      cam._sd = Object.keys(reg).find((id) => reg[id].device_id === cam._devId && id.startsWith('sensor.')
+        && (['sd_storage', 'hdd_storage'].includes(reg[id].translation_key) || /_(sd|hdd)_\d+_(speicher|storage)$/.test(id))) || null;
+    }
+    return cam._sd && this._st(cam._sd) ? cam._sd : null;
   },
 
   /* Hub automatisch finden: Entität des Szenenmodus bzw. der SD-Karte (einmal suchen, dann merken) */

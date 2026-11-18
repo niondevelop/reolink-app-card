@@ -1,5 +1,5 @@
 /* Visueller Editor der Karte */
-import { Q, Q_BASE } from './constants.js';
+import { BTN_DEFAULT, BTN_LABEL, Q, Q_BASE } from './constants.js';
 import { detectCameras, needsEntity } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
@@ -63,24 +63,44 @@ export class ReolinkAppCardEditor extends HTMLElement {
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
     ];
     const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
     this.shadowRoot.innerHTML = `<style>
-      .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
-      .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
-      .ch { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 500; }
-      .ch span { flex: 1; }
-      h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 500; }
+      .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+      .cam { border: 1px solid var(--divider-color); border-radius: 12px; }
+      .ch { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
+      .ch .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .ch .tt b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ch .tt small { color: var(--secondary-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chev { width: 20px; text-align: center; color: var(--secondary-text-color); transition: transform .15s; }
+      .cam.open .chev { transform: rotate(90deg); }
+      .cb { display: none; padding: 0 12px 12px; }
+      .cam.open .cb { display: block; }
+      h3 { margin: 18px 0 6px; font-size: 16px; font-weight: 500; }
+      h4 { margin: 16px 0 4px; font-size: 14px; font-weight: 500; }
+      .hint { margin: 0 0 8px; font-size: 12px; color: var(--secondary-text-color); }
       button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--divider-color); background: none; color: inherit; padding: 6px 10px; }
+      button:disabled { opacity: .35; cursor: default; }
       .add { width: 100%; padding: 10px; color: var(--primary-color); border-style: dashed; }
+      .own { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 14px; }
+      .btns { display: flex; flex-direction: column; gap: 6px; }
+      .brow { border: 1px solid var(--divider-color); border-radius: 10px; padding: 6px 8px; }
+      .bh { display: flex; align-items: center; gap: 8px; }
+      .bh .bl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .bh .bl.off { color: var(--secondary-text-color); }
+      .bh button { padding: 2px 8px; }
+      .bf { margin-top: 6px; }
     </style>
     <h3>${L.cameras}</h3><div class="cams" id="cams"></div><button class="add" id="add">+ ${L.add}</button>
-    <h3>${L.options}</h3><div id="gen"></div>`;
+    <h3>${L.general}</h3><div id="gen"></div>
+    <h4>${L.buttons}</h4><p class="hint">${L.buttons_hint}</p><div id="btns"></div>`;
     const label = (s) => L[s.name] || s.name;
 
     const cams = this.shadowRoot.getElementById('cams');
     this._config.cameras.forEach((cam, i) => {
       const box = document.createElement('div');
-      box.className = 'cam';
-      box.innerHTML = `<div class="ch"><span>${esc(cam.name || cam.prefix || '—')}</span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ''}<button data-a="rm">${L.remove}</button></div>`;
+      box.className = `cam${this._openCams.has(i) ? ' open' : ''}`;
+      const hit0 = detected.find((d) => d.prefix === cam.prefix);
+      box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || (hit0 && hit0.name) || cam.prefix || '—')}</b><small>${esc(cam.entity || cam.prefix || '')}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ''}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
       const form = document.createElement('ha-form');
       form.hass = this._hass; form.schema = camSchema; form.data = cam; form.computeLabel = label;
       form.addEventListener('value-changed', (e) => {
@@ -92,12 +112,42 @@ export class ReolinkAppCardEditor extends HTMLElement {
         this._changed({ ...this._config, cameras: list });
         if (hit && v.prefix !== cam.prefix) this._render();
       });
-      box.appendChild(form);
-      box.querySelectorAll('button').forEach((b) => {
+      const body = box.querySelector('.cb');
+      body.appendChild(form);
+      // Eigene Knopfleiste nur für diese Kamera (sonst gilt die der Karte)
+      const own = document.createElement('label');
+      own.className = 'own';
+      own.innerHTML = `<input type="checkbox" ${Array.isArray(cam.buttons) ? 'checked' : ''}><span>${L.own_buttons}</span>`;
+      own.querySelector('input').onchange = (e) => {
+        const list = [...this._config.cameras], v = { ...cam };
+        if (e.target.checked) v.buttons = [...(Array.isArray(this._config.buttons) ? this._config.buttons : BTN_DEFAULT)];
+        else delete v.buttons;
+        list[i] = v;
+        this._changed({ ...this._config, cameras: list });
+        this._render();
+      };
+      body.appendChild(own);
+      if (Array.isArray(cam.buttons)) {
+        body.appendChild(this._btnEditor(cam.buttons, (next) => {
+          const list = [...this._config.cameras]; list[i] = { ...this._config.cameras[i], buttons: next };
+          this._changed({ ...this._config, cameras: list });
+        }));
+      }
+      box.querySelector('.ch').onclick = (e) => {
+        if (e.target.closest('button')) return;
+        if (this._openCams.has(i)) this._openCams.delete(i); else this._openCams.add(i);
+        box.classList.toggle('open', this._openCams.has(i));
+      };
+      box.querySelectorAll('.ch button').forEach((b) => {
         b.onclick = () => {
           const list = [...this._config.cameras];
-          if (b.dataset.a === 'rm') list.splice(i, 1);
-          else [list[i - 1], list[i]] = [list[i], list[i - 1]];
+          if (b.dataset.a === 'rm') { list.splice(i, 1); this._openCams = new Set([...this._openCams].filter((x) => x !== i).map((x) => (x > i ? x - 1 : x))); } else {
+            [list[i - 1], list[i]] = [list[i], list[i - 1]];
+            const a = this._openCams.has(i), z = this._openCams.has(i - 1);
+            this._openCams.delete(i); this._openCams.delete(i - 1);
+            if (a) this._openCams.add(i - 1);
+            if (z) this._openCams.add(i);
+          }
           this._changed({ ...this._config, cameras: list });
           this._render();
         };
@@ -108,6 +158,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       const used = this._config.cameras.map((c) => c.prefix);
       const next = detected.find((d) => !used.includes(d.prefix));
       const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name } : { prefix: '' };
+      this._openCams.add(this._config.cameras.length);
       this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
       this._render();
     };
@@ -123,5 +174,82 @@ export class ReolinkAppCardEditor extends HTMLElement {
       this._changed(cfg);
     });
     this.shadowRoot.getElementById('gen').appendChild(gen);
+
+    // Knopfleiste der Karte (gilt für alle Kameras ohne eigene Knopfleiste)
+    const cardBtns = Array.isArray(this._config.buttons) ? this._config.buttons : BTN_DEFAULT;
+    this.shadowRoot.getElementById('btns').appendChild(this._btnEditor(cardBtns, (next) => {
+      const cfg = { ...this._config };
+      if (JSON.stringify(next) === JSON.stringify(BTN_DEFAULT)) delete cfg.buttons; else cfg.buttons = next;
+      this._changed(cfg);
+    }));
+  }
+
+  /* Liste der Knöpfe: eingebaute ein-/ausblenden und anordnen, eigene Knöpfe (Licht, Türöffner …) hinzufügen.
+     Gespeichert wird nur, was sichtbar ist, in der gewählten Reihenfolge. */
+  _btnEditor(list, onChange) {
+    const L = this._l, T = STR[this._lang] || STR.en;
+    const wrap = document.createElement('div');
+    wrap.className = 'btns';
+    const vis = list.filter((b) => typeof b !== 'string' || BTN_DEFAULT.includes(b));
+    const hidden = BTN_DEFAULT.filter((b) => !vis.includes(b));
+    const save = (next) => { onChange(next); this._render(); };
+    const name = (b) => (typeof b === 'string' ? T[BTN_LABEL[b]] || b
+      : b.name || (b.entity && this._hass.states[b.entity] && this._hass.states[b.entity].attributes.friendly_name) || b.entity || L.custom_button);
+    vis.forEach((b, i) => {
+      const row = document.createElement('div');
+      row.className = 'brow';
+      row.dataset.b = typeof b === 'string' ? b : `x${i}`;
+      row.innerHTML = `<div class="bh">${typeof b === 'string' ? '<input type="checkbox" checked>' : '<span style="width:13px"></span>'}
+        <span class="bl">${esc(name(b))}${typeof b === 'string' ? '' : ` <small>· ${esc(L.custom_button)}</small>`}</span>
+        <button data-a="up" title="${L.up}" ${i ? '' : 'disabled'}>↑</button><button data-a="down" title="${L.down}" ${i < vis.length - 1 ? '' : 'disabled'}>↓</button>
+        ${typeof b === 'string' ? '' : `<button data-a="rm" title="${L.remove}">✕</button>`}</div>`;
+      const cb = row.querySelector('input');
+      if (cb) cb.onchange = () => save(vis.filter((_, k) => k !== i));
+      row.querySelectorAll('button').forEach((btn) => {
+        btn.onclick = () => {
+          const next = [...vis];
+          if (btn.dataset.a === 'rm') next.splice(i, 1);
+          else { const j = btn.dataset.a === 'up' ? i - 1 : i + 1; [next[i], next[j]] = [next[j], next[i]]; }
+          save(next);
+        };
+      });
+      if (typeof b !== 'string') {
+        const form = document.createElement('ha-form');
+        form.className = 'bf';
+        form.hass = this._hass;
+        form.schema = [
+          { name: 'entity', selector: { entity: { domain: ['light', 'switch', 'input_boolean', 'lock', 'cover', 'fan', 'button', 'input_button', 'script', 'scene', 'automation', 'siren'] } } },
+          { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'icon', selector: { icon: {} } }] },
+          { type: 'grid', name: '', schema: [{ name: 'service', selector: { text: {} } }, { name: 'confirm', selector: { boolean: {} } }] },
+        ];
+        form.data = b;
+        form.computeLabel = (sch) => L[`btn_${sch.name}`] || sch.name;
+        form.addEventListener('value-changed', (e) => {
+          const v = { ...e.detail.value };
+          Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined || v[k] === null) delete v[k]; });
+          const next = [...vis]; next[i] = v;
+          onChange(next);
+          vis[i] = v;
+          row.querySelector('.bl').firstChild.textContent = name(v);
+        });
+        row.appendChild(form);
+      }
+      wrap.appendChild(row);
+    });
+    hidden.forEach((b) => {
+      const row = document.createElement('div');
+      row.className = 'brow';
+      row.dataset.b = b;
+      row.innerHTML = `<div class="bh"><input type="checkbox"><span class="bl off">${esc(name(b))}</span></div>`;
+      row.querySelector('input').onchange = () => save([...vis, b]);
+      wrap.appendChild(row);
+    });
+    const add = document.createElement('button');
+    add.className = 'add';
+    add.dataset.a = 'add-btn';
+    add.textContent = `+ ${L.add_button}`;
+    add.onclick = () => save([...vis, { entity: '' }]);
+    wrap.appendChild(add);
+    return wrap;
   }
 }

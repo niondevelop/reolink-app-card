@@ -1,0 +1,167 @@
+import { after, before, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { launch, openCard, startServer, wait } from './helpers.js';
+
+let browser, server;
+before(async () => { server = await startServer(); browser = await launch(); });
+after(async () => { await browser.close(); await server.close(); });
+
+/* Knopfleiste: eingebaute Knöpfe ein-/ausblenden und anordnen, eigene Knöpfe für Licht, Türöffner usw. */
+const img = ['idle', { entity_picture: '/x.jpg' }];
+const STATES = {
+  'camera.haustur_standardauflosung': img, 'camera.garten_standardauflosung': img,
+  'siren.haustur_sirene': ['off', {}], 'light.haustur_flutlicht': ['off', {}], 'switch.haustur_manuelle_aufzeichnung': ['off', {}],
+  'light.terrasse': ['on', { friendly_name: 'Terrasse' }],
+  'lock.haustuer': ['locked', { friendly_name: 'Haustür' }],
+  'button.tueroeffner': ['unknown', { friendly_name: 'Türöffner' }],
+  'sensor.haustur_sd_0_storage': ['96', { unit_of_measurement: '%' }],
+};
+const ENTITIES = {
+  'camera.haustur_standardauflosung': { entity_id: 'camera.haustur_standardauflosung', device_id: 'dH', platform: 'reolink', translation_key: 'sub' },
+  'sensor.haustur_sd_0_storage': { entity_id: 'sensor.haustur_sd_0_storage', device_id: 'dH', platform: 'reolink' },
+  'camera.garten_standardauflosung': { entity_id: 'camera.garten_standardauflosung', device_id: 'dG', platform: 'reolink', translation_key: 'sub' },
+};
+const HASS = { states: STATES, entities: ENTITIES, devices: { dH: { name: 'Haustür' }, dG: { name: 'Garten' } } };
+const ids = (c) => c.run(() => {
+  const bar = window.__card.shadowRoot.getElementById('ctrls'), sides = bar.querySelectorAll('.side');
+  const list = (el) => [...el.querySelectorAll('[data-id]')].map((b) => b.dataset.id);
+  return { all: list(bar), left: sides[0] ? list(sides[0]) : null, right: sides[1] ? list(sides[1]) : null };
+});
+
+test('ohne Einstellung: alle vorhandenen Knöpfe wie bisher, Hörer in der Mitte', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false, show_hub: false }, hass: HASS });
+  const r = await ids(c);
+  assert.deepEqual(r.all.sort(), ['light', 'q', 'rec', 'siren', 'snap', 'talk'].sort());
+  assert.ok(r.left.length && r.right.length);
+  await c.close();
+});
+
+test('buttons: Reihenfolge und Ausblenden; links vor dem Hörer, rechts danach', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false, show_hub: false, buttons: ['snap', 'siren', 'talk', 'light'] }, hass: HASS });
+  const r = await ids(c);
+  assert.deepEqual(r.left, ['snap', 'siren']);
+  assert.deepEqual(r.right, ['light']);
+  assert.ok(!r.all.includes('rec'));
+  await c.close();
+});
+
+test('eigene Knöpfe: Licht schaltet, Schloss fragt nach, Taster drückt, Dienst überschreibbar; pro Kamera', async () => {
+  const cfg = {
+    auto_live: false, show_hub: false,
+    buttons: ['talk', 'snap', { entity: 'light.terrasse', icon: 'mdi:outdoor-lamp' }],
+    cameras: [
+      { prefix: 'haustur', buttons: ['talk', { entity: 'lock.haustuer' }, { entity: 'lock.haustuer', service: 'lock.open', confirm: false, name: 'Öffnen' }, { entity: 'button.tueroeffner' }] },
+      { prefix: 'garten' },
+    ],
+  };
+  const c = await openCard(browser, server, { config: cfg, hass: HASS });
+  let r = await ids(c);
+  assert.deepEqual(r.all, ['talk', 'x1', 'x2', 'x3']);
+  const btn = (id) => c.run((i) => { const b = window.__card.shadowRoot.querySelector(`#ctrls [data-id="${i}"]`); return { label: b.getAttribute('aria-label'), icon: b.querySelector('ha-icon').getAttribute('icon'), on: b.classList.contains('on') }; }, id);
+  assert.deepEqual(await btn('x1'), { label: 'Haustür', icon: 'mdi:lock', on: false });
+  // Schloss: Rückfrage, erst dann entriegeln
+  await c.click('[data-id="x1"]');
+  await wait(50);
+  assert.ok((await c.info()).dialog);
+  assert.ok(!(await c.rec()).calls.some((x) => x.startsWith('lock.')));
+  await c.click('#dyes');
+  await wait(50);
+  assert.ok((await c.rec()).calls.includes('lock.unlock lock.haustuer'));
+  // Eigener Dienst ohne Rückfrage, Taster
+  await c.click('[data-id="x2"]');
+  await c.click('[data-id="x3"]');
+  await wait(50);
+  assert.ok((await c.rec()).calls.includes('lock.open lock.haustuer'));
+  assert.ok((await c.rec()).calls.includes('button.press button.tueroeffner'));
+  // Zweite Kamera: Knopfleiste der Karte mit dem Terrassenlicht
+  await c.run(() => window.__card._select(1));
+  await wait(100);
+  r = await ids(c);
+  assert.deepEqual(r.all, ['talk', 'snap', 'x2']);
+  assert.deepEqual(await btn('x2'), { label: 'Terrasse', icon: 'mdi:outdoor-lamp', on: true });
+  await c.click('[data-id="x2"]');
+  await wait(50);
+  assert.ok((await c.rec()).calls.includes('light.toggle light.terrasse'));
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('SD-Karte fast voll: Warnung', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  const w = await c.run(() => window.__card.shadowRoot.getElementById('warns').textContent);
+  assert.match(w, /SD.*96/);
+  await c.close();
+});
+
+/* Editor: Kameras aufklappbar, Abschnitt „Allgemeine Karteneinstellungen“, Knopfleiste bearbeiten */
+const editor = async (c, config) => c.run(async (cfg) => {
+  document.querySelectorAll('reolink-app-card-editor').forEach((e) => e.remove());
+  const ed = document.createElement('reolink-app-card-editor');
+  document.body.appendChild(ed);
+  ed.hass = window.__hass;
+  window.__edCfg = null;
+  ed.addEventListener('config-changed', (e) => { window.__edCfg = e.detail.config; });
+  ed.setConfig(cfg);
+  await new Promise((r) => setTimeout(r, 100));
+  window.__ed = ed;
+}, config);
+const edInfo = (c) => c.run(() => {
+  const r = window.__ed.shadowRoot;
+  return {
+    heads: [...r.querySelectorAll('h3,h4')].map((h) => h.textContent),
+    open: [...r.querySelectorAll('.cam')].map((x) => x.classList.contains('open')),
+    rows: [...r.querySelector('#btns').querySelectorAll('.brow')].map((x) => [x.dataset.b, !!(x.querySelector('input') || {}).checked]),
+    cfg: window.__edCfg,
+  };
+});
+
+test('Editor: Kameras zugeklappt und aufklappbar, Überschrift „Allgemeine Karteneinstellungen“', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  await editor(c, { cameras: [{ prefix: 'haustur', name: 'Haustür' }, { prefix: 'garten', name: 'Garten' }] });
+  let r = await edInfo(c);
+  assert.ok(r.heads.includes('Allgemeine Karteneinstellungen'));
+  assert.ok(r.heads.includes('Knopfleiste'));
+  assert.deepEqual(r.open, [false, false]);
+  await c.run(() => window.__ed.shadowRoot.querySelectorAll('.cam .ch')[1].click());
+  r = await edInfo(c);
+  assert.deepEqual(r.open, [false, true]);
+  await c.close();
+});
+
+test('Editor: Knöpfe ausblenden, anordnen, eigenen Knopf hinzufügen; Standard wird nicht gespeichert', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  await editor(c, { cameras: [{ prefix: 'haustur' }] });
+  let r = await edInfo(c);
+  assert.deepEqual(r.rows.map((x) => x[0]), ['talk', 'siren', 'light', 'rec', 'snap', 'ptz', 'q']);
+  // Sirene ausblenden
+  await c.run(() => { const i = window.__ed.shadowRoot.querySelector('#btns .brow[data-b="siren"] input'); i.checked = false; i.dispatchEvent(new Event('change')); });
+  r = await edInfo(c);
+  assert.deepEqual(r.cfg.buttons, ['talk', 'light', 'rec', 'snap', 'ptz', 'q']);
+  assert.deepEqual(r.rows.at(-1), ['siren', false]);
+  // Schnappschuss nach oben
+  await c.run(() => window.__ed.shadowRoot.querySelector('#btns .brow[data-b="snap"] [data-a="up"]').click());
+  r = await edInfo(c);
+  assert.deepEqual(r.cfg.buttons, ['talk', 'light', 'snap', 'rec', 'ptz', 'q']);
+  // Eigener Knopf
+  await c.run(() => window.__ed.shadowRoot.querySelector('#btns [data-a="add-btn"]').click());
+  r = await edInfo(c);
+  assert.deepEqual(r.cfg.buttons.at(-1), { entity: '' });
+  // Wieder Standard: Option fällt weg
+  await editor(c, { cameras: [{ prefix: 'haustur' }], buttons: ['talk', 'siren', 'light', 'rec', 'snap', 'q'] });
+  await c.run(() => { const i = window.__ed.shadowRoot.querySelector('#btns .brow[data-b="ptz"] input'); i.checked = true; i.dispatchEvent(new Event('change')); });
+  r = await edInfo(c);
+  assert.deepEqual(r.cfg.buttons, ['talk', 'siren', 'light', 'rec', 'snap', 'q', 'ptz']);
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Editor: eigene Knopfleiste pro Kamera', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  await editor(c, { cameras: [{ prefix: 'haustur' }], buttons: ['talk', 'snap'] });
+  await c.run(() => { const i = window.__ed.shadowRoot.querySelector('.cam .own input'); i.checked = true; i.dispatchEvent(new Event('change')); });
+  const r = await edInfo(c);
+  assert.deepEqual(r.cfg.cameras[0].buttons, ['talk', 'snap']);
+  const camRows = await c.run(() => window.__ed.shadowRoot.querySelectorAll('.cam .btns .brow').length);
+  assert.equal(camRows, 7);
+  await c.close();
+});

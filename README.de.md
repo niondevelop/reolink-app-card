@@ -51,7 +51,8 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Breite Bildschirme:** Bei einer breiten Karte läuft das Livebild links weiter, daneben steht ein Panel (rechts oder links, Option `layout`; oder alles unten). Im Panel stehen die **Ereignisse** – antippen spielt die Aufnahme im Bild ab. Die **Einstellungen** öffnen sich als eigenes Panel nur auf Wunsch. Das Panel lässt sich zuklappen und über den Griff am Bildrand wieder öffnen; die Wahl merkt sich das Gerät. Die Knöpfe sitzen kompakt unter dem Bild.
 - **Öffnen aus einer Mitteilung:** Ein Link in deiner Push-Mitteilung öffnet die richtige Kamera live oder spielt die passende Aufnahme ab.
 - **Steuerleiste wie in der Reolink-App:** Sprechen, Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar). Die gewählte Qualität merkt sich jedes Gerät.
-- **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte.
+- **Eigene Knopfleiste:** eingebaute Knöpfe ein- und ausblenden, beliebig anordnen und eigene Knöpfe ergänzen, z. B. einen Türöffner oder das Terrassenlicht. Für die ganze Karte oder pro Kamera, im visuellen Editor (siehe [Knopfleiste](#knopfleiste)).
+- **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte: der gewählten Kamera, wenn sie eine eigene hat, sonst die des Hubs, mit Warnung, wenn sie fast voll ist.
 - **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis.
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
 - **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste.
@@ -121,7 +122,8 @@ cameras:
 | `mode_entity`             | –             | Eigene Modus-Auswahl oben in der Karte, z. B. ein `input_select` mit „Abwesend / Zuhause / Nacht / Aus“ für deine Benachrichtigungs-Automation. Ersetzt dort den Reolink-Szenenmodus |
 | `mode_icons`              | –             | Eigene Symbole je Option, z. B. `{ Nacht: mdi:weather-night }`. Ohne Angabe wählt die Karte passende Symbole für typische Namen |
 | `show_scene`              | `true` / `false` mit `mode_entity` | Reolink-Szenenmodus des Hubs anzeigen |
-| `show_hub`                | `true`        | Hub-Zeile (Szenenmodus und SD-Karte) anzeigen |
+| `show_hub`                | `true`        | Szenenmodus und SD-Belegung anzeigen (der gewählten Kamera, sonst des Hubs) |
+| `buttons`                 | alle          | Knöpfe der Steuerleiste und ihre Reihenfolge, siehe [Knopfleiste](#knopfleiste). Auch pro Kamera möglich |
 | `hub_prefix`              | automatisch   | Gemeinsamer Teil der Hub-Entity-IDs. Nur nötig, wenn der Hub nicht automatisch gefunden wird |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
 | `language`                | `auto`        | `auto`, `en`, `de` oder `fr` |
@@ -144,8 +146,43 @@ cameras:
 | `doorbell`   | Was bei dieser Kamera klingelt: ein beliebiger Binärsensor, Taster, Schalter, Helfer oder ein Ereignis. Ohne Angabe wird der Besucher-Sensor einer Reolink-Klingel genommen, falls vorhanden. `false` schaltet es ab |
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |
 | `playback`   | `false` blendet den Reiter „Wiedergabe“ für diese Kamera aus |
+| `buttons`    | Eigene Knopfleiste für diese Kamera, siehe [Knopfleiste](#knopfleiste) |
 
 Die Karte findet die Entitäten selbst über das Geräteregister, also in jeder Sprache und auch bei umbenannten Entitäten. Geht das nicht, sucht sie über deutsche und englische Entity-IDs (z. B. `camera.<prefix>_standardauflosung` oder `camera.<prefix>_fluent`). Mit `entities` lässt sich jede einzeln setzen. Die Schlüssel sind: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` sowie die Einstellungen `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` u. a.
+
+### Knopfleiste
+
+`buttons` listet die Knöpfe der Steuerleiste in der gewünschten Reihenfolge. Eingebaute Knöpfe: `talk`, `siren`, `light`, `rec`, `snap`, `ptz`, `q`. Ein eingebauter Knopf, der fehlt, ist ausgeblendet; er erscheint ohnehin nur, wenn die Kamera die Funktion hat. Der Hörer steht immer in der Mitte: Was in der Liste vor ihm steht, kommt nach links, der Rest nach rechts.
+
+Eigene Knöpfe funktionieren mit beliebigen Entitäten:
+
+| Schlüssel | Beschreibung |
+| --------- | ------------ |
+| `entity`  | **Pflicht.** Licht, Schalter, Schloss, Abdeckung, Ventilator, Taster, Skript, Szene oder Automation |
+| `name`    | Bezeichnung (Tooltip). Standard: Name der Entität |
+| `icon`    | Symbol. Standard: Symbol der Entität |
+| `service` | Dienst statt des Standards, z. B. `lock.open` für einen Türöffner |
+| `confirm` | Vor dem Ausführen nachfragen. Standard: beim Entriegeln eines Schlosses an |
+
+Standardmässig schaltet ein Knopf Lichter, Schalter, Ventilatoren und Abdeckungen um, drückt Taster, startet Skripte und Szenen und ver- bzw. entriegelt Schlösser. Er leuchtet, solange die Entität an bzw. entriegelt ist.
+
+```yaml
+type: custom:reolink-app-card
+buttons: [talk, siren, light, snap, q, { entity: light.terrasse, icon: mdi:outdoor-lamp }]
+cameras:
+  - entity: camera.haustur_standardauflosung
+    buttons:
+      - siren
+      - talk
+      - entity: lock.haustuer
+        name: Türöffner
+        service: lock.open
+        confirm: true
+      - snap
+  - entity: camera.garten_standardauflosung
+```
+
+Im visuellen Editor: *Allgemeine Karteneinstellungen → Knopfleiste* für die ganze Karte und *Eigene Knopfleiste für diese Kamera* in jeder Kamera.
 
 ### Aus einer Mitteilung öffnen
 
@@ -248,7 +285,7 @@ Hinweise:
 Die Karte kann oben einen eigenen Modus zeigen, z. B. **Abwesend / Zuhause / Nacht / Aus**, und deine Automationen entscheiden, was in welchem Modus passiert. Zwei Blueprints machen das Einrichten einfach:
 
 1. **Modus-Helfer anlegen:** *Einstellungen → Geräte & Dienste → Helfer → Helfer erstellen → Dropdown*, Name z. B. „Kamera-Modus“, Optionen `Abwesend`, `Zuhause`, `Nacht`, `Aus`.
-2. **In der Karte anzeigen:** im Karten-Editor unter *Optionen → Modus-Auswahl oben*, oder `mode_entity: input_select.kamera_modus` in YAML. Für diese Namen wählt die Karte passende Symbole; eigene lassen sich mit `mode_icons` setzen.
+2. **In der Karte anzeigen:** im Karten-Editor unter *Allgemeine Karteneinstellungen → Modus-Auswahl oben*, oder `mode_entity: input_select.kamera_modus` in YAML. Für diese Namen wählt die Karte passende Symbole; eigene lassen sich mit `mode_icons` setzen.
 3. **Blueprints importieren** und daraus je eine Automation erstellen:
 
 | Blueprint | Was er macht | |

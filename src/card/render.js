@@ -1,5 +1,5 @@
 /* Aufbau und Aktualisierung der Ansicht – Methoden der Klasse ReolinkAppCard */
-import { EVT, Q, Q_ORDER } from '../constants.js';
+import { BTN_DEFAULT, DOMAIN_ICON, EVT, Q, Q_ORDER } from '../constants.js';
 import { modeIcon } from '../entities.js';
 import { LOCALES, STR } from '../i18n.js';
 import { RAC_CSS } from '../styles.js';
@@ -133,31 +133,69 @@ export default {
     if (this.isConnected) this._observe();
   },
 
+  /* Knöpfe der Steuerleiste: eingebaute (sofern die Kamera sie kann) und eigene, in der eingestellten Reihenfolge.
+     Option buttons (Karte oder pro Kamera): Liste aus eingebauten Namen (talk, siren, light, rec, snap, ptz, q)
+     und eigenen Knöpfen { entity, name, icon, service, confirm }; nicht genannte eingebaute Knöpfe sind ausgeblendet */
+  _btnList(cam = this._cam) {
+    const own = Array.isArray(cam.buttons) ? cam.buttons : Array.isArray(this._config.buttons) ? this._config.buttons : null;
+    return { list: own || BTN_DEFAULT, custom: !!own };
+  },
+
   _controls() {
-    const c = this._cam, items = [];
-    const siren = this._e('siren'), light = this._e('light'), mrec = this._e('manual_rec');
-    if (!this._grid) {
-      const active = this._mic !== 'off', why = active ? null : this._talkReason();
-      const legacy = why === 'feature' && this._talkLegacy();
-      items.push({ id: 'talk', icon: active ? 'mdi:phone-hangup' : 'mdi:phone', on: active, warn: active,
-        ring: this._mic === 'connecting', dis: !!why && !legacy,
-        label: active ? this._t('hang_up') : legacy ? this._t('talk_app') : this._t('talk'),
-        run: () => (legacy ? this._talk() : this._toggleTalk()) });
-    }
-    if (this._st(siren)) items.push({ id: 'siren', icon: 'mdi:alarm-light-outline', label: this._t('siren'), on: this._on(siren), warn: true,
-      run: async () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
-        : ((await this._ask(this._t('siren_confirm', { name: c.name }), this._t('siren_btn'), true)) && this._call('siren', 'turn_on', siren))) });
-    if (this._st(light)) items.push({ id: 'light', icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light),
-      run: () => this._call('light', 'toggle', light) });
-    if (this._st(mrec)) items.push({ id: 'rec', icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec),
-      run: () => this._call('switch', 'toggle', mrec) });
-    items.push({ id: 'snap', icon: 'mdi:camera-outline', label: this._t('snapshot'), run: () => this._snapshot() });
-    if (!this._grid && this._hasPtz()) items.push({ id: 'ptz', icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
-      run: () => { this._ptzOpen = !this._ptzOpen; this._qOpen = false; this._update(); } });
-    if (this._qAvail().length && !this._grid) items.push({ id: 'q', icon: Q[this._quality].icon,
-      label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
-      run: () => { this._qOpen = !this._qOpen; this._ptzOpen = false; this._update(); } });
+    const c = this._cam, siren = this._e('siren'), light = this._e('light'), mrec = this._e('manual_rec');
+    const build = {
+      talk: () => {
+        if (this._grid) return null;
+        const active = this._mic !== 'off', why = active ? null : this._talkReason();
+        const legacy = why === 'feature' && this._talkLegacy();
+        return { icon: active ? 'mdi:phone-hangup' : 'mdi:phone', on: active, warn: active,
+          ring: this._mic === 'connecting', dis: !!why && !legacy,
+          label: active ? this._t('hang_up') : legacy ? this._t('talk_app') : this._t('talk'),
+          run: () => (legacy ? this._talk() : this._toggleTalk()) };
+      },
+      siren: () => this._st(siren) && { icon: 'mdi:alarm-light-outline', label: this._t('siren'), on: this._on(siren), warn: true,
+        run: async () => (this._on(siren) ? this._call('siren', 'turn_off', siren)
+          : ((await this._ask(this._t('siren_confirm', { name: c.name }), this._t('siren_btn'), true)) && this._call('siren', 'turn_on', siren))) },
+      light: () => this._st(light) && { icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light), run: () => this._call('light', 'toggle', light) },
+      rec: () => this._st(mrec) && { icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec), run: () => this._call('switch', 'toggle', mrec) },
+      snap: () => ({ icon: 'mdi:camera-outline', label: this._t('snapshot'), run: () => this._snapshot() }),
+      ptz: () => !this._grid && this._hasPtz() && { icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
+        run: () => { this._ptzOpen = !this._ptzOpen; this._qOpen = false; this._update(); } },
+      q: () => this._qAvail().length && !this._grid && { icon: Q[this._quality].icon,
+        label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
+        run: () => { this._qOpen = !this._qOpen; this._ptzOpen = false; this._update(); } },
+    };
+    const items = [];
+    this._btnList().list.forEach((b, i) => {
+      const x = typeof b === 'string' ? (build[b] ? build[b]() : null) : this._customBtn(b);
+      if (x) items.push({ ...x, id: typeof b === 'string' ? b : `x${i}` });
+    });
     return items;
+  },
+
+  /* Eigener Knopf für eine beliebige Entität (Licht, Schalter, Türöffner, Taster, Skript …) */
+  _customBtn(b) {
+    const id = b && b.entity, st = this._st(id);
+    if (!st) return null;
+    const domain = id.split('.')[0];
+    const on = domain === 'lock' ? ['unlocked', 'open', 'opening', 'unlocking'].includes(st.state)
+      : domain === 'cover' ? ['open', 'opening'].includes(st.state) : st.state === 'on';
+    const stateless = ['button', 'input_button', 'scene'].includes(domain);
+    const label = b.name || st.attributes.friendly_name || id;
+    const icon = b.icon || st.attributes.icon || (domain === 'lock' && on ? 'mdi:lock-open-variant' : DOMAIN_ICON[domain]) || 'mdi:gesture-tap';
+    const confirm = b.confirm !== undefined ? !!b.confirm : domain === 'lock' && !on;
+    const call = () => {
+      if (b.service && /^\w+\.\w+$/.test(b.service)) { const [d, s] = b.service.split('.'); return this._call(d, s, id); }
+      if (domain === 'lock') return this._call('lock', on ? 'lock' : 'unlock', id);
+      if (domain === 'button' || domain === 'input_button') return this._call(domain, 'press', id);
+      if (domain === 'script' || domain === 'scene') return this._call(domain, 'turn_on', id);
+      if (domain === 'automation') return this._call('automation', 'trigger', id);
+      if (['light', 'switch', 'input_boolean', 'fan', 'cover', 'siren'].includes(domain)) return this._call(domain, 'toggle', id);
+      return this._call('homeassistant', 'toggle', id);
+    };
+    return { icon, label, on: stateless ? undefined : on, warn: domain === 'lock',
+      dis: st.state === 'unavailable',
+      run: async () => { if (st.state === 'unavailable') return; if (confirm && !(await this._ask(this._t('confirm_action', { name: label }), this._t('confirm_btn')))) return; call(); } };
   },
 
   /* ---------- Rendering ---------- */
@@ -374,7 +412,8 @@ export default {
     const modeId = cfg.mode_entity || null;
     const useScene = cfg.show_hub && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
     const scene = useScene ? this._hubE('scene') : null;
-    const storage = cfg.show_hub ? this._hubE('storage') : null;
+    // SD-Karte der gewählten Kamera, sonst die des Hubs
+    const storage = cfg.show_hub ? this._camSdE() || this._hubE('storage') : null;
     const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
     if (!m && !s && sd === null) { box.style.display = 'none'; return; }
     box.style.display = '';
@@ -436,6 +475,15 @@ export default {
       if (tmp !== null && cfg.temperature_warning !== false && tmp >= cfg.temperature_warning) warns.push({ icon: 'mdi:thermometer-alert', text: this._t('temp_high', { name: cam.name, v: Math.round(tmp) }) });
       if (tmp !== null && cfg.temperature_low_warning !== false && tmp <= cfg.temperature_low_warning) warns.push({ icon: 'mdi:snowflake-alert', text: this._t('temp_low', { name: cam.name, v: Math.round(tmp) }) });
     });
+    // SD-Karte fast voll: eigene Karten der Kameras und die des Hubs
+    const SD_FULL = 95;
+    const sds = this._cams.map((cam) => [cam.name, this._camSdE(cam)]).filter(([, id]) => id);
+    const hubSd = this._hubE('storage');
+    if (hubSd) sds.push([this._t('hub'), hubSd]);
+    sds.forEach(([name, id]) => {
+      const v = this._num(id);
+      if (cfg.show_hub && v !== null && v >= SD_FULL) warns.push({ icon: 'mdi:micro-sd', text: this._t('sd_full', { name, v: Math.round(v) }) });
+    });
     const box = this.$('warns');
     const sig = warns.map((w) => w.text).join('|');
     if (box.dataset.sig === sig) return;
@@ -451,11 +499,12 @@ export default {
       $('ctrls').dataset.sig = sig;
       const btn = (x) => `<button class="tbn${x.id === 'talk' ? ' big' : ''}" data-id="${x.id}"><ha-icon></ha-icon></button>`;
       const mid = ctrls.find((x) => x.id === 'talk'), rest = ctrls.filter((x) => x !== mid);
-      // Hörer in die Mitte, die übrigen Buttons links und rechts davon verteilt
-      const half = Math.ceil(rest.length / 2);
+      // Hörer in die Mitte; ohne eigene Reihenfolge die übrigen Buttons gleichmässig links und rechts,
+      // mit eigener Reihenfolge links, was vor dem Hörer steht, und rechts, was danach kommt
+      const at = this._btnList().custom ? ctrls.indexOf(mid) : Math.ceil(rest.length / 2);
       $('ctrls').classList.toggle('split', !!mid);
       $('ctrls').innerHTML = mid
-        ? `<div class="side">${rest.slice(0, half).map(btn).join('')}</div>${btn(mid)}<div class="side">${rest.slice(half).map(btn).join('')}</div>`
+        ? `<div class="side">${rest.slice(0, at).map(btn).join('')}</div>${btn(mid)}<div class="side">${rest.slice(at).map(btn).join('')}</div>`
         : ctrls.map(btn).join('');
       ctrls.forEach((x) => { $('ctrls').querySelector(`[data-id="${x.id}"]`).onclick = () => this._controls().find((y) => y.id === x.id).run(); });
     }
