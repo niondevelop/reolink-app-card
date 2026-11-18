@@ -2917,7 +2917,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.2";
+  var RAC_VERSION = "0.3.3";
 
   // src/card/render.js
   var render_default = {
