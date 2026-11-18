@@ -1,6 +1,6 @@
 /* Grundlagen: Konfiguration, Entitäten, hass, Sichtbarkeit, Kamera- und Moduswechsel, Dialoge – Methoden der Klasse ReolinkAppCard */
 import { DET, EVT, PANEL_STORE, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
-import { DC, ENT, HUB_ENT, LEGACY, TK, findHubPrefix, prefixOf } from '../entities.js';
+import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, prefixOf } from '../entities.js';
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
 
@@ -19,7 +19,8 @@ export default {
       Object.entries(LEGACY).forEach(([k, v]) => { if (c[k]) over[v] = c[k]; });
       // Steht unter prefix versehentlich eine ganze Entity-ID (camera.…), wie entity behandeln
       const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
-      const prefix = (c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop();
+      // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix
+      const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots)$/, '');
       return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
     });
     this._idx = 0;
@@ -78,7 +79,13 @@ export default {
       }
       if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     }
-    for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id)) return id; }
+    // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
+    const reg = (this._hass && this._hass.entities) || {};
+    const wrongKey = (id) => {
+      const tk = reg[id] && reg[id].translation_key;
+      return !!(dev && domain === 'camera' && tk && TK[key] && ![].concat(TK[key]).some((k) => baseKey(tk) === baseKey(k)));
+    };
+    for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id) && !wrongKey(id)) return id; }
     return `${domain}.${cam.prefix}_${suf[0]}`;
   },
 

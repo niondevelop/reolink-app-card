@@ -144,6 +144,7 @@
     return "mdi:circle-medium";
   }
   var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
+  var baseKey = (tk) => String(tk || "").replace(/_lens_\d$/, "");
   function prefixOf(entityId) {
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
@@ -1202,7 +1203,7 @@
           if (c[k]) over[v] = c[k];
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
-        const prefix = (c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop();
+        const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots)$/, "");
         return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
       });
       this._idx = 0;
@@ -1287,9 +1288,14 @@
         }
         if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
       }
+      const reg = this._hass && this._hass.entities || {};
+      const wrongKey = (id) => {
+        const tk = reg[id] && reg[id].translation_key;
+        return !!(dev && domain === "camera" && tk && TK[key] && ![].concat(TK[key]).some((k) => baseKey(tk) === baseKey(k)));
+      };
       for (const s of suf) {
         const id = `${domain}.${cam.prefix}_${s}`;
-        if (this._st(id)) return id;
+        if (this._st(id) && !wrongKey(id)) return id;
       }
       return `${domain}.${cam.prefix}_${suf[0]}`;
     },
@@ -2911,7 +2917,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.2";
+  var RAC_VERSION = "0.3.3";
 
   // src/card/render.js
   var render_default = {
