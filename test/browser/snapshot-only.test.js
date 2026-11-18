@@ -56,3 +56,20 @@ test('Raster: Stream-Kamera mit Player, Akku-Klingel mit Bildfolge', async () =>
   assert.deepEqual(r, ['player', 'mjpeg']);
   await c.close();
 });
+
+/* Konfiguration aus älteren Versionen: Präfix endet auf „_schnappschusse_in“, Schnappschuss-Entität darf nicht als Video-Stream gelten */
+test('alter Präfix …_schnappschusse_in: trotzdem eigene Bildfolge statt zugeschnittenem Player', async () => {
+  for (const prefix of ['hintertur_schnappschusse_in', 'hintertur']) {
+    const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }, { prefix }], auto_live: true, show_hub: false }, hass: HASS });
+    await c.run(() => { window.__card._idx = 1; window.__card._rebuildCamera(); });
+    await wait(300);
+    const single = await c.run(() => { const r = window.__card.shadowRoot; return { mjpeg: !!r.querySelector('#pic img.mjpeg'), player: !!r.querySelector('#pic hui-picture-entity-card') }; });
+    assert.deepEqual(single, { mjpeg: true, player: false }, prefix);
+    await c.run(() => window.__card._setGrid(true));
+    await wait(300);
+    const grid = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#grid .cell .pic')].map((p) => (p.querySelector('img.mjpeg') ? 'mjpeg' : p.querySelector('hui-picture-entity-card') ? 'player' : '-')));
+    assert.deepEqual(grid, ['player', 'mjpeg'], prefix);
+    assert.deepEqual(c.errors, []);
+    await c.close();
+  }
+});
