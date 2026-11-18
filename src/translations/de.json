@@ -181,9 +181,9 @@
     "panel_settings": "Einstellungen",
     "panel_none": "Zugeklappt",
     "general": "Allgemeine Karteneinstellungen",
-    "buttons": "Knopfleiste",
+    "buttons": "Bedienpanel",
     "buttons_hint": "Knöpfe ein- und ausblenden und mit den Pfeilen anordnen. Ein Knopf erscheint nur, wenn die Kamera die Funktion hat. Der Hörer steht immer in der Mitte: links davon, was vor ihm steht, rechts, was danach kommt.",
-    "own_buttons": "Eigene Knopfleiste für diese Kamera",
+    "own_buttons": "Eigenes Bedienpanel für diese Kamera",
     "add_button": "Eigener Knopf (z. B. Licht oder Türöffner)",
     "custom_button": "eigener Knopf",
     "down": "Nach unten",
@@ -191,6 +191,15 @@
     "btn_name": "Name (optional)",
     "btn_icon": "Symbol (optional)",
     "btn_service": "Dienst (optional, z. B. lock.open)",
-    "btn_confirm": "Mit Rückfrage"
+    "btn_confirm": "Mit Rückfrage",
+    "grp_display": "Darstellung",
+    "grp_scene": "Szenenmodus & SD-Karte",
+    "grp_stream": "Streaming (Livebild)",
+    "grp_playback": "Wiedergabe",
+    "grp_doorbell": "Klingel",
+    "grp_warn": "Warnungen",
+    "show_scene": "Szenenmodus anzeigen",
+    "show_sd": "SD-Belegung anzeigen",
+    "buttons_sub": "Knöpfe unter dem Bild"
   }
 }

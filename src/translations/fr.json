@@ -181,9 +181,9 @@
     "panel_settings": "Réglages",
     "panel_none": "Replié",
     "general": "Réglages généraux de la carte",
-    "buttons": "Barre de boutons",
+    "buttons": "Panneau de commande",
     "buttons_hint": "Afficher ou masquer les boutons et les ordonner avec les flèches. Un bouton n’apparaît que si la caméra a la fonction. Le bouton de conversation reste au centre : ce qui le précède va à gauche, ce qui le suit à droite.",
-    "own_buttons": "Barre de boutons propre à cette caméra",
+    "own_buttons": "Panneau de commande propre à cette caméra",
     "add_button": "Bouton personnalisé (p. ex. lumière ou gâche)",
     "custom_button": "bouton personnalisé",
     "down": "Descendre",
@@ -191,6 +191,15 @@
     "btn_name": "Nom (facultatif)",
     "btn_icon": "Icône (facultatif)",
     "btn_service": "Service (facultatif, p. ex. lock.open)",
-    "btn_confirm": "Demander une confirmation"
+    "btn_confirm": "Demander une confirmation",
+    "grp_display": "Affichage",
+    "grp_scene": "Mode scène & carte SD",
+    "grp_stream": "Streaming (direct)",
+    "grp_playback": "Lecture",
+    "grp_doorbell": "Sonnette",
+    "grp_warn": "Avertissements",
+    "show_scene": "Afficher le mode scène",
+    "show_sd": "Afficher l’occupation de la carte SD",
+    "buttons_sub": "Boutons sous l’image"
   }
 }

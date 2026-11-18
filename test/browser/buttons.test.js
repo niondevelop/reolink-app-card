@@ -109,7 +109,7 @@ const edInfo = (c) => c.run(() => {
   const r = window.__ed.shadowRoot;
   return {
     heads: [...r.querySelectorAll('h3,h4')].map((h) => h.textContent),
-    open: [...r.querySelectorAll('.cam')].map((x) => x.classList.contains('open')),
+    open: [...r.querySelectorAll('#cams .cam')].map((x) => x.classList.contains('open')),
     rows: [...r.querySelector('#btns').querySelectorAll('.brow')].map((x) => [x.dataset.b, !!(x.querySelector('input') || {}).checked]),
     cfg: window.__edCfg,
   };
@@ -120,9 +120,10 @@ test('Editor: Kameras zugeklappt und aufklappbar, Überschrift „Allgemeine Kar
   await editor(c, { cameras: [{ prefix: 'haustur', name: 'Haustür' }, { prefix: 'garten', name: 'Garten' }] });
   let r = await edInfo(c);
   assert.ok(r.heads.includes('Allgemeine Karteneinstellungen'));
-  assert.ok(r.heads.includes('Knopfleiste'));
+  assert.ok(r.heads.includes('Allgemeine Karteneinstellungen'));
+  assert.match(await c.run(() => window.__ed.shadowRoot.getElementById('btnhead').textContent), /Bedienpanel/);
   assert.deepEqual(r.open, [false, false]);
-  await c.run(() => window.__ed.shadowRoot.querySelectorAll('.cam .ch')[1].click());
+  await c.run(() => window.__ed.shadowRoot.querySelectorAll('#cams .cam .ch')[1].click());
   r = await edInfo(c);
   assert.deepEqual(r.open, [false, true]);
   await c.close();
@@ -161,7 +162,48 @@ test('Editor: eigene Knopfleiste pro Kamera', async () => {
   await c.run(() => { const i = window.__ed.shadowRoot.querySelector('.cam .own input'); i.checked = true; i.dispatchEvent(new Event('change')); });
   const r = await edInfo(c);
   assert.deepEqual(r.cfg.cameras[0].buttons, ['talk', 'snap']);
-  const camRows = await c.run(() => window.__ed.shadowRoot.querySelectorAll('.cam .btns .brow').length);
+  const camRows = await c.run(() => window.__ed.shadowRoot.querySelectorAll('#cams .cam .btns .brow').length);
   assert.equal(camRows, 7);
+  await c.close();
+});
+
+/* Szenenmodus und SD-Karte einzeln ausblendbar; show_hub: false (ältere Option) blendet beides aus */
+const HUB = {
+  states: { 'camera.garten_standardauflosung': img, 'select.reolink_hub_szenenmodus': ['home', { options: ['off', 'disarm', 'home', 'away'] }], 'sensor.reolink_hub_sd_0_speicher': ['37', { unit_of_measurement: '%' }] },
+};
+const hubRow = (c) => c.run(() => { const h = window.__card.shadowRoot.getElementById('hub'); return { scene: !!h.querySelector('.scene'), sd: !!h.querySelector('.sd'), shown: h.style.display !== 'none' }; });
+test('Szenenmodus und SD-Belegung einzeln ausblendbar', async () => {
+  const base = { cameras: [{ prefix: 'garten' }], auto_live: false };
+  for (const [opt, want] of [[{}, { scene: true, sd: true, shown: true }], [{ show_scene: false }, { scene: false, sd: true, shown: true }],
+    [{ show_sd: false }, { scene: true, sd: false, shown: true }], [{ show_hub: false }, { scene: false, sd: false, shown: false }]]) {
+    const c = await openCard(browser, server, { config: { ...base, ...opt }, hass: HUB });
+    assert.deepEqual(await hubRow(c), want, JSON.stringify(opt));
+    await c.close();
+  }
+});
+
+test('Editor: allgemeine Einstellungen in Unterkategorien, Szenenmodus/SD getrennt', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  await editor(c, { cameras: [{ prefix: 'haustur' }], show_hub: false });
+  const r = await c.run(() => {
+    const f = window.__ed.shadowRoot.querySelector('#gen ha-form');
+    const names = (sch) => sch.flatMap((x) => (x.schema ? names(x.schema) : [x.name]));
+    return { groups: f.schema.map((g) => [g.type, g.title, g.flatten]), names: names(f.schema), data: f.data };
+  });
+  assert.deepEqual(r.groups.map((g) => g[1]), ['Darstellung', 'Szenenmodus & SD-Karte', 'Streaming (Livebild)', 'Wiedergabe', 'Klingel', 'Warnungen']);
+  assert.ok(r.groups.every((g) => g[0] === 'expandable' && g[2] === true));
+  assert.ok(r.names.includes('show_scene') && r.names.includes('show_sd') && !r.names.includes('show_hub'));
+  // show_hub: false wird als „beides aus“ angezeigt
+  assert.equal(r.data.show_scene, false);
+  assert.equal(r.data.show_sd, false);
+  // Ändern: show_hub fällt weg, nur die Abweichung wird gespeichert
+  const cfg = await c.run(() => {
+    const f = window.__ed.shadowRoot.querySelector('#gen ha-form');
+    f.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...f.data, show_scene: true } } }));
+    return window.__edCfg;
+  });
+  assert.equal(cfg.show_hub, undefined);
+  assert.equal(cfg.show_scene, undefined);
+  assert.equal(cfg.show_sd, false);
   await c.close();
 });

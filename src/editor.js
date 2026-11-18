@@ -31,41 +31,63 @@ export class ReolinkAppCardEditor extends HTMLElement {
     const detected = detectCameras(this._hass);
     // Nur den Namen zeigen; den technischen Teil der Entity-IDs nur, wenn zwei Kameras gleich heissen
     const camOpts = detected.map((c) => ({ value: c.prefix, label: detected.filter((d) => d.name === c.name).length > 1 ? `${c.name} (${c.prefix})` : c.name }));
+    // Allgemeine Einstellungen in aufklappbaren Unterkategorien (Werte bleiben flach in der Konfiguration)
+    const group = (key, icon, schema) => ({ type: 'expandable', name: key, flatten: true, title: L[key], icon, schema });
     const general = [
-      { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
-      { type: 'grid', name: '', schema: [
-        { name: 'doorbell_timeout', selector: { number: { min: 10, max: 120, step: 5, mode: 'box', unit_of_measurement: 's' } } },
-        { name: 'doorbell_sound', selector: { boolean: {} } },
-      ] },
-      { type: 'grid', name: '', schema: [
-        { name: 'layout', selector: { select: { mode: 'dropdown', options: ['auto', 'right', 'left', 'bottom'].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
-        { name: 'panel', selector: { select: { mode: 'dropdown', options: ['events', 'settings', 'none'].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
-        { name: 'playback', selector: { boolean: {} } },
-      ] },
-      { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
-      { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
-      { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
-      { type: 'grid', name: '', schema: [
-        { name: 'auto_live', selector: { boolean: {} } },
-        { name: 'auto_switch', selector: { boolean: {} } },
-        { name: 'autoplay_next', selector: { boolean: {} } },
-        { name: 'show_hub', selector: { boolean: {} } },
-      ] },
-      { type: 'grid', name: '', schema: [
-        { name: 'battery_warning', selector: { number: { min: 0, max: 100, step: 5, mode: 'box', unit_of_measurement: '%' } } },
-        { name: 'temperature_warning', selector: { number: { min: 20, max: 80, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
-      ] },
-      { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' }, { value: 'fr', label: 'Français' }] } } },
+      group('grp_display', 'mdi:monitor-dashboard', [
+        { type: 'grid', name: '', schema: [
+          { name: 'layout', selector: { select: { mode: 'dropdown', options: ['auto', 'right', 'left', 'bottom'].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
+          { name: 'panel', selector: { select: { mode: 'dropdown', options: ['events', 'settings', 'none'].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
+        ] },
+        { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' }, { value: 'fr', label: 'Français' }] } } },
+      ]),
+      group('grp_scene', 'mdi:shield-home-outline', [
+        { name: 'mode_entity', selector: { entity: { domain: ['input_select', 'select'] } } },
+        { type: 'grid', name: '', schema: [
+          { name: 'show_scene', selector: { boolean: {} } },
+          { name: 'show_sd', selector: { boolean: {} } },
+        ] },
+      ]),
+      group('grp_stream', 'mdi:cctv', [
+        { type: 'grid', name: '', schema: [
+          { name: 'default_quality', selector: { select: { mode: 'dropdown', options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
+          { name: 'live_timeout', selector: { number: { min: 0, max: 3600, step: 30, mode: 'box', unit_of_measurement: 's' } } },
+        ] },
+        { name: 'audio', selector: { select: { mode: 'dropdown', options: [{ value: 'manual', label: L.audio_manual }, { value: 'auto', label: L.audio_auto }] } } },
+        { type: 'grid', name: '', schema: [
+          { name: 'auto_live', selector: { boolean: {} } },
+          { name: 'auto_switch', selector: { boolean: {} } },
+        ] },
+      ]),
+      group('grp_playback', 'mdi:play-box-multiple-outline', [
+        { type: 'grid', name: '', schema: [
+          { name: 'playback', selector: { boolean: {} } },
+          { name: 'autoplay_next', selector: { boolean: {} } },
+        ] },
+      ]),
+      group('grp_doorbell', 'mdi:doorbell-video', [
+        { type: 'grid', name: '', schema: [
+          { name: 'doorbell_timeout', selector: { number: { min: 10, max: 120, step: 5, mode: 'box', unit_of_measurement: 's' } } },
+          { name: 'doorbell_sound', selector: { boolean: {} } },
+        ] },
+      ]),
+      group('grp_warn', 'mdi:alert-outline', [
+        { type: 'grid', name: '', schema: [
+          { name: 'battery_warning', selector: { number: { min: 0, max: 100, step: 5, mode: 'box', unit_of_measurement: '%' } } },
+          { name: 'temperature_warning', selector: { number: { min: 20, max: 80, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
+        ] },
+      ]),
     ];
     const camSchema = [
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+      #btnbox { margin-top: 12px; }
       .cam { border: 1px solid var(--divider-color); border-radius: 12px; }
       .ch { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
       .ch .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -92,7 +114,8 @@ export class ReolinkAppCardEditor extends HTMLElement {
     </style>
     <h3>${L.cameras}</h3><div class="cams" id="cams"></div><button class="add" id="add">+ ${L.add}</button>
     <h3>${L.general}</h3><div id="gen"></div>
-    <h4>${L.buttons}</h4><p class="hint">${L.buttons_hint}</p><div id="btns"></div>`;
+    <div class="cam${this._openBtns ? ' open' : ''}" id="btnbox"><div class="ch" id="btnhead"><span class="chev">›</span><span class="tt"><b>${L.buttons}</b><small>${L.buttons_sub}</small></span></div>
+      <div class="cb"><p class="hint">${L.buttons_hint}</p><div id="btns"></div></div></div>`;
     const label = (s) => L[s.name] || s.name;
 
     const cams = this.shadowRoot.getElementById('cams');
@@ -114,7 +137,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       });
       const body = box.querySelector('.cb');
       body.appendChild(form);
-      // Eigene Knopfleiste nur für diese Kamera (sonst gilt die der Karte)
+      // Eigenes Bedienpanel nur für diese Kamera (sonst gilt die der Karte)
       const own = document.createElement('label');
       own.className = 'own';
       own.innerHTML = `<input type="checkbox" ${Array.isArray(cam.buttons) ? 'checked' : ''}><span>${L.own_buttons}</span>`;
@@ -165,17 +188,25 @@ export class ReolinkAppCardEditor extends HTMLElement {
 
     const gen = document.createElement('ha-form');
     gen.hass = this._hass; gen.schema = general; gen.computeLabel = label;
-    const data = { ...defaults };
+    // Szenenmodus: mit eigener Modus-Auswahl standardmässig aus; die ältere Option show_hub: false blendet beides aus
+    const defOf = (k, c) => (k === 'show_scene' ? !c.mode_entity : defaults[k]);
+    const data = { ...defaults, show_scene: defOf('show_scene', this._config) };
     Object.keys(defaults).forEach((k) => { if (this._config[k] !== undefined) data[k] = this._config[k]; });
+    if (this._config.show_hub === false) { if (this._config.show_scene === undefined) data.show_scene = false; if (this._config.show_sd === undefined) data.show_sd = false; }
     gen.data = data;
     gen.addEventListener('value-changed', (e) => {
       const v = e.detail.value, cfg = { ...this._config };
-      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defaults[k]) delete cfg[k]; else cfg[k] = v[k]; });
+      delete cfg.show_hub;
+      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defOf(k, v)) delete cfg[k]; else cfg[k] = v[k]; });
       this._changed(cfg);
     });
     this.shadowRoot.getElementById('gen').appendChild(gen);
 
-    // Knopfleiste der Karte (gilt für alle Kameras ohne eigene Knopfleiste)
+    this.shadowRoot.getElementById('btnhead').onclick = () => {
+      this._openBtns = !this._openBtns;
+      this.shadowRoot.getElementById('btnbox').classList.toggle('open', this._openBtns);
+    };
+    // Bedienpanel der Karte (gilt für alle Kameras ohne eigenes Bedienpanel)
     const cardBtns = Array.isArray(this._config.buttons) ? this._config.buttons : BTN_DEFAULT;
     this.shadowRoot.getElementById('btns').appendChild(this._btnEditor(cardBtns, (next) => {
       const cfg = { ...this._config };

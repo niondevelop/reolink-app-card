@@ -410,10 +410,11 @@ export default {
   _updateHub() {
     const box = this.$('hub'), cfg = this._config;
     const modeId = cfg.mode_entity || null;
-    const useScene = cfg.show_hub && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
+    // show_hub: false blendet beides aus (ältere Option); sonst einzeln mit show_scene und show_sd
+    const useScene = cfg.show_hub !== false && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
     const scene = useScene ? this._hubE('scene') : null;
     // SD-Karte der gewählten Kamera, sonst die des Hubs
-    const storage = cfg.show_hub ? this._camSdE() || this._hubE('storage') : null;
+    const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE('storage') : null;
     const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
     if (!m && !s && sd === null) { box.style.display = 'none'; return; }
     box.style.display = '';
@@ -482,7 +483,7 @@ export default {
     if (hubSd) sds.push([this._t('hub'), hubSd]);
     sds.forEach(([name, id]) => {
       const v = this._num(id);
-      if (cfg.show_hub && v !== null && v >= SD_FULL) warns.push({ icon: 'mdi:micro-sd', text: this._t('sd_full', { name, v: Math.round(v) }) });
+      if (cfg.show_hub !== false && cfg.show_sd !== false && v !== null && v >= SD_FULL) warns.push({ icon: 'mdi:micro-sd', text: this._t('sd_full', { name, v: Math.round(v) }) });
     });
     const box = this.$('warns');
     const sig = warns.map((w) => w.text).join('|');

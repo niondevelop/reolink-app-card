@@ -181,9 +181,9 @@
     "panel_settings": "Settings",
     "panel_none": "Collapsed",
     "general": "General card settings",
-    "buttons": "Button bar",
+    "buttons": "Control panel",
     "buttons_hint": "Show or hide buttons and arrange them with the arrows. A button only appears if the camera has the feature. The talk button always sits in the middle: what comes before it goes left, what comes after goes right.",
-    "own_buttons": "Own button bar for this camera",
+    "own_buttons": "Own control panel for this camera",
     "add_button": "Custom button (e.g. light or door opener)",
     "custom_button": "custom button",
     "down": "Move down",
@@ -191,6 +191,15 @@
     "btn_name": "Name (optional)",
     "btn_icon": "Icon (optional)",
     "btn_service": "Service (optional, e.g. lock.open)",
-    "btn_confirm": "Ask for confirmation"
+    "btn_confirm": "Ask for confirmation",
+    "grp_display": "Display",
+    "grp_scene": "Scene mode & SD card",
+    "grp_stream": "Streaming (live view)",
+    "grp_playback": "Playback",
+    "grp_doorbell": "Doorbell",
+    "grp_warn": "Warnings",
+    "show_scene": "Show scene mode",
+    "show_sd": "Show SD card usage",
+    "buttons_sub": "Buttons under the image"
   }
 }
