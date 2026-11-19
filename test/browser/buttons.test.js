@@ -284,3 +284,45 @@ test('immer nur eine Modus-Zeile: mit eigener Modus-Auswahl nie zusätzlich der 
     await c.close();
   }
 });
+
+/* Kamera eines anderen Herstellers: nur Livebild und Bedienpanel */
+const OTHER = {
+  states: { ...HASS.states, 'camera.tapo_garage': ['idle', { entity_picture: '/x.jpg', friendly_name: 'Tapo Garage' }], 'light.garage': ['off', { friendly_name: 'Garage' }] },
+  entities: { ...HASS.entities, 'camera.tapo_garage': { entity_id: 'camera.tapo_garage', device_id: 'dT', platform: 'tapo' } },
+  devices: { ...HASS.devices, dT: { name: 'Tapo Garage' } },
+};
+test('Kamera eines anderen Herstellers: Livebild über ihre Entität, nur Schnappschuss, Hörer und eigene Knöpfe', async () => {
+  const cfg = { show_hub: false, auto_live: true, cameras: [{ entity: 'camera.tapo_garage', buttons: ['talk', 'siren', 'light', 'snap', 'q', { entity: 'light.garage' }] }] };
+  const c = await openCard(browser, server, { config: cfg, hass: OTHER });
+  await wait(300);
+  const r = await c.run(() => {
+    const k = window.__card, root = k.shadowRoot, card = root.querySelector('#pic hui-picture-entity-card');
+    return { foreign: k._foreign(), live: card && card._config ? card._config.entity : (card && card.getAttribute('entity')), name: k._cam.name,
+      ids: [...root.querySelectorAll('#ctrls [data-id]')].map((b) => b.dataset.id), seg: root.querySelector('.seg').style.display, more: root.getElementById('more').style.display };
+  });
+  assert.equal(r.foreign, true);
+  assert.equal(r.name, 'Tapo Garage');
+  assert.deepEqual(r.ids, ['talk', 'snap', 'x5']);
+  assert.equal(r.seg, 'none', 'keine Wiedergabe');
+  assert.equal(r.more, 'none', 'keine Einstellungen');
+  const ent = await c.run(() => window.__card._streamEnt());
+  assert.equal(ent, 'camera.tapo_garage');
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Editor: Kameras anderer Hersteller in der Auswahl, Auswahl speichert die Entität', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: OTHER });
+  await editor(c, { cameras: [{ prefix: 'haustur' }] });
+  const opts = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema[0].selector.select.options);
+  const o = opts.find((x) => x.value === 'camera.tapo_garage');
+  assert.ok(o && /Tapo Garage · andere Kamera/.test(o.label));
+  assert.ok(!opts.some((x) => x.value === 'camera.haustur_standardauflosung'), 'Reolink-Kameras nicht doppelt');
+  const cfg = await c.run(() => {
+    const f = window.__ed.shadowRoot.querySelector('#cams ha-form');
+    f.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { prefix: 'camera.tapo_garage' } } }));
+    return window.__edCfg.cameras[0];
+  });
+  assert.deepEqual(cfg, { prefix: 'camera.tapo_garage', name: 'Tapo Garage' });
+  await c.close();
+});

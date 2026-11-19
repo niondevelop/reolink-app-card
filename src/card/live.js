@@ -17,7 +17,7 @@ export default {
     return this._t(tele ? 'q_tele' : 'q_lens2');
   },
 
-  _qAvail() { return Q_ORDER.filter((q) => this._st(this._qEntity(q))); },
+  _qAvail() { return this._foreign() ? [] : Q_ORDER.filter((q) => this._st(this._qEntity(q))); },
 
   _ensureQ() {
     const a = this._qAvail();

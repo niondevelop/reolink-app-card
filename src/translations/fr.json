@@ -204,6 +204,7 @@
     "zoom_grp": "Cadrage (zoom)",
     "zoom": "Facteur de zoom (1 = image entière)",
     "zoom_x": "Centre horizontal",
-    "zoom_y": "Centre vertical"
+    "zoom_y": "Centre vertical",
+    "other_cam": "autre caméra (direct et panneau de commande)"
   }
 }

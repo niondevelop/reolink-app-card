@@ -71,6 +71,8 @@ export default {
   _e(key, cam = this._cam) {
     if (cam.over[key]) return cam.over[key];
     const [domain, ...suf] = ENT[key];
+    // Kamera eines anderen Herstellers: nur das Livebild, alle Reolink-Funktionen fehlen (ausser per entities gesetzt)
+    if (this._foreign(cam)) return key === 'cam_sd' ? cam.entity : `${domain}.rac_none_${key}`;
     const dev = this._devIndex(cam);
     if (dev) {
       for (const tk of [].concat(TK[key] || [])) {
@@ -128,9 +130,17 @@ export default {
     return null;
   },
 
+  /* Kamera eines anderen Herstellers (nicht aus der Reolink-Integration): per entity angegeben */
+  _foreign(cam = this._cam) {
+    if (!cam || !cam.entity) return false;
+    const r = this._hass && this._hass.entities && this._hass.entities[cam.entity];
+    return r ? r.platform !== 'reolink' : !prefixOf(cam.entity);
+  },
+
   /* SD-Karte der Kamera selbst (direkt eingebundene Kamera mit eigener Karte); Kameras am Hub haben keine */
   _camSdE(cam = this._cam) {
     if (cam.over.storage) return cam.over.storage;
+    if (this._foreign(cam)) return null;
     this._devIndex(cam);
     const reg = this._hass && this._hass.entities;
     if (!reg || !cam._devId) return null;

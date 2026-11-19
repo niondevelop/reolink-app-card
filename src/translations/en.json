@@ -204,6 +204,7 @@
     "zoom_grp": "Image crop (zoom)",
     "zoom": "Zoom factor (1 = whole image)",
     "zoom_x": "Centre horizontal",
-    "zoom_y": "Centre vertical"
+    "zoom_y": "Centre vertical",
+    "other_cam": "other camera (live view and control panel)"
   }
 }

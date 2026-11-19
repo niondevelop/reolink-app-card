@@ -377,10 +377,13 @@ export default {
     card.classList.toggle('pan-set', side && pan === 'settings');
     card.classList.toggle('playing', playing);
     $('phead').style.display = side && pan !== 'none' ? '' : 'none';
-    $('pedge').style.display = side && pan === 'none' && !this._grid ? 'grid' : 'none';
+    const hasSet = this._settingGroups().length > 0;
+    $('pedge').style.display = side && pan === 'none' && !this._grid && (hasPlay || hasSet) ? 'grid' : 'none';
+    $('more').style.display = hasSet ? '' : 'none';
     if (side) {
       const left = this._config.layout === 'left';
       $('p-ev').style.display = hasPlay ? '' : 'none';
+      $('p-set').style.display = hasSet ? '' : 'none';
       $('p-ev-l').textContent = this._t('events');
       $('backlive-l').textContent = this._t('back_live');
       $('p-set-l').textContent = this._t('settings');

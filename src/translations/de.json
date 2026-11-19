@@ -204,6 +204,7 @@
     "zoom_grp": "Bildausschnitt (Zoom)",
     "zoom": "Zoomfaktor (1 = ganzes Bild)",
     "zoom_x": "Mitte horizontal",
-    "zoom_y": "Mitte vertikal"
+    "zoom_y": "Mitte vertikal",
+    "other_cam": "andere Kamera (Livebild und Bedienpanel)"
   }
 }

@@ -116,6 +116,18 @@ export function prefixOf(entityId) {
 }
 
 /* Reolink-Kameras in Home Assistant finden (für Editor und Vorschläge); nutzt das Geräte-Register, wenn vorhanden */
+/* Kameras anderer Hersteller (alle camera.*-Entitäten, die nicht von der Reolink-Integration stammen) */
+export function otherCameras(hass) {
+  if (!hass) return [];
+  const reg = hass.entities || {};
+  return Object.keys(hass.states).filter((id) => {
+    if (!id.startsWith('camera.')) return false;
+    const r = reg[id];
+    return r ? r.platform !== 'reolink' : !CAM_SUFFIX.test(id.slice(7));
+  }).map((id) => ({ entity: id, name: String(hass.states[id].attributes.friendly_name || id.slice(7)) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function detectCameras(hass) {
   if (!hass) return [];
   const out = [], seen = new Set();

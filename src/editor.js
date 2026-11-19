@@ -1,6 +1,6 @@
 /* Visueller Editor der Karte */
 import { BTN_DEFAULT, BTN_LABEL, Q, Q_BASE } from './constants.js';
-import { detectCameras, needsEntity } from './entities.js';
+import { detectCameras, needsEntity, otherCameras } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
@@ -38,6 +38,9 @@ export class ReolinkAppCardEditor extends HTMLElement {
     const detected = detectCameras(this._hass);
     // Nur den Namen zeigen; den technischen Teil der Entity-IDs nur, wenn zwei Kameras gleich heissen
     const camOpts = detected.map((c) => ({ value: c.prefix, label: detected.filter((d) => d.name === c.name).length > 1 ? `${c.name} (${c.prefix})` : c.name }));
+    // Kameras anderer Hersteller: nur Livebild und Bedienpanel; gespeichert wird die Entität
+    const others = otherCameras(this._hass);
+    others.forEach((o) => camOpts.push({ value: o.entity, label: `${o.name} · ${L.other_cam}` }));
     // Allgemeine Einstellungen in aufklappbaren Unterkategorien (Werte bleiben flach in der Konfiguration)
     const group = (key, icon, schema) => ({ type: 'expandable', name: key, flatten: true, title: L[key], icon, schema });
     const general = [
@@ -137,21 +140,23 @@ export class ReolinkAppCardEditor extends HTMLElement {
     this._config.cameras.forEach((cam, i) => {
       const box = document.createElement('div');
       box.className = `cam${this._openCams.has(i) ? ' open' : ''}`;
-      const hit0 = detected.find((d) => d.prefix === cam.prefix);
+      const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
       box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || (hit0 && hit0.name) || cam.prefix || '—')}</b><small>${esc(cam.entity || cam.prefix || '')}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ''}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
       const form = document.createElement('ha-form');
       form.hass = this._hass; form.schema = camSchema; form.data = cam; form.computeLabel = label;
       form.addEventListener('value-changed', (e) => {
         const v = { ...e.detail.value };
         const hit = detected.find((d) => d.prefix === v.prefix);
-        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; }
+        if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; else delete v.entity; }
+        const other = others.find((o) => o.entity === v.prefix);
+        if (other && v.prefix !== cam.prefix) { if (!v.name) v.name = other.name; delete v.media_name; delete v.entity; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
         // Zoom 1× = ganzes Bild: Mittelpunkt nicht speichern; Mitte (50 %) ist Standard
         if (!(+v.zoom > 1)) { delete v.zoom; delete v.zoom_x; delete v.zoom_y; }
         ['zoom_x', 'zoom_y'].forEach((k) => { if (+v[k] === 50) delete v[k]; });
         const list = [...this._config.cameras]; list[i] = v;
         this._changed({ ...this._config, cameras: list });
-        if (hit && v.prefix !== cam.prefix) this._render();
+        if ((hit || other) && v.prefix !== cam.prefix) this._render();
         else form.data = v;
       });
       const body = box.querySelector('.cb');

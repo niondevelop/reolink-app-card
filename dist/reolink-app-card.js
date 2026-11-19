@@ -149,6 +149,15 @@
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
   }
+  function otherCameras(hass) {
+    if (!hass) return [];
+    const reg = hass.entities || {};
+    return Object.keys(hass.states).filter((id) => {
+      if (!id.startsWith("camera.")) return false;
+      const r = reg[id];
+      return r ? r.platform !== "reolink" : !CAM_SUFFIX.test(id.slice(7));
+    }).map((id) => ({ entity: id, name: String(hass.states[id].attributes.friendly_name || id.slice(7)) })).sort((a, b) => a.name.localeCompare(b.name));
+  }
   function detectCameras(hass) {
     if (!hass) return [];
     const out = [], seen = /* @__PURE__ */ new Set();
@@ -413,7 +422,8 @@
       zoom_grp: "Bildausschnitt (Zoom)",
       zoom: "Zoomfaktor (1 = ganzes Bild)",
       zoom_x: "Mitte horizontal",
-      zoom_y: "Mitte vertikal"
+      zoom_y: "Mitte vertikal",
+      other_cam: "andere Kamera (Livebild und Bedienpanel)"
     }
   };
 
@@ -624,7 +634,8 @@
       zoom_grp: "Image crop (zoom)",
       zoom: "Zoom factor (1 = whole image)",
       zoom_x: "Centre horizontal",
-      zoom_y: "Centre vertical"
+      zoom_y: "Centre vertical",
+      other_cam: "other camera (live view and control panel)"
     }
   };
 
@@ -835,7 +846,8 @@
       zoom_grp: "Cadrage (zoom)",
       zoom: "Facteur de zoom (1 = image entière)",
       zoom_x: "Centre horizontal",
-      zoom_y: "Centre vertical"
+      zoom_y: "Centre vertical",
+      other_cam: "autre caméra (direct et panneau de commande)"
     }
   };
 
@@ -1383,6 +1395,7 @@
     _e(key, cam = this._cam) {
       if (cam.over[key]) return cam.over[key];
       const [domain, ...suf] = ENT[key];
+      if (this._foreign(cam)) return key === "cam_sd" ? cam.entity : `${domain}.rac_none_${key}`;
       const dev = this._devIndex(cam);
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
@@ -1445,9 +1458,16 @@
       }
       return null;
     },
+    /* Kamera eines anderen Herstellers (nicht aus der Reolink-Integration): per entity angegeben */
+    _foreign(cam = this._cam) {
+      if (!cam || !cam.entity) return false;
+      const r = this._hass && this._hass.entities && this._hass.entities[cam.entity];
+      return r ? r.platform !== "reolink" : !prefixOf(cam.entity);
+    },
     /* SD-Karte der Kamera selbst (direkt eingebundene Kamera mit eigener Karte); Kameras am Hub haben keine */
     _camSdE(cam = this._cam) {
       if (cam.over.storage) return cam.over.storage;
+      if (this._foreign(cam)) return null;
       this._devIndex(cam);
       const reg = this._hass && this._hass.entities;
       if (!reg || !cam._devId) return null;
@@ -1907,7 +1927,7 @@
       return this._t(tele ? "q_tele" : "q_lens2");
     },
     _qAvail() {
-      return Q_ORDER.filter((q) => this._st(this._qEntity(q)));
+      return this._foreign() ? [] : Q_ORDER.filter((q) => this._st(this._qEntity(q)));
     },
     _ensureQ() {
       const a = this._qAvail();
@@ -2253,7 +2273,9 @@
     /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
     _panelNow() {
       const p = this._panel || "events";
-      return p === "events" && !this._hasPlayback() ? "none" : p;
+      if (p === "events" && !this._hasPlayback()) return "none";
+      if (p === "settings" && !this._settingGroups().length) return this._hasPlayback() ? "events" : "none";
+      return p;
     },
     _setPanel(p) {
       this._panel = p;
@@ -2304,7 +2326,7 @@
     },
     /* Hat die Kamera Aufnahmen in Home Assistant? Direkt eingebundene Klingeln z. B. erscheinen nicht in der Reolink-Medienquelle */
     _hasPlayback(cam = this._cam) {
-      if (this._config.playback === false || cam.playback === false) return false;
+      if (this._config.playback === false || cam.playback === false || this._foreign(cam)) return false;
       if (!Array.isArray(this._mediaKids)) return true;
       return !!this._mediaNodeOf(this._mediaKids, cam);
     },
@@ -3473,10 +3495,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       card.classList.toggle("pan-set", side && pan === "settings");
       card.classList.toggle("playing", playing);
       $("phead").style.display = side && pan !== "none" ? "" : "none";
-      $("pedge").style.display = side && pan === "none" && !this._grid ? "grid" : "none";
+      const hasSet = this._settingGroups().length > 0;
+      $("pedge").style.display = side && pan === "none" && !this._grid && (hasPlay || hasSet) ? "grid" : "none";
+      $("more").style.display = hasSet ? "" : "none";
       if (side) {
         const left = this._config.layout === "left";
         $("p-ev").style.display = hasPlay ? "" : "none";
+        $("p-set").style.display = hasSet ? "" : "none";
         $("p-ev-l").textContent = this._t("events");
         $("backlive-l").textContent = this._t("back_live");
         $("p-set-l").textContent = this._t("settings");
@@ -3794,6 +3819,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       const L = this._l;
       const detected = detectCameras(this._hass);
       const camOpts = detected.map((c) => ({ value: c.prefix, label: detected.filter((d) => d.name === c.name).length > 1 ? `${c.name} (${c.prefix})` : c.name }));
+      const others = otherCameras(this._hass);
+      others.forEach((o) => camOpts.push({ value: o.entity, label: `${o.name} · ${L.other_cam}` }));
       const group = (key, icon, schema) => ({ type: "expandable", name: key, flatten: true, title: L[key], icon, schema });
       const general = [
         group("grp_display", "mdi:monitor-dashboard", [
@@ -3891,7 +3918,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       this._config.cameras.forEach((cam, i) => {
         const box = document.createElement("div");
         box.className = `cam${this._openCams.has(i) ? " open" : ""}`;
-        const hit0 = detected.find((d) => d.prefix === cam.prefix);
+        const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
         box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || hit0 && hit0.name || cam.prefix || "—")}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
         const form = document.createElement("ha-form");
         form.hass = this._hass;
@@ -3905,6 +3932,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             if (!v.name) v.name = hit.name;
             if (!v.media_name) v.media_name = hit.name;
             if (needsEntity(hit.entity)) v.entity = hit.entity;
+            else delete v.entity;
+          }
+          const other = others.find((o) => o.entity === v.prefix);
+          if (other && v.prefix !== cam.prefix) {
+            if (!v.name) v.name = other.name;
+            delete v.media_name;
+            delete v.entity;
           }
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
@@ -3920,7 +3954,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           const list = [...this._config.cameras];
           list[i] = v;
           this._changed({ ...this._config, cameras: list });
-          if (hit && v.prefix !== cam.prefix) this._render();
+          if ((hit || other) && v.prefix !== cam.prefix) this._render();
           else form.data = v;
         });
         const body = box.querySelector(".cb");
