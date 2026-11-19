@@ -121,7 +121,7 @@ cameras:
 | `temperature_low_warning` | `-10`         | Warnung bei Batterietemperatur bis (°C). `false` = aus |
 | `mode_entity`             | –             | Eigene Modus-Auswahl oben in der Karte, z. B. ein `input_select` mit „Abwesend / Zuhause / Nacht / Aus“ für deine Benachrichtigungs-Automation. Ersetzt dort den Reolink-Szenenmodus |
 | `mode_icons`              | –             | Eigene Symbole je Option, z. B. `{ Nacht: mdi:weather-night }`. Ohne Angabe wählt die Karte passende Symbole für typische Namen |
-| `show_scene`              | `true` / `false` mit `mode_entity` | Reolink-Szenenmodus des Hubs anzeigen |
+| `show_scene`              | `true`        | Reolink-Szenenmodus des Hubs anzeigen. Mit `mode_entity` erscheint nur die eigene Modus-Zeile, es gibt also höchstens eine Modus-Zeile |
 | `show_sd`                 | `true`        | SD-Belegung anzeigen (der gewählten Kamera, sonst des Hubs) und Warnung, wenn sie fast voll ist |
 | `show_hub`                | `true`        | Ältere Option: `false` blendet Szenenmodus und SD-Belegung zusammen aus |
 | `buttons`                 | alle          | Knöpfe des Bedienpanels und ihre Reihenfolge, siehe [Bedienpanel](#bedienpanel). Auch pro Kamera möglich |

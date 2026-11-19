@@ -124,7 +124,7 @@ cameras:
 | `temperature_low_warning` | `-10`         | Warning at or below this battery temperature (°C). `false` = off |
 | `mode_entity`             | –             | Your own mode selector on top of the card, e.g. an `input_select` with “Away / Home / Night / Off” for your notification automation. Replaces the Reolink scene mode there |
 | `mode_icons`              | –             | Custom icons per option, e.g. `{ Night: mdi:weather-night }`. Without it, the card picks fitting icons for common names |
-| `show_scene`              | `true` / `false` with `mode_entity` | Show the Reolink scene mode of the hub |
+| `show_scene`              | `true`        | Show the Reolink scene mode of the hub. With `mode_entity` only your own mode row is shown, so there is always one mode row at most |
 | `show_sd`                 | `true`        | Show the SD card usage (of the selected camera, otherwise of the hub) and the warning when it is almost full |
 | `show_hub`                | `true`        | Older option: `false` hides both the scene mode and the SD card usage |
 | `buttons`                 | all           | Buttons of the control panel and their order, see [Control panel](#control-panel). Can also be set per camera |

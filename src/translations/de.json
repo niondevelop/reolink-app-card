@@ -198,7 +198,7 @@
     "grp_playback": "Wiedergabe",
     "grp_doorbell": "Klingel",
     "grp_warn": "Warnungen",
-    "show_scene": "Szenenmodus anzeigen",
+    "show_scene": "Reolink-Szenenmodus anzeigen (nur ohne eigene Modus-Auswahl)",
     "show_sd": "SD-Belegung anzeigen",
     "buttons_sub": "Knöpfe unter dem Bild",
     "zoom_grp": "Bildausschnitt (Zoom)",

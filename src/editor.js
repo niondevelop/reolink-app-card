@@ -207,16 +207,16 @@ export class ReolinkAppCardEditor extends HTMLElement {
 
     const gen = document.createElement('ha-form');
     gen.hass = this._hass; gen.schema = general; gen.computeLabel = label;
-    // Szenenmodus: mit eigener Modus-Auswahl standardmässig aus; die ältere Option show_hub: false blendet beides aus
-    const defOf = (k, c) => (k === 'show_scene' ? !c.mode_entity : defaults[k]);
-    const data = { ...defaults, show_scene: defOf('show_scene', this._config) };
+    // Die ältere Option show_hub: false blendet Szenenmodus und SD-Belegung aus
+    const defOf = (k) => defaults[k];
+    const data = { ...defaults };
     Object.keys(defaults).forEach((k) => { if (this._config[k] !== undefined) data[k] = this._config[k]; });
     if (this._config.show_hub === false) { if (this._config.show_scene === undefined) data.show_scene = false; if (this._config.show_sd === undefined) data.show_sd = false; }
     gen.data = data;
     gen.addEventListener('value-changed', (e) => {
       const v = e.detail.value, cfg = { ...this._config };
       delete cfg.show_hub;
-      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defOf(k, v)) delete cfg[k]; else cfg[k] = v[k]; });
+      Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defOf(k)) delete cfg[k]; else cfg[k] = v[k]; });
       gen.data = { ...v };
       this._changed(cfg);
     });

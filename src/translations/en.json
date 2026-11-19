@@ -198,7 +198,7 @@
     "grp_playback": "Playback",
     "grp_doorbell": "Doorbell",
     "grp_warn": "Warnings",
-    "show_scene": "Show scene mode",
+    "show_scene": "Show Reolink scene mode (only without own mode selector)",
     "show_sd": "Show SD card usage",
     "buttons_sub": "Buttons under the image",
     "zoom_grp": "Image crop (zoom)",

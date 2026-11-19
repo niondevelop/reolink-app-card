@@ -198,7 +198,7 @@
     "grp_playback": "Lecture",
     "grp_doorbell": "Sonnette",
     "grp_warn": "Avertissements",
-    "show_scene": "Afficher le mode scène",
+    "show_scene": "Afficher le mode scène Reolink (seulement sans sélecteur de mode propre)",
     "show_sd": "Afficher l’occupation de la carte SD",
     "buttons_sub": "Boutons sous l’image",
     "zoom_grp": "Cadrage (zoom)",

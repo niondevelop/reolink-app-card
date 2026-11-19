@@ -407,7 +407,7 @@
       grp_playback: "Wiedergabe",
       grp_doorbell: "Klingel",
       grp_warn: "Warnungen",
-      show_scene: "Szenenmodus anzeigen",
+      show_scene: "Reolink-Szenenmodus anzeigen (nur ohne eigene Modus-Auswahl)",
       show_sd: "SD-Belegung anzeigen",
       buttons_sub: "Knöpfe unter dem Bild",
       zoom_grp: "Bildausschnitt (Zoom)",
@@ -618,7 +618,7 @@
       grp_playback: "Playback",
       grp_doorbell: "Doorbell",
       grp_warn: "Warnings",
-      show_scene: "Show scene mode",
+      show_scene: "Show Reolink scene mode (only without own mode selector)",
       show_sd: "Show SD card usage",
       buttons_sub: "Buttons under the image",
       zoom_grp: "Image crop (zoom)",
@@ -829,7 +829,7 @@
       grp_playback: "Lecture",
       grp_doorbell: "Sonnette",
       grp_warn: "Avertissements",
-      show_scene: "Afficher le mode scène",
+      show_scene: "Afficher le mode scène Reolink (seulement sans sélecteur de mode propre)",
       show_sd: "Afficher l’occupation de la carte SD",
       buttons_sub: "Boutons sous l’image",
       zoom_grp: "Cadrage (zoom)",
@@ -3504,7 +3504,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     _updateHub() {
       const box = this.$("hub"), cfg = this._config;
       const modeId = cfg.mode_entity || null;
-      const useScene = cfg.show_hub !== false && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
+      const useScene = cfg.show_hub !== false && !modeId && cfg.show_scene !== false;
       const scene = useScene ? this._hubE("scene") : null;
       const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE("storage") : null;
       const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
@@ -3982,8 +3982,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       gen.hass = this._hass;
       gen.schema = general;
       gen.computeLabel = label;
-      const defOf = (k, c) => k === "show_scene" ? !c.mode_entity : defaults[k];
-      const data = { ...defaults, show_scene: defOf("show_scene", this._config) };
+      const defOf = (k) => defaults[k];
+      const data = { ...defaults };
       Object.keys(defaults).forEach((k) => {
         if (this._config[k] !== void 0) data[k] = this._config[k];
       });
@@ -3996,7 +3996,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const v = e.detail.value, cfg = { ...this._config };
         delete cfg.show_hub;
         Object.keys(defaults).forEach((k) => {
-          if (v[k] === void 0 || v[k] === null || v[k] === defOf(k, v)) delete cfg[k];
+          if (v[k] === void 0 || v[k] === null || v[k] === defOf(k)) delete cfg[k];
           else cfg[k] = v[k];
         });
         gen.data = { ...v };

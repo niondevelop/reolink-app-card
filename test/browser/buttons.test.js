@@ -274,3 +274,13 @@ test('Editor: nach einer Änderung kein Neuaufbau (Gruppen bleiben offen), Formu
   assert.equal(r.camData, 1.5);
   await c.close();
 });
+
+test('immer nur eine Modus-Zeile: mit eigener Modus-Auswahl nie zusätzlich der Reolink-Szenenmodus', async () => {
+  const hass = { states: { ...HUB.states, 'input_select.kamera_modus': ['Zuhause', { options: ['Unscharf', 'Zuhause', 'Abwesend'] }] } };
+  for (const extra of [{}, { show_scene: true }]) {
+    const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'garten' }], auto_live: false, mode_entity: 'input_select.kamera_modus', ...extra }, hass });
+    const rows = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#hub .scene')].map((r) => [...r.querySelectorAll('button')].map((b) => b.dataset.o)));
+    assert.deepEqual(rows, [['Unscharf', 'Zuhause', 'Abwesend']], JSON.stringify(extra));
+    await c.close();
+  }
+});

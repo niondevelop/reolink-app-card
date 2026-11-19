@@ -410,8 +410,9 @@ export default {
   _updateHub() {
     const box = this.$('hub'), cfg = this._config;
     const modeId = cfg.mode_entity || null;
-    // show_hub: false blendet beides aus (ältere Option); sonst einzeln mit show_scene und show_sd
-    const useScene = cfg.show_hub !== false && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
+    // Immer nur eine Modus-Zeile: mit eigener Modus-Auswahl nie zusätzlich der Reolink-Szenenmodus.
+    // show_hub: false blendet Szenenmodus und SD-Belegung aus (ältere Option); sonst einzeln mit show_scene und show_sd
+    const useScene = cfg.show_hub !== false && !modeId && cfg.show_scene !== false;
     const scene = useScene ? this._hubE('scene') : null;
     // SD-Karte der gewählten Kamera, sonst die des Hubs
     const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE('storage') : null;
