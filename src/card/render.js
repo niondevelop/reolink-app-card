@@ -106,7 +106,7 @@ export default {
     $('speed').onclick = () => this._cycleSpeed();
     $('next').onclick = () => this._playNext();
     $('dl').onclick = () => this._download();
-    $('unzoom').onclick = () => this._resetZoom();
+    $('unzoom').onclick = () => this._unzoom();
     $('snd').onclick = () => { this._sound = !this._sound; this._sndCheck = this._sound; this._applySound(); this._update(); };
     // Ohne Tonspur im WebRTC-Stream einmal darauf hinweisen
     $('pic').addEventListener('streams', (e) => {
@@ -453,17 +453,14 @@ export default {
     this._fitHub();
   },
 
-  /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,
-     reicht es dann noch nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
+  /* Modus-Zeile an die Breite anpassen: die SD-Anzeige steht immer in einer eigenen Zeile;
+     reicht der Platz nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
   _fitHub() {
     const box = this.$ && this.$('hub');
     if (!box || box.style.display === 'none' || !box.clientWidth) return;
     const rows = [...box.querySelectorAll('.scene')];
-    const over = () => rows.some((r) => r.scrollWidth > r.clientWidth + 1);
-    box.classList.remove('wrap');
+    box.classList.toggle('wrap', !!rows.length && !!box.querySelector('.sd'));
     rows.forEach((r) => r.classList.remove('compact'));
-    if (!over()) return;
-    if (box.querySelector('.sd')) box.classList.add('wrap');
     rows.forEach((r) => { if (r.scrollWidth > r.clientWidth + 1) r.classList.add('compact'); });
   },
 

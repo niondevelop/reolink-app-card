@@ -58,7 +58,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage: of the selected camera if it has its own SD card, otherwise of the hub, with a warning when it is almost full.
 - **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice.
 - **All cameras at once:** grid view with every live stream; tap one to open it.
-- **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel.
+- **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel. Per camera you can also set a starting crop (`zoom`), e.g. for a fisheye lens.
 - **Grouped settings:** general, detection (PIR and AI sensitivity), image (brightness, contrast, saturation, sharpness), floodlight, audio & recording – with sliders and dropdowns.
 - **Playback:** day picker, event type filter (person, vehicle, animal, motion, plus doorbell, package, face and smart events when they occur), coloured 24-hour timeline (tap an empty spot to jump to the next clip; on a PC: space = pause, ←/→ = previous/next clip, shift + ←/→ = 10 s), speed (0.5× to 4×), autoplay next clip, clip download, and a **Low / High** resolution switch that is remembered on each device (independent of the live view quality).
 - **Battery warnings** for low charge and for battery temperature that is too high or too low.
@@ -151,6 +151,8 @@ cameras:
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
 | `playback`   | `false` hides the playback tab for this camera |
 | `buttons`    | Own control panel for this camera, see [Control panel](#control-panel) |
+| `zoom`       | Start with this crop of the image, e.g. `1.5` for a fisheye lens (1 to 4). Zooming out shows the whole image |
+| `zoom_x`, `zoom_y` | Centre of the crop in % of the image width and height (default `50`) |
 
 The card finds the entities on its own through the device registry, so it works in any language and with renamed entities. If that's not possible, it falls back to English and German entity IDs (e.g. `camera.<prefix>_fluent` or `camera.<prefix>_standardauflosung`). Each one can be set with `entities`. The keys are: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` and the settings `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` and more.
 

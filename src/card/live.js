@@ -173,6 +173,7 @@ export default {
     const rect = () => stage.getBoundingClientRect();
     const zoomAt = (s, px, py) => {
       const z = this._zoom;
+      delete z.cx; delete z.cy; // ab jetzt von Hand gezoomt
       s = Math.min(5, Math.max(1, s));
       z.x = px - (px - z.x) * (s / z.s);
       z.y = py - (py - z.y) * (s / z.s);
@@ -204,6 +205,7 @@ export default {
         const d = Math.hypot(a.x - b.x, a.y - b.y);
         zoomAt(pinch.s * (d / pinch.d), pinch.mx, pinch.my);
       } else if (pan) {
+        delete this._zoom.cx; delete this._zoom.cy;
         this._zoom.x = pan.zx + (e.clientX - pan.x);
         this._zoom.y = pan.zy + (e.clientY - pan.y);
         this._applyZoom();
@@ -219,7 +221,7 @@ export default {
           const now = Date.now();
           if (now - tap < 320) {
             const r = rect();
-            if (this._zoom.s > 1) this._resetZoom(); else zoomAt(2.5, e.clientX - r.left, e.clientY - r.top);
+            if (this._zoom.s > 1) this._unzoom(); else zoomAt(2.5, e.clientX - r.left, e.clientY - r.top);
             tap = 0;
           } else tap = now;
         }
@@ -238,6 +240,8 @@ export default {
   _applyZoom() {
     const z = this._zoom, stage = this.$('stage');
     const w = stage.clientWidth, h = stage.clientHeight;
+    // Voreingestellter Ausschnitt der Kamera: Mittelpunkt in Prozent des Bildes, auch nach Grössenänderung
+    if (z.cx !== undefined && w) { z.x = w / 2 - w * z.s * z.cx / 100; z.y = h / 2 - h * z.s * z.cy / 100; }
     if (z.s <= 1.001) { z.s = 1; z.x = 0; z.y = 0; }
     z.x = Math.min(0, Math.max(w - w * z.s, z.x));
     z.y = Math.min(0, Math.max(h - h * z.s, z.y));
@@ -249,7 +253,23 @@ export default {
     this.$('unzoom').style.display = z.s > 1 ? '' : 'none';
   },
 
-  _resetZoom() { this._zoom = { s: 1, x: 0, y: 0 }; if (this._built) this._applyZoom(); },
+  /* Ausgangsbild: voreingestellter Zoom der Kamera (Optionen zoom, zoom_x, zoom_y), sonst das ganze Bild */
+  _defaultZoom(cam = this._cam) {
+    const s = Math.min(4, Math.max(1, +(cam && cam.zoom) || 1));
+    if (s <= 1) return { s: 1, x: 0, y: 0 };
+    const pct = (v) => Math.min(100, Math.max(0, v === undefined || v === '' || isNaN(+v) ? 50 : +v));
+    return { s, x: 0, y: 0, cx: pct(cam.zoom_x), cy: pct(cam.zoom_y) };
+  },
+
+  _resetZoom() { this._zoom = this._defaultZoom(); if (this._built) this._applyZoom(); },
+
+  /* Herauszoomen: zurück zum voreingestellten Ausschnitt; ist er schon gezeigt, das ganze Bild */
+  _unzoom() {
+    const d = this._defaultZoom(), z = this._zoom;
+    const atDefault = d.s > 1 && z.cx !== undefined && Math.abs(z.s - d.s) < 0.01;
+    this._zoom = atDefault ? { s: 1, x: 0, y: 0 } : d;
+    if (this._built) this._applyZoom();
+  },
 
   _openLink(url, download) {
     const a = document.createElement('a');

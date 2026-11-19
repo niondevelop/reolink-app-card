@@ -5,7 +5,13 @@ import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
 export class ReolinkAppCardEditor extends HTMLElement {
-  setConfig(config) { this._config = { ...config, cameras: [...(config.cameras || [])] }; this._render(); }
+  /* Home Assistant ruft setConfig nach jeder eigenen Änderung erneut auf: dann nicht neu aufbauen,
+     sonst klappen die Gruppen zu und offene Auswahllisten schliessen sich */
+  setConfig(config) {
+    const same = this._emitted && JSON.stringify(config) === this._emitted;
+    this._config = { ...config, cameras: [...(config.cameras || [])] };
+    if (!same) this._render();
+  }
   set hass(hass) { const first = !this._hass; this._hass = hass; if (first) this._render(); else this._forms().forEach((f) => { f.hass = hass; }); }
   get _lang() { return pickLang(this._config && this._config.language, this._hass); }
   get _l() { return ED_LABELS[this._lang]; }
@@ -21,6 +27,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
 
   _changed(cfg) {
     this._config = cfg;
+    this._emitted = JSON.stringify(cfg);
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: cfg }, bubbles: true, composed: true }));
   }
 
@@ -82,6 +89,14 @@ export class ReolinkAppCardEditor extends HTMLElement {
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
+      // Voreingestellter Bildausschnitt, z. B. bei Fischaugen-Objektiven
+      { type: 'expandable', name: 'zoom_grp', flatten: true, title: L.zoom_grp, icon: 'mdi:magnify-plus-outline', schema: [
+        { name: 'zoom', selector: { number: { min: 1, max: 4, step: 0.1, mode: 'slider' } } },
+        { type: 'grid', name: '', schema: [
+          { name: 'zoom_x', selector: { number: { min: 0, max: 100, step: 1, mode: 'slider', unit_of_measurement: '%' } } },
+          { name: 'zoom_y', selector: { number: { min: 0, max: 100, step: 1, mode: 'slider', unit_of_measurement: '%' } } },
+        ] },
+      ] },
     ];
     const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
@@ -131,9 +146,13 @@ export class ReolinkAppCardEditor extends HTMLElement {
         const hit = detected.find((d) => d.prefix === v.prefix);
         if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
+        // Zoom 1× = ganzes Bild: Mittelpunkt nicht speichern; Mitte (50 %) ist Standard
+        if (!(+v.zoom > 1)) { delete v.zoom; delete v.zoom_x; delete v.zoom_y; }
+        ['zoom_x', 'zoom_y'].forEach((k) => { if (+v[k] === 50) delete v[k]; });
         const list = [...this._config.cameras]; list[i] = v;
         this._changed({ ...this._config, cameras: list });
         if (hit && v.prefix !== cam.prefix) this._render();
+        else form.data = v;
       });
       const body = box.querySelector('.cb');
       body.appendChild(form);
@@ -198,6 +217,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       const v = e.detail.value, cfg = { ...this._config };
       delete cfg.show_hub;
       Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defOf(k, v)) delete cfg[k]; else cfg[k] = v[k]; });
+      gen.data = { ...v };
       this._changed(cfg);
     });
     this.shadowRoot.getElementById('gen').appendChild(gen);
@@ -261,6 +281,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
           const next = [...vis]; next[i] = v;
           onChange(next);
           vis[i] = v;
+          form.data = v;
           row.querySelector('.bl').firstChild.textContent = name(v);
         });
         row.appendChild(form);

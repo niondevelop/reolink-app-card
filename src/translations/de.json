@@ -200,6 +200,10 @@
     "grp_warn": "Warnungen",
     "show_scene": "Szenenmodus anzeigen",
     "show_sd": "SD-Belegung anzeigen",
-    "buttons_sub": "Knöpfe unter dem Bild"
+    "buttons_sub": "Knöpfe unter dem Bild",
+    "zoom_grp": "Bildausschnitt (Zoom)",
+    "zoom": "Zoomfaktor (1 = ganzes Bild)",
+    "zoom_x": "Mitte horizontal",
+    "zoom_y": "Mitte vertikal"
   }
 }

@@ -55,7 +55,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte: der gewählten Kamera, wenn sie eine eigene hat, sonst die des Hubs, mit Warnung, wenn sie fast voll ist.
 - **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis.
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
-- **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste.
+- **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste. Pro Kamera lässt sich ein Start-Ausschnitt einstellen (`zoom`), z. B. bei einem Fischaugen-Objektiv.
 - **Einstellungen in Gruppen:** Allgemein, Erkennung (PIR- und KI-Empfindlichkeit), Bild (Helligkeit, Kontrast, Sättigung, Schärfe), Flutlicht, Ton & Aufnahme – mit Reglern und Auswahllisten.
 - **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp (Person, Fahrzeug, Tier, Bewegung, dazu Klingeln, Paket, Gesicht und Smart-Ereignisse, wenn sie vorkommen), farbige 24-Stunden-Zeitleiste (Tippen auf eine Lücke springt zum nächsten Clip; am PC: Leertaste = Pause, ←/→ = vorheriger/nächster Clip, Umschalt + ←/→ = 10 s), Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen und ein Umschalter **Niedrig / Hoch** für die Auflösung, der auf jedem Gerät gespeichert wird (unabhängig von der Livebild-Qualität).
 - **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur.
@@ -148,6 +148,8 @@ cameras:
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |
 | `playback`   | `false` blendet den Reiter „Wiedergabe“ für diese Kamera aus |
 | `buttons`    | Eigenes Bedienpanel für diese Kamera, siehe [Bedienpanel](#bedienpanel) |
+| `zoom`       | Mit diesem Bildausschnitt starten, z. B. `1.5` bei einem Fischaugen-Objektiv (1 bis 4). Herauszoomen zeigt das ganze Bild |
+| `zoom_x`, `zoom_y` | Mitte des Ausschnitts in % der Bildbreite bzw. -höhe (Standard `50`) |
 
 Die Karte findet die Entitäten selbst über das Geräteregister, also in jeder Sprache und auch bei umbenannten Entitäten. Geht das nicht, sucht sie über deutsche und englische Entity-IDs (z. B. `camera.<prefix>_standardauflosung` oder `camera.<prefix>_fluent`). Mit `entities` lässt sich jede einzeln setzen. Die Schlüssel sind: `cam_sd`, `cam_bal`, `cam_hd`, `snap`, `light`, `siren`, `manual_rec`, `rec`, `pir`, `push`, `daynight`, `battery`, `battery_state`, `battery_temp`, `wifi`, `sleep`, `det_person`, `det_vehicle`, `det_animal`, `det_motion` sowie die Einstellungen `pir_sens`, `ai_person`, `ai_vehicle`, `ai_animal`, `img_bright`, `img_contrast`, `img_sat`, `img_sharp`, `anti_flicker`, `ir_bright`, `fl_mode`, `fl_bright`, `volume`, `post_rec` u. a.
 

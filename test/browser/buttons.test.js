@@ -207,3 +207,70 @@ test('Editor: allgemeine Einstellungen in Unterkategorien, Szenenmodus/SD getren
   assert.equal(cfg.show_sd, false);
   await c.close();
 });
+
+test('SD-Belegung steht in einer eigenen Zeile unter dem Modus', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'garten' }], auto_live: false }, hass: HUB });
+  const r = await c.run(() => {
+    const h = window.__card.shadowRoot.getElementById('hub'), a = h.querySelector('.scene').getBoundingClientRect(), b = h.querySelector('.sd').getBoundingClientRect();
+    return { wrap: h.classList.contains('wrap'), below: b.top >= a.bottom - 1 };
+  });
+  assert.deepEqual(r, { wrap: true, below: true });
+  await c.close();
+});
+
+/* Voreingestellter Bildausschnitt pro Kamera (z. B. Fischauge): zoom, zoom_x, zoom_y */
+test('Bild-Zoom pro Kamera: Ausschnitt beim Start, Herauszoomen, andere Kamera ganzes Bild', async () => {
+  const cfg = { auto_live: false, show_hub: false, cameras: [{ prefix: 'haustur', zoom: 2, zoom_x: 25, zoom_y: 50 }, { prefix: 'garten' }] };
+  const c = await openCard(browser, server, { config: cfg, hass: HASS });
+  const z = () => c.run(() => {
+    const k = window.__card, st = k.shadowRoot.getElementById('stage');
+    return { s: k._zoom.s, x: Math.round(k._zoom.x), y: Math.round(k._zoom.y), w: st.clientWidth, h: st.clientHeight,
+      t: k.shadowRoot.getElementById('media').style.transform, pill: k.shadowRoot.getElementById('zoompill').textContent, unzoom: k.shadowRoot.getElementById('unzoom').style.display !== 'none' };
+  });
+  let r = await z();
+  assert.equal(r.s, 2);
+  // Mitte bei 25 % der Breite: x = w/2 - 2*w*0.25 = 0; senkrecht Mitte: y = h/2 - h = -h/2
+  assert.equal(r.x, 0);
+  assert.equal(r.y, Math.round(-r.h / 2));
+  assert.match(r.t, /scale\(2\)/);
+  assert.equal(r.pill, '2.0×');
+  assert.equal(r.unzoom, true);
+  // Herauszoomen: ganzes Bild
+  await c.click('#unzoom');
+  r = await z();
+  assert.equal(r.s, 1);
+  assert.equal(r.t, '');
+  // Andere Kamera ohne Zoom: ganzes Bild; zurück: wieder der Ausschnitt
+  await c.run(() => window.__card._select(1));
+  await wait(100);
+  assert.equal((await z()).s, 1);
+  await c.run(() => window.__card._select(0));
+  await wait(100);
+  assert.equal((await z()).s, 2);
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Editor: nach einer Änderung kein Neuaufbau (Gruppen bleiben offen), Formular behält den neuen Wert', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'haustur' }], auto_live: false }, hass: HASS });
+  await editor(c, { cameras: [{ prefix: 'haustur' }] });
+  const r = await c.run(async () => {
+    const ed = window.__ed, gen = ed.shadowRoot.querySelector('#gen ha-form');
+    gen.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...gen.data, live_timeout: 600 } } }));
+    // Home Assistant gibt die geänderte Konfiguration zurück
+    ed.setConfig(window.__edCfg);
+    await new Promise((res) => setTimeout(res, 50));
+    const gen2 = ed.shadowRoot.querySelector('#gen ha-form');
+    // Kamera-Formular: Zoom setzen
+    const cf = ed.shadowRoot.querySelector('#cams ha-form');
+    cf.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...cf.data, zoom: 1.5, zoom_x: 50 } } }));
+    ed.setConfig(window.__edCfg);
+    return { same: gen === gen2, timeout: gen2.data.live_timeout, cfgTimeout: window.__edCfg.live_timeout, cam: window.__edCfg.cameras[0], camData: ed.shadowRoot.querySelector('#cams ha-form') === cf && cf.data.zoom };
+  });
+  assert.equal(r.same, true);
+  assert.equal(r.timeout, 600);
+  assert.equal(r.cfgTimeout, 600);
+  assert.deepEqual(r.cam, { prefix: 'haustur', zoom: 1.5 });
+  assert.equal(r.camData, 1.5);
+  await c.close();
+});

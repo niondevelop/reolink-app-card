@@ -200,6 +200,10 @@
     "grp_warn": "Warnings",
     "show_scene": "Show scene mode",
     "show_sd": "Show SD card usage",
-    "buttons_sub": "Buttons under the image"
+    "buttons_sub": "Buttons under the image",
+    "zoom_grp": "Image crop (zoom)",
+    "zoom": "Zoom factor (1 = whole image)",
+    "zoom_x": "Centre horizontal",
+    "zoom_y": "Centre vertical"
   }
 }

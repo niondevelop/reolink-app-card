@@ -21,7 +21,7 @@ export default {
       const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, over };
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -190,7 +190,7 @@ export default {
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._resetZoom(); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDoorbell(old, hass);
     this._checkDetections();

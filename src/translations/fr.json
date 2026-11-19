@@ -200,6 +200,10 @@
     "grp_warn": "Avertissements",
     "show_scene": "Afficher le mode scène",
     "show_sd": "Afficher l’occupation de la carte SD",
-    "buttons_sub": "Boutons sous l’image"
+    "buttons_sub": "Boutons sous l’image",
+    "zoom_grp": "Cadrage (zoom)",
+    "zoom": "Facteur de zoom (1 = image entière)",
+    "zoom_x": "Centre horizontal",
+    "zoom_y": "Centre vertical"
   }
 }

@@ -409,7 +409,11 @@
       grp_warn: "Warnungen",
       show_scene: "Szenenmodus anzeigen",
       show_sd: "SD-Belegung anzeigen",
-      buttons_sub: "Knöpfe unter dem Bild"
+      buttons_sub: "Knöpfe unter dem Bild",
+      zoom_grp: "Bildausschnitt (Zoom)",
+      zoom: "Zoomfaktor (1 = ganzes Bild)",
+      zoom_x: "Mitte horizontal",
+      zoom_y: "Mitte vertikal"
     }
   };
 
@@ -616,7 +620,11 @@
       grp_warn: "Warnings",
       show_scene: "Show scene mode",
       show_sd: "Show SD card usage",
-      buttons_sub: "Buttons under the image"
+      buttons_sub: "Buttons under the image",
+      zoom_grp: "Image crop (zoom)",
+      zoom: "Zoom factor (1 = whole image)",
+      zoom_x: "Centre horizontal",
+      zoom_y: "Centre vertical"
     }
   };
 
@@ -823,7 +831,11 @@
       grp_warn: "Avertissements",
       show_scene: "Afficher le mode scène",
       show_sd: "Afficher l’occupation de la carte SD",
-      buttons_sub: "Boutons sous l’image"
+      buttons_sub: "Boutons sous l’image",
+      zoom_grp: "Cadrage (zoom)",
+      zoom: "Facteur de zoom (1 = image entière)",
+      zoom_x: "Centre horizontal",
+      zoom_y: "Centre vertical"
     }
   };
 
@@ -1295,7 +1307,7 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots)$/, "");
-        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, over };
+        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
       this._mode = "live";
@@ -1503,6 +1515,7 @@
       });
       if (first) {
         this._cams.forEach((c) => this._devIndex(c));
+        this._resetZoom();
         this._loadMediaRoot();
         setTimeout(() => this._onLink(), 0);
         this._renderTabs();
@@ -2068,6 +2081,8 @@
       const rect = () => stage.getBoundingClientRect();
       const zoomAt = (s, px, py) => {
         const z = this._zoom;
+        delete z.cx;
+        delete z.cy;
         s = Math.min(5, Math.max(1, s));
         z.x = px - (px - z.x) * (s / z.s);
         z.y = py - (py - z.y) * (s / z.s);
@@ -2101,6 +2116,8 @@
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           zoomAt(pinch.s * (d / pinch.d), pinch.mx, pinch.my);
         } else if (pan) {
+          delete this._zoom.cx;
+          delete this._zoom.cy;
           this._zoom.x = pan.zx + (e.clientX - pan.x);
           this._zoom.y = pan.zy + (e.clientY - pan.y);
           this._applyZoom();
@@ -2116,7 +2133,7 @@
             const now = Date.now();
             if (now - tap < 320) {
               const r = rect();
-              if (this._zoom.s > 1) this._resetZoom();
+              if (this._zoom.s > 1) this._unzoom();
               else zoomAt(2.5, e.clientX - r.left, e.clientY - r.top);
               tap = 0;
             } else tap = now;
@@ -2135,6 +2152,10 @@
     _applyZoom() {
       const z = this._zoom, stage = this.$("stage");
       const w = stage.clientWidth, h = stage.clientHeight;
+      if (z.cx !== void 0 && w) {
+        z.x = w / 2 - w * z.s * z.cx / 100;
+        z.y = h / 2 - h * z.s * z.cy / 100;
+      }
       if (z.s <= 1.001) {
         z.s = 1;
         z.x = 0;
@@ -2149,8 +2170,22 @@
       zp.style.display = z.s > 1 ? "" : "none";
       this.$("unzoom").style.display = z.s > 1 ? "" : "none";
     },
+    /* Ausgangsbild: voreingestellter Zoom der Kamera (Optionen zoom, zoom_x, zoom_y), sonst das ganze Bild */
+    _defaultZoom(cam = this._cam) {
+      const s = Math.min(4, Math.max(1, +(cam && cam.zoom) || 1));
+      if (s <= 1) return { s: 1, x: 0, y: 0 };
+      const pct = (v) => Math.min(100, Math.max(0, v === void 0 || v === "" || isNaN(+v) ? 50 : +v));
+      return { s, x: 0, y: 0, cx: pct(cam.zoom_x), cy: pct(cam.zoom_y) };
+    },
     _resetZoom() {
-      this._zoom = { s: 1, x: 0, y: 0 };
+      this._zoom = this._defaultZoom();
+      if (this._built) this._applyZoom();
+    },
+    /* Herauszoomen: zurück zum voreingestellten Ausschnitt; ist er schon gezeigt, das ganze Bild */
+    _unzoom() {
+      const d = this._defaultZoom(), z = this._zoom;
+      const atDefault = d.s > 1 && z.cx !== void 0 && Math.abs(z.s - d.s) < 0.01;
+      this._zoom = atDefault ? { s: 1, x: 0, y: 0 } : d;
       if (this._built) this._applyZoom();
     },
     _openLink(url, download) {
@@ -3134,7 +3169,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       $("speed").onclick = () => this._cycleSpeed();
       $("next").onclick = () => this._playNext();
       $("dl").onclick = () => this._download();
-      $("unzoom").onclick = () => this._resetZoom();
+      $("unzoom").onclick = () => this._unzoom();
       $("snd").onclick = () => {
         this._sound = !this._sound;
         this._sndCheck = this._sound;
@@ -3525,17 +3560,14 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
       this._fitHub();
     },
-    /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,
-       reicht es dann noch nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
+    /* Modus-Zeile an die Breite anpassen: die SD-Anzeige steht immer in einer eigenen Zeile;
+       reicht der Platz nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
     _fitHub() {
       const box = this.$ && this.$("hub");
       if (!box || box.style.display === "none" || !box.clientWidth) return;
       const rows = [...box.querySelectorAll(".scene")];
-      const over = () => rows.some((r) => r.scrollWidth > r.clientWidth + 1);
-      box.classList.remove("wrap");
+      box.classList.toggle("wrap", !!rows.length && !!box.querySelector(".sd"));
       rows.forEach((r) => r.classList.remove("compact"));
-      if (!over()) return;
-      if (box.querySelector(".sd")) box.classList.add("wrap");
       rows.forEach((r) => {
         if (r.scrollWidth > r.clientWidth + 1) r.classList.add("compact");
       });
@@ -3716,9 +3748,12 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 
   // src/editor.js
   var ReolinkAppCardEditor = class extends HTMLElement {
+    /* Home Assistant ruft setConfig nach jeder eigenen Änderung erneut auf: dann nicht neu aufbauen,
+       sonst klappen die Gruppen zu und offene Auswahllisten schliessen sich */
     setConfig(config) {
+      const same = this._emitted && JSON.stringify(config) === this._emitted;
       this._config = { ...config, cameras: [...config.cameras || []] };
-      this._render();
+      if (!same) this._render();
     }
     set hass(hass) {
       const first = !this._hass;
@@ -3750,6 +3785,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     }
     _changed(cfg) {
       this._config = cfg;
+      this._emitted = JSON.stringify(cfg);
       this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: cfg }, bubbles: true, composed: true }));
     }
     _render() {
@@ -3807,7 +3843,15 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       const camSchema = [
         { name: "prefix", required: true, selector: { select: { mode: "dropdown", custom_value: true, options: camOpts } } },
         { type: "grid", name: "", schema: [{ name: "name", selector: { text: {} } }, { name: "media_name", selector: { text: {} } }] },
-        { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } }
+        { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } },
+        // Voreingestellter Bildausschnitt, z. B. bei Fischaugen-Objektiven
+        { type: "expandable", name: "zoom_grp", flatten: true, title: L.zoom_grp, icon: "mdi:magnify-plus-outline", schema: [
+          { name: "zoom", selector: { number: { min: 1, max: 4, step: 0.1, mode: "slider" } } },
+          { type: "grid", name: "", schema: [
+            { name: "zoom_x", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } },
+            { name: "zoom_y", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } }
+          ] }
+        ] }
       ];
       const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
@@ -3865,10 +3909,19 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
           });
+          if (!(+v.zoom > 1)) {
+            delete v.zoom;
+            delete v.zoom_x;
+            delete v.zoom_y;
+          }
+          ["zoom_x", "zoom_y"].forEach((k) => {
+            if (+v[k] === 50) delete v[k];
+          });
           const list = [...this._config.cameras];
           list[i] = v;
           this._changed({ ...this._config, cameras: list });
           if (hit && v.prefix !== cam.prefix) this._render();
+          else form.data = v;
         });
         const body = box.querySelector(".cb");
         body.appendChild(form);
@@ -3946,6 +3999,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           if (v[k] === void 0 || v[k] === null || v[k] === defOf(k, v)) delete cfg[k];
           else cfg[k] = v[k];
         });
+        gen.data = { ...v };
         this._changed(cfg);
       });
       this.shadowRoot.getElementById("gen").appendChild(gen);
@@ -4015,6 +4069,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             next[i] = v;
             onChange(next);
             vis[i] = v;
+            form.data = v;
             row.querySelector(".bl").firstChild.textContent = name(v);
           });
           row.appendChild(form);
