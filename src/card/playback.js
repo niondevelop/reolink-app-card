@@ -42,7 +42,10 @@ export default {
   /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
   _panelNow() {
     const p = this._panel || 'events';
-    return p === 'events' && !this._hasPlayback() ? 'none' : p;
+    if (p === 'events' && !this._hasPlayback()) return 'none';
+    // Ohne Einstellungen (z. B. Kamera eines anderen Herstellers): Ereignisse, sonst zugeklappt
+    if (p === 'settings' && !this._settingGroups().length) return this._hasPlayback() ? 'events' : 'none';
+    return p;
   },
 
   _setPanel(p) {
@@ -91,7 +94,7 @@ export default {
 
   /* Hat die Kamera Aufnahmen in Home Assistant? Direkt eingebundene Klingeln z. B. erscheinen nicht in der Reolink-Medienquelle */
   _hasPlayback(cam = this._cam) {
-    if (this._config.playback === false || cam.playback === false) return false;
+    if (this._config.playback === false || cam.playback === false || this._foreign(cam)) return false;
     if (!Array.isArray(this._mediaKids)) return true;
     return !!this._mediaNodeOf(this._mediaKids, cam);
   },

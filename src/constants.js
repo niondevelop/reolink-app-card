@@ -48,6 +48,17 @@ export const DET = ['person', 'vehicle', 'animal', 'motion'];
 
 export const SPEEDS = [1, 1.5, 2, 4, 0.5];
 
+/* Eingebaute Knöpfe der Steuerleiste in der Standard-Reihenfolge (Option buttons, auch pro Kamera) */
+export const BTN_DEFAULT = ['talk', 'siren', 'light', 'rec', 'snap', 'ptz', 'q'];
+/* Bezeichnung der eingebauten Knöpfe (Schlüssel der Übersetzungen) */
+export const BTN_LABEL = { talk: 'talk', siren: 'siren', light: 'spotlight', rec: 'record', snap: 'snapshot', ptz: 'ptz', q: 'quality' };
+/* Symbol eigener Knöpfe je Domain, wenn die Entität keines hat */
+export const DOMAIN_ICON = {
+  light: 'mdi:lightbulb', switch: 'mdi:toggle-switch-variant', input_boolean: 'mdi:toggle-switch-variant', fan: 'mdi:fan',
+  lock: 'mdi:lock', cover: 'mdi:garage', button: 'mdi:gesture-tap-button', input_button: 'mdi:gesture-tap-button',
+  script: 'mdi:script-text-outline', scene: 'mdi:palette', automation: 'mdi:robot', siren: 'mdi:alarm-light-outline',
+};
+
 export const SETTINGS = [
   { g: 'g_general', icon: 'mdi:cog-outline', items: [
     ['pir', 'sw', 'mdi:motion-sensor'], ['rec', 'sw', 'mdi:sd'], ['push', 'sw', 'mdi:bell-ring-outline'],

@@ -21,7 +21,7 @@ export default {
       const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -71,6 +71,8 @@ export default {
   _e(key, cam = this._cam) {
     if (cam.over[key]) return cam.over[key];
     const [domain, ...suf] = ENT[key];
+    // Kamera eines anderen Herstellers: nur das Livebild, alle Reolink-Funktionen fehlen (ausser per entities gesetzt)
+    if (this._foreign(cam)) return key === 'cam_sd' ? cam.entity : `${domain}.rac_none_${key}`;
     const dev = this._devIndex(cam);
     if (dev) {
       for (const tk of [].concat(TK[key] || [])) {
@@ -128,6 +130,28 @@ export default {
     return null;
   },
 
+  /* Kamera eines anderen Herstellers (nicht aus der Reolink-Integration): per entity angegeben */
+  _foreign(cam = this._cam) {
+    if (!cam || !cam.entity) return false;
+    const r = this._hass && this._hass.entities && this._hass.entities[cam.entity];
+    return r ? r.platform !== 'reolink' : !prefixOf(cam.entity);
+  },
+
+  /* SD-Karte der Kamera selbst (direkt eingebundene Kamera mit eigener Karte); Kameras am Hub haben keine */
+  _camSdE(cam = this._cam) {
+    if (cam.over.storage) return cam.over.storage;
+    if (this._foreign(cam)) return null;
+    this._devIndex(cam);
+    const reg = this._hass && this._hass.entities;
+    if (!reg || !cam._devId) return null;
+    if (cam._sdReg !== reg) {
+      cam._sdReg = reg;
+      cam._sd = Object.keys(reg).find((id) => reg[id].device_id === cam._devId && id.startsWith('sensor.')
+        && (['sd_storage', 'hdd_storage'].includes(reg[id].translation_key) || /_(sd|hdd)_\d+_(speicher|storage)$/.test(id))) || null;
+    }
+    return cam._sd && this._st(cam._sd) ? cam._sd : null;
+  },
+
   /* Hub automatisch finden: Entität des Szenenmodus bzw. der SD-Karte (einmal suchen, dann merken) */
   _hubPrefix() {
     if (this._hubAuto !== undefined && (this._hubAuto || Date.now() - this._hubTry < 60000)) return this._hubAuto;
@@ -176,7 +200,7 @@ export default {
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
     this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._resetZoom(); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDoorbell(old, hass);
     this._checkDetections();

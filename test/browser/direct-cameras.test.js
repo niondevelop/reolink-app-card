@@ -34,15 +34,21 @@ const player = (c) => c.run(() => {
   return { hls: !!hls, hlsUrl: hls ? hls.url : null, videoSrc: r.getElementById('video').getAttribute('src'), download: r.getElementById('dl').style.display !== 'none' };
 });
 
-test('ohne Hub: Kameras, Namen und Entitäten werden gefunden, keine Hub-Zeile', async () => {
+test('ohne Hub: Kameras und Entitäten werden gefunden, SD-Karte der gewählten Kamera, kein Szenenmodus', async () => {
   const c = await openCard(browser, server, { config: CFG, hass: HASS });
-  const r = await c.run(() => {
-    const k = window.__card;
-    return { names: k._cams.map((x) => x.name), light: k._e('cam_sd'), hubShown: k.shadowRoot.getElementById('hub').innerHTML.trim() !== '' && k.shadowRoot.getElementById('hub').style.display !== 'none' };
+  const read = () => c.run(() => {
+    const k = window.__card, hub = k.shadowRoot.getElementById('hub');
+    return { names: k._cams.map((x) => x.name), cam: k._e('cam_sd'), sd: (hub.querySelector('.sd') || {}).textContent || null, scene: !!hub.querySelector('.scene') };
   });
+  let r = await read();
   assert.deepEqual(r.names, ['Einfahrt', 'Garage']);
-  assert.equal(r.light, 'camera.einfahrt_fluent');
-  assert.equal(r.hubShown, false);
+  assert.equal(r.cam, 'camera.einfahrt_fluent');
+  assert.match(r.sd, /42/);
+  assert.equal(r.scene, false);
+  await c.run(() => window.__card._select(1));
+  await wait(100);
+  r = await read();
+  assert.match(r.sd, /17/);
   assert.deepEqual(c.errors, []);
   await c.close();
 });

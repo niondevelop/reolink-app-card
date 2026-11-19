@@ -149,6 +149,15 @@
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
   }
+  function otherCameras(hass) {
+    if (!hass) return [];
+    const reg = hass.entities || {};
+    return Object.keys(hass.states).filter((id) => {
+      if (!id.startsWith("camera.")) return false;
+      const r = reg[id];
+      return r ? r.platform !== "reolink" : !CAM_SUFFIX.test(id.slice(7));
+    }).map((id) => ({ entity: id, name: String(hass.states[id].attributes.friendly_name || id.slice(7)) })).sort((a, b) => a.name.localeCompare(b.name));
+  }
   function detectCameras(hass) {
     if (!hass) return [];
     const out = [], seen = /* @__PURE__ */ new Set();
@@ -346,7 +355,11 @@
       events: "Ereignisse",
       panel_hide: "Seitenleiste ausblenden",
       panel_show: "Seitenleiste einblenden",
-      back_live: "Zurück zum Livebild"
+      back_live: "Zurück zum Livebild",
+      confirm_action: "„{name}“ ausführen?",
+      confirm_btn: "Ausführen",
+      sd_full: "SD-Karte {name} fast voll ({v} %)",
+      hub: "Hub"
     },
     editor: {
       mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -357,7 +370,7 @@
       autoplay_next: "Nächsten Clip automatisch abspielen",
       battery_warning: "Akku-Warnung ab (%)",
       temperature_warning: "Temperatur-Warnung ab (°C)",
-      show_hub: "Hub anzeigen (Szenenmodus, SD-Karte)",
+      show_hub: "Szenenmodus und SD-Karte anzeigen",
       hub_prefix: "Hub-Präfix",
       language: "Sprache",
       prefix: "Kamera",
@@ -384,7 +397,33 @@
       panel: "Seitenleiste beim Start (bei breiter Karte)",
       panel_events: "Ereignisse",
       panel_settings: "Einstellungen",
-      panel_none: "Zugeklappt"
+      panel_none: "Zugeklappt",
+      general: "Allgemeine Karteneinstellungen",
+      buttons: "Bedienpanel",
+      buttons_hint: "Knöpfe ein- und ausblenden und mit den Pfeilen anordnen. Ein Knopf erscheint nur, wenn die Kamera die Funktion hat. Der Hörer steht immer in der Mitte: links davon, was vor ihm steht, rechts, was danach kommt.",
+      own_buttons: "Eigenes Bedienpanel für diese Kamera",
+      add_button: "Eigener Knopf (z. B. Licht oder Türöffner)",
+      custom_button: "eigener Knopf",
+      down: "Nach unten",
+      btn_entity: "Entität",
+      btn_name: "Name (optional)",
+      btn_icon: "Symbol (optional)",
+      btn_service: "Dienst (optional, z. B. lock.open)",
+      btn_confirm: "Mit Rückfrage",
+      grp_display: "Darstellung",
+      grp_scene: "Szenenmodus & SD-Karte",
+      grp_stream: "Streaming (Livebild)",
+      grp_playback: "Wiedergabe",
+      grp_doorbell: "Klingel",
+      grp_warn: "Warnungen",
+      show_scene: "Reolink-Szenenmodus anzeigen (nur ohne eigene Modus-Auswahl)",
+      show_sd: "SD-Belegung anzeigen",
+      buttons_sub: "Knöpfe unter dem Bild",
+      zoom_grp: "Bildausschnitt (Zoom)",
+      zoom: "Zoomfaktor (1 = ganzes Bild)",
+      zoom_x: "Mitte horizontal",
+      zoom_y: "Mitte vertikal",
+      other_cam: "andere Kamera (Livebild und Bedienpanel)"
     }
   };
 
@@ -528,7 +567,11 @@
       events: "Events",
       panel_hide: "Hide side panel",
       panel_show: "Show side panel",
-      back_live: "Back to live view"
+      back_live: "Back to live view",
+      confirm_action: "Run “{name}”?",
+      confirm_btn: "Run",
+      sd_full: "SD card {name} almost full ({v} %)",
+      hub: "Hub"
     },
     editor: {
       mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
@@ -539,7 +582,7 @@
       autoplay_next: "Autoplay next clip",
       battery_warning: "Battery warning at (%)",
       temperature_warning: "Temperature warning at (°C)",
-      show_hub: "Show hub (scene mode, SD card)",
+      show_hub: "Show scene mode and SD card",
       hub_prefix: "Hub prefix",
       language: "Language",
       prefix: "Camera",
@@ -566,7 +609,33 @@
       panel: "Side panel at start (wide card)",
       panel_events: "Events",
       panel_settings: "Settings",
-      panel_none: "Collapsed"
+      panel_none: "Collapsed",
+      general: "General card settings",
+      buttons: "Control panel",
+      buttons_hint: "Show or hide buttons and arrange them with the arrows. A button only appears if the camera has the feature. The talk button always sits in the middle: what comes before it goes left, what comes after goes right.",
+      own_buttons: "Own control panel for this camera",
+      add_button: "Custom button (e.g. light or door opener)",
+      custom_button: "custom button",
+      down: "Move down",
+      btn_entity: "Entity",
+      btn_name: "Name (optional)",
+      btn_icon: "Icon (optional)",
+      btn_service: "Service (optional, e.g. lock.open)",
+      btn_confirm: "Ask for confirmation",
+      grp_display: "Display",
+      grp_scene: "Scene mode & SD card",
+      grp_stream: "Streaming (live view)",
+      grp_playback: "Playback",
+      grp_doorbell: "Doorbell",
+      grp_warn: "Warnings",
+      show_scene: "Show Reolink scene mode (only without own mode selector)",
+      show_sd: "Show SD card usage",
+      buttons_sub: "Buttons under the image",
+      zoom_grp: "Image crop (zoom)",
+      zoom: "Zoom factor (1 = whole image)",
+      zoom_x: "Centre horizontal",
+      zoom_y: "Centre vertical",
+      other_cam: "other camera (live view and control panel)"
     }
   };
 
@@ -710,7 +779,11 @@
       events: "Événements",
       panel_hide: "Masquer le panneau latéral",
       panel_show: "Afficher le panneau latéral",
-      back_live: "Retour au direct"
+      back_live: "Retour au direct",
+      confirm_action: "Exécuter « {name} » ?",
+      confirm_btn: "Exécuter",
+      sd_full: "Carte SD {name} presque pleine ({v} %)",
+      hub: "Hub"
     },
     editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -721,7 +794,7 @@
       autoplay_next: "Lire automatiquement le clip suivant",
       battery_warning: "Alerte batterie à partir de (%)",
       temperature_warning: "Alerte température à partir de (°C)",
-      show_hub: "Afficher le hub (mode scène, carte SD)",
+      show_hub: "Afficher le mode scène et la carte SD",
       hub_prefix: "Préfixe du hub",
       language: "Langue",
       prefix: "Caméra",
@@ -748,7 +821,33 @@
       panel: "Panneau latéral au démarrage (carte large)",
       panel_events: "Événements",
       panel_settings: "Réglages",
-      panel_none: "Replié"
+      panel_none: "Replié",
+      general: "Réglages généraux de la carte",
+      buttons: "Panneau de commande",
+      buttons_hint: "Afficher ou masquer les boutons et les ordonner avec les flèches. Un bouton n’apparaît que si la caméra a la fonction. Le bouton de conversation reste au centre : ce qui le précède va à gauche, ce qui le suit à droite.",
+      own_buttons: "Panneau de commande propre à cette caméra",
+      add_button: "Bouton personnalisé (p. ex. lumière ou gâche)",
+      custom_button: "bouton personnalisé",
+      down: "Descendre",
+      btn_entity: "Entité",
+      btn_name: "Nom (facultatif)",
+      btn_icon: "Icône (facultatif)",
+      btn_service: "Service (facultatif, p. ex. lock.open)",
+      btn_confirm: "Demander une confirmation",
+      grp_display: "Affichage",
+      grp_scene: "Mode scène & carte SD",
+      grp_stream: "Streaming (direct)",
+      grp_playback: "Lecture",
+      grp_doorbell: "Sonnette",
+      grp_warn: "Avertissements",
+      show_scene: "Afficher le mode scène Reolink (seulement sans sélecteur de mode propre)",
+      show_sd: "Afficher l’occupation de la carte SD",
+      buttons_sub: "Boutons sous l’image",
+      zoom_grp: "Cadrage (zoom)",
+      zoom: "Facteur de zoom (1 = image entière)",
+      zoom_x: "Centre horizontal",
+      zoom_y: "Centre vertical",
+      other_cam: "autre caméra (direct et panneau de commande)"
     }
   };
 
@@ -796,6 +895,22 @@
   var EVT_ORDER = ["doorbell", "person", "vehicle", "animal", "package", "face", "smart", "crying", "motion", "other"];
   var DET = ["person", "vehicle", "animal", "motion"];
   var SPEEDS = [1, 1.5, 2, 4, 0.5];
+  var BTN_DEFAULT = ["talk", "siren", "light", "rec", "snap", "ptz", "q"];
+  var BTN_LABEL = { talk: "talk", siren: "siren", light: "spotlight", rec: "record", snap: "snapshot", ptz: "ptz", q: "quality" };
+  var DOMAIN_ICON = {
+    light: "mdi:lightbulb",
+    switch: "mdi:toggle-switch-variant",
+    input_boolean: "mdi:toggle-switch-variant",
+    fan: "mdi:fan",
+    lock: "mdi:lock",
+    cover: "mdi:garage",
+    button: "mdi:gesture-tap-button",
+    input_button: "mdi:gesture-tap-button",
+    script: "mdi:script-text-outline",
+    scene: "mdi:palette",
+    automation: "mdi:robot",
+    siren: "mdi:alarm-light-outline"
+  };
   var SETTINGS = [
     { g: "g_general", icon: "mdi:cog-outline", items: [
       ["pir", "sw", "mdi:motion-sensor"],
@@ -1204,7 +1319,7 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots)$/, "");
-        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, over };
+        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
       this._mode = "live";
@@ -1280,6 +1395,7 @@
     _e(key, cam = this._cam) {
       if (cam.over[key]) return cam.over[key];
       const [domain, ...suf] = ENT[key];
+      if (this._foreign(cam)) return key === "cam_sd" ? cam.entity : `${domain}.rac_none_${key}`;
       const dev = this._devIndex(cam);
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
@@ -1342,6 +1458,25 @@
       }
       return null;
     },
+    /* Kamera eines anderen Herstellers (nicht aus der Reolink-Integration): per entity angegeben */
+    _foreign(cam = this._cam) {
+      if (!cam || !cam.entity) return false;
+      const r = this._hass && this._hass.entities && this._hass.entities[cam.entity];
+      return r ? r.platform !== "reolink" : !prefixOf(cam.entity);
+    },
+    /* SD-Karte der Kamera selbst (direkt eingebundene Kamera mit eigener Karte); Kameras am Hub haben keine */
+    _camSdE(cam = this._cam) {
+      if (cam.over.storage) return cam.over.storage;
+      if (this._foreign(cam)) return null;
+      this._devIndex(cam);
+      const reg = this._hass && this._hass.entities;
+      if (!reg || !cam._devId) return null;
+      if (cam._sdReg !== reg) {
+        cam._sdReg = reg;
+        cam._sd = Object.keys(reg).find((id) => reg[id].device_id === cam._devId && id.startsWith("sensor.") && (["sd_storage", "hdd_storage"].includes(reg[id].translation_key) || /_(sd|hdd)_\d+_(speicher|storage)$/.test(id))) || null;
+      }
+      return cam._sd && this._st(cam._sd) ? cam._sd : null;
+    },
     /* Hub automatisch finden: Entität des Szenenmodus bzw. der SD-Karte (einmal suchen, dann merken) */
     _hubPrefix() {
       if (this._hubAuto !== void 0 && (this._hubAuto || Date.now() - this._hubTry < 6e4)) return this._hubAuto;
@@ -1400,6 +1535,7 @@
       });
       if (first) {
         this._cams.forEach((c) => this._devIndex(c));
+        this._resetZoom();
         this._loadMediaRoot();
         setTimeout(() => this._onLink(), 0);
         this._renderTabs();
@@ -1791,7 +1927,7 @@
       return this._t(tele ? "q_tele" : "q_lens2");
     },
     _qAvail() {
-      return Q_ORDER.filter((q) => this._st(this._qEntity(q)));
+      return this._foreign() ? [] : Q_ORDER.filter((q) => this._st(this._qEntity(q)));
     },
     _ensureQ() {
       const a = this._qAvail();
@@ -1965,6 +2101,8 @@
       const rect = () => stage.getBoundingClientRect();
       const zoomAt = (s, px, py) => {
         const z = this._zoom;
+        delete z.cx;
+        delete z.cy;
         s = Math.min(5, Math.max(1, s));
         z.x = px - (px - z.x) * (s / z.s);
         z.y = py - (py - z.y) * (s / z.s);
@@ -1998,6 +2136,8 @@
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           zoomAt(pinch.s * (d / pinch.d), pinch.mx, pinch.my);
         } else if (pan) {
+          delete this._zoom.cx;
+          delete this._zoom.cy;
           this._zoom.x = pan.zx + (e.clientX - pan.x);
           this._zoom.y = pan.zy + (e.clientY - pan.y);
           this._applyZoom();
@@ -2013,7 +2153,7 @@
             const now = Date.now();
             if (now - tap < 320) {
               const r = rect();
-              if (this._zoom.s > 1) this._resetZoom();
+              if (this._zoom.s > 1) this._unzoom();
               else zoomAt(2.5, e.clientX - r.left, e.clientY - r.top);
               tap = 0;
             } else tap = now;
@@ -2032,6 +2172,10 @@
     _applyZoom() {
       const z = this._zoom, stage = this.$("stage");
       const w = stage.clientWidth, h = stage.clientHeight;
+      if (z.cx !== void 0 && w) {
+        z.x = w / 2 - w * z.s * z.cx / 100;
+        z.y = h / 2 - h * z.s * z.cy / 100;
+      }
       if (z.s <= 1.001) {
         z.s = 1;
         z.x = 0;
@@ -2046,8 +2190,22 @@
       zp.style.display = z.s > 1 ? "" : "none";
       this.$("unzoom").style.display = z.s > 1 ? "" : "none";
     },
+    /* Ausgangsbild: voreingestellter Zoom der Kamera (Optionen zoom, zoom_x, zoom_y), sonst das ganze Bild */
+    _defaultZoom(cam = this._cam) {
+      const s = Math.min(4, Math.max(1, +(cam && cam.zoom) || 1));
+      if (s <= 1) return { s: 1, x: 0, y: 0 };
+      const pct = (v) => Math.min(100, Math.max(0, v === void 0 || v === "" || isNaN(+v) ? 50 : +v));
+      return { s, x: 0, y: 0, cx: pct(cam.zoom_x), cy: pct(cam.zoom_y) };
+    },
     _resetZoom() {
-      this._zoom = { s: 1, x: 0, y: 0 };
+      this._zoom = this._defaultZoom();
+      if (this._built) this._applyZoom();
+    },
+    /* Herauszoomen: zurück zum voreingestellten Ausschnitt; ist er schon gezeigt, das ganze Bild */
+    _unzoom() {
+      const d = this._defaultZoom(), z = this._zoom;
+      const atDefault = d.s > 1 && z.cx !== void 0 && Math.abs(z.s - d.s) < 0.01;
+      this._zoom = atDefault ? { s: 1, x: 0, y: 0 } : d;
       if (this._built) this._applyZoom();
     },
     _openLink(url, download) {
@@ -2115,7 +2273,9 @@
     /* Inhalt der Seitenleiste; ohne Aufnahmen gibt es keine Ereignisse, dann bleibt sie zu */
     _panelNow() {
       const p = this._panel || "events";
-      return p === "events" && !this._hasPlayback() ? "none" : p;
+      if (p === "events" && !this._hasPlayback()) return "none";
+      if (p === "settings" && !this._settingGroups().length) return this._hasPlayback() ? "events" : "none";
+      return p;
     },
     _setPanel(p) {
       this._panel = p;
@@ -2166,7 +2326,7 @@
     },
     /* Hat die Kamera Aufnahmen in Home Assistant? Direkt eingebundene Klingeln z. B. erscheinen nicht in der Reolink-Medienquelle */
     _hasPlayback(cam = this._cam) {
-      if (this._config.playback === false || cam.playback === false) return false;
+      if (this._config.playback === false || cam.playback === false || this._foreign(cam)) return false;
       if (!Array.isArray(this._mediaKids)) return true;
       return !!this._mediaNodeOf(this._mediaKids, cam);
     },
@@ -2917,7 +3077,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.3";
+  var RAC_VERSION = "0.3.4";
 
   // src/card/render.js
   var render_default = {
@@ -3031,7 +3191,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       $("speed").onclick = () => this._cycleSpeed();
       $("next").onclick = () => this._playNext();
       $("dl").onclick = () => this._download();
-      $("unzoom").onclick = () => this._resetZoom();
+      $("unzoom").onclick = () => this._unzoom();
       $("snd").onclick = () => {
         this._sound = !this._sound;
         this._sndCheck = this._sound;
@@ -3073,69 +3233,102 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       if (window.ResizeObserver) new ResizeObserver(() => this._applyLayout()).observe(root.querySelector("ha-card"));
       if (this.isConnected) this._observe();
     },
+    /* Knöpfe der Steuerleiste: eingebaute (sofern die Kamera sie kann) und eigene, in der eingestellten Reihenfolge.
+       Option buttons (Karte oder pro Kamera): Liste aus eingebauten Namen (talk, siren, light, rec, snap, ptz, q)
+       und eigenen Knöpfen { entity, name, icon, service, confirm }; nicht genannte eingebaute Knöpfe sind ausgeblendet */
+    _btnList(cam = this._cam) {
+      const own = Array.isArray(cam.buttons) ? cam.buttons : Array.isArray(this._config.buttons) ? this._config.buttons : null;
+      return { list: own || BTN_DEFAULT, custom: !!own };
+    },
     _controls() {
-      const c = this._cam, items = [];
-      const siren = this._e("siren"), light = this._e("light"), mrec = this._e("manual_rec");
-      if (!this._grid) {
-        const active = this._mic !== "off", why = active ? null : this._talkReason();
-        const legacy = why === "feature" && this._talkLegacy();
-        items.push({
-          id: "talk",
-          icon: active ? "mdi:phone-hangup" : "mdi:phone",
-          on: active,
-          warn: active,
-          ring: this._mic === "connecting",
-          dis: !!why && !legacy,
-          label: active ? this._t("hang_up") : legacy ? this._t("talk_app") : this._t("talk"),
-          run: () => legacy ? this._talk() : this._toggleTalk()
-        });
-      }
-      if (this._st(siren)) items.push({
-        id: "siren",
-        icon: "mdi:alarm-light-outline",
-        label: this._t("siren"),
-        on: this._on(siren),
-        warn: true,
-        run: async () => this._on(siren) ? this._call("siren", "turn_off", siren) : await this._ask(this._t("siren_confirm", { name: c.name }), this._t("siren_btn"), true) && this._call("siren", "turn_on", siren)
-      });
-      if (this._st(light)) items.push({
-        id: "light",
-        icon: "mdi:flashlight",
-        label: this._t("spotlight"),
-        on: this._on(light),
-        run: () => this._call("light", "toggle", light)
-      });
-      if (this._st(mrec)) items.push({
-        id: "rec",
-        icon: "mdi:video-outline",
-        label: this._t("record"),
-        on: this._on(mrec),
-        run: () => this._call("switch", "toggle", mrec)
-      });
-      items.push({ id: "snap", icon: "mdi:camera-outline", label: this._t("snapshot"), run: () => this._snapshot() });
-      if (!this._grid && this._hasPtz()) items.push({
-        id: "ptz",
-        icon: "mdi:arrow-all",
-        label: this._t("ptz"),
-        on: this._ptzOpen,
-        run: () => {
-          this._ptzOpen = !this._ptzOpen;
-          this._qOpen = false;
-          this._update();
+      const c = this._cam, siren = this._e("siren"), light = this._e("light"), mrec = this._e("manual_rec");
+      const build = {
+        talk: () => {
+          if (this._grid) return null;
+          const active = this._mic !== "off", why = active ? null : this._talkReason();
+          const legacy = why === "feature" && this._talkLegacy();
+          return {
+            icon: active ? "mdi:phone-hangup" : "mdi:phone",
+            on: active,
+            warn: active,
+            ring: this._mic === "connecting",
+            dis: !!why && !legacy,
+            label: active ? this._t("hang_up") : legacy ? this._t("talk_app") : this._t("talk"),
+            run: () => legacy ? this._talk() : this._toggleTalk()
+          };
+        },
+        siren: () => this._st(siren) && {
+          icon: "mdi:alarm-light-outline",
+          label: this._t("siren"),
+          on: this._on(siren),
+          warn: true,
+          run: async () => this._on(siren) ? this._call("siren", "turn_off", siren) : await this._ask(this._t("siren_confirm", { name: c.name }), this._t("siren_btn"), true) && this._call("siren", "turn_on", siren)
+        },
+        light: () => this._st(light) && { icon: "mdi:flashlight", label: this._t("spotlight"), on: this._on(light), run: () => this._call("light", "toggle", light) },
+        rec: () => this._st(mrec) && { icon: "mdi:video-outline", label: this._t("record"), on: this._on(mrec), run: () => this._call("switch", "toggle", mrec) },
+        snap: () => ({ icon: "mdi:camera-outline", label: this._t("snapshot"), run: () => this._snapshot() }),
+        ptz: () => !this._grid && this._hasPtz() && {
+          icon: "mdi:arrow-all",
+          label: this._t("ptz"),
+          on: this._ptzOpen,
+          run: () => {
+            this._ptzOpen = !this._ptzOpen;
+            this._qOpen = false;
+            this._update();
+          }
+        },
+        q: () => this._qAvail().length && !this._grid && {
+          icon: Q[this._quality].icon,
+          label: `${this._t("quality")}: ${this._t(Q[this._quality].key)}`,
+          on: this._qOpen,
+          run: () => {
+            this._qOpen = !this._qOpen;
+            this._ptzOpen = false;
+            this._update();
+          }
         }
-      });
-      if (this._qAvail().length && !this._grid) items.push({
-        id: "q",
-        icon: Q[this._quality].icon,
-        label: `${this._t("quality")}: ${this._t(Q[this._quality].key)}`,
-        on: this._qOpen,
-        run: () => {
-          this._qOpen = !this._qOpen;
-          this._ptzOpen = false;
-          this._update();
-        }
+      };
+      const items = [];
+      this._btnList().list.forEach((b, i) => {
+        const x = typeof b === "string" ? build[b] ? build[b]() : null : this._customBtn(b);
+        if (x) items.push({ ...x, id: typeof b === "string" ? b : `x${i}` });
       });
       return items;
+    },
+    /* Eigener Knopf für eine beliebige Entität (Licht, Schalter, Türöffner, Taster, Skript …) */
+    _customBtn(b) {
+      const id = b && b.entity, st = this._st(id);
+      if (!st) return null;
+      const domain = id.split(".")[0];
+      const on = domain === "lock" ? ["unlocked", "open", "opening", "unlocking"].includes(st.state) : domain === "cover" ? ["open", "opening"].includes(st.state) : st.state === "on";
+      const stateless = ["button", "input_button", "scene"].includes(domain);
+      const label = b.name || st.attributes.friendly_name || id;
+      const icon = b.icon || st.attributes.icon || (domain === "lock" && on ? "mdi:lock-open-variant" : DOMAIN_ICON[domain]) || "mdi:gesture-tap";
+      const confirm = b.confirm !== void 0 ? !!b.confirm : domain === "lock" && !on;
+      const call = () => {
+        if (b.service && /^\w+\.\w+$/.test(b.service)) {
+          const [d, s] = b.service.split(".");
+          return this._call(d, s, id);
+        }
+        if (domain === "lock") return this._call("lock", on ? "lock" : "unlock", id);
+        if (domain === "button" || domain === "input_button") return this._call(domain, "press", id);
+        if (domain === "script" || domain === "scene") return this._call(domain, "turn_on", id);
+        if (domain === "automation") return this._call("automation", "trigger", id);
+        if (["light", "switch", "input_boolean", "fan", "cover", "siren"].includes(domain)) return this._call(domain, "toggle", id);
+        return this._call("homeassistant", "toggle", id);
+      };
+      return {
+        icon,
+        label,
+        on: stateless ? void 0 : on,
+        warn: domain === "lock",
+        dis: st.state === "unavailable",
+        run: async () => {
+          if (st.state === "unavailable") return;
+          if (confirm && !await this._ask(this._t("confirm_action", { name: label }), this._t("confirm_btn"))) return;
+          call();
+        }
+      };
     },
     /* ---------- Rendering ---------- */
     _renderTabs() {
@@ -3302,10 +3495,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       card.classList.toggle("pan-set", side && pan === "settings");
       card.classList.toggle("playing", playing);
       $("phead").style.display = side && pan !== "none" ? "" : "none";
-      $("pedge").style.display = side && pan === "none" && !this._grid ? "grid" : "none";
+      const hasSet = this._settingGroups().length > 0;
+      $("pedge").style.display = side && pan === "none" && !this._grid && (hasPlay || hasSet) ? "grid" : "none";
+      $("more").style.display = hasSet ? "" : "none";
       if (side) {
         const left = this._config.layout === "left";
         $("p-ev").style.display = hasPlay ? "" : "none";
+        $("p-set").style.display = hasSet ? "" : "none";
         $("p-ev-l").textContent = this._t("events");
         $("backlive-l").textContent = this._t("back_live");
         $("p-set-l").textContent = this._t("settings");
@@ -3333,9 +3529,9 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     _updateHub() {
       const box = this.$("hub"), cfg = this._config;
       const modeId = cfg.mode_entity || null;
-      const useScene = cfg.show_hub && (modeId ? cfg.show_scene === true : cfg.show_scene !== false);
+      const useScene = cfg.show_hub !== false && !modeId && cfg.show_scene !== false;
       const scene = useScene ? this._hubE("scene") : null;
-      const storage = cfg.show_hub ? this._hubE("storage") : null;
+      const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE("storage") : null;
       const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
       if (!m && !s && sd === null) {
         box.style.display = "none";
@@ -3389,17 +3585,14 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._fitHub());
       this._fitHub();
     },
-    /* Modus-Zeile an die Breite anpassen: zuerst die SD-Anzeige in eine eigene Zeile,
-       reicht es dann noch nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
+    /* Modus-Zeile an die Breite anpassen: die SD-Anzeige steht immer in einer eigenen Zeile;
+       reicht der Platz nicht, zeigen nur der gewählte Modus Symbol und Namen, die übrigen nur das Symbol */
     _fitHub() {
       const box = this.$ && this.$("hub");
       if (!box || box.style.display === "none" || !box.clientWidth) return;
       const rows = [...box.querySelectorAll(".scene")];
-      const over = () => rows.some((r) => r.scrollWidth > r.clientWidth + 1);
-      box.classList.remove("wrap");
+      box.classList.toggle("wrap", !!rows.length && !!box.querySelector(".sd"));
       rows.forEach((r) => r.classList.remove("compact"));
-      if (!over()) return;
-      if (box.querySelector(".sd")) box.classList.add("wrap");
       rows.forEach((r) => {
         if (r.scrollWidth > r.clientWidth + 1) r.classList.add("compact");
       });
@@ -3412,6 +3605,14 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const tmp = this._num(this._e("battery_temp", cam));
         if (tmp !== null && cfg.temperature_warning !== false && tmp >= cfg.temperature_warning) warns.push({ icon: "mdi:thermometer-alert", text: this._t("temp_high", { name: cam.name, v: Math.round(tmp) }) });
         if (tmp !== null && cfg.temperature_low_warning !== false && tmp <= cfg.temperature_low_warning) warns.push({ icon: "mdi:snowflake-alert", text: this._t("temp_low", { name: cam.name, v: Math.round(tmp) }) });
+      });
+      const SD_FULL = 95;
+      const sds = this._cams.map((cam) => [cam.name, this._camSdE(cam)]).filter(([, id]) => id);
+      const hubSd = this._hubE("storage");
+      if (hubSd) sds.push([this._t("hub"), hubSd]);
+      sds.forEach(([name, id]) => {
+        const v = this._num(id);
+        if (cfg.show_hub !== false && cfg.show_sd !== false && v !== null && v >= SD_FULL) warns.push({ icon: "mdi:micro-sd", text: this._t("sd_full", { name, v: Math.round(v) }) });
       });
       const box = this.$("warns");
       const sig = warns.map((w) => w.text).join("|");
@@ -3427,9 +3628,9 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         $("ctrls").dataset.sig = sig;
         const btn = (x) => `<button class="tbn${x.id === "talk" ? " big" : ""}" data-id="${x.id}"><ha-icon></ha-icon></button>`;
         const mid = ctrls.find((x) => x.id === "talk"), rest = ctrls.filter((x) => x !== mid);
-        const half = Math.ceil(rest.length / 2);
+        const at = this._btnList().custom ? ctrls.indexOf(mid) : Math.ceil(rest.length / 2);
         $("ctrls").classList.toggle("split", !!mid);
-        $("ctrls").innerHTML = mid ? `<div class="side">${rest.slice(0, half).map(btn).join("")}</div>${btn(mid)}<div class="side">${rest.slice(half).map(btn).join("")}</div>` : ctrls.map(btn).join("");
+        $("ctrls").innerHTML = mid ? `<div class="side">${rest.slice(0, at).map(btn).join("")}</div>${btn(mid)}<div class="side">${rest.slice(at).map(btn).join("")}</div>` : ctrls.map(btn).join("");
         ctrls.forEach((x) => {
           $("ctrls").querySelector(`[data-id="${x.id}"]`).onclick = () => this._controls().find((y) => y.id === x.id).run();
         });
@@ -3572,9 +3773,12 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 
   // src/editor.js
   var ReolinkAppCardEditor = class extends HTMLElement {
+    /* Home Assistant ruft setConfig nach jeder eigenen Änderung erneut auf: dann nicht neu aufbauen,
+       sonst klappen die Gruppen zu und offene Auswahllisten schliessen sich */
     setConfig(config) {
+      const same = this._emitted && JSON.stringify(config) === this._emitted;
       this._config = { ...config, cameras: [...config.cameras || []] };
-      this._render();
+      if (!same) this._render();
     }
     set hass(hass) {
       const first = !this._hass;
@@ -3606,6 +3810,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     }
     _changed(cfg) {
       this._config = cfg;
+      this._emitted = JSON.stringify(cfg);
       this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: cfg }, bubbles: true, composed: true }));
     }
     _render() {
@@ -3614,55 +3819,107 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       const L = this._l;
       const detected = detectCameras(this._hass);
       const camOpts = detected.map((c) => ({ value: c.prefix, label: detected.filter((d) => d.name === c.name).length > 1 ? `${c.name} (${c.prefix})` : c.name }));
+      const others = otherCameras(this._hass);
+      others.forEach((o) => camOpts.push({ value: o.entity, label: `${o.name} · ${L.other_cam}` }));
+      const group = (key, icon, schema) => ({ type: "expandable", name: key, flatten: true, title: L[key], icon, schema });
       const general = [
-        { name: "mode_entity", selector: { entity: { domain: ["input_select", "select"] } } },
-        { type: "grid", name: "", schema: [
-          { name: "doorbell_timeout", selector: { number: { min: 10, max: 120, step: 5, mode: "box", unit_of_measurement: "s" } } },
-          { name: "doorbell_sound", selector: { boolean: {} } }
-        ] },
-        { type: "grid", name: "", schema: [
-          { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
-          { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
-          { name: "playback", selector: { boolean: {} } }
-        ] },
-        { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
-        { name: "default_quality", selector: { select: { mode: "dropdown", options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
-        { name: "live_timeout", selector: { number: { min: 0, max: 3600, step: 30, mode: "box", unit_of_measurement: "s" } } },
-        { type: "grid", name: "", schema: [
-          { name: "auto_live", selector: { boolean: {} } },
-          { name: "auto_switch", selector: { boolean: {} } },
-          { name: "autoplay_next", selector: { boolean: {} } },
-          { name: "show_hub", selector: { boolean: {} } }
-        ] },
-        { type: "grid", name: "", schema: [
-          { name: "battery_warning", selector: { number: { min: 0, max: 100, step: 5, mode: "box", unit_of_measurement: "%" } } },
-          { name: "temperature_warning", selector: { number: { min: 20, max: 80, step: 1, mode: "box", unit_of_measurement: "°C" } } }
-        ] },
-        { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } }
+        group("grp_display", "mdi:monitor-dashboard", [
+          { type: "grid", name: "", schema: [
+            { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
+            { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } }
+          ] },
+          { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } }
+        ]),
+        group("grp_scene", "mdi:shield-home-outline", [
+          { name: "mode_entity", selector: { entity: { domain: ["input_select", "select"] } } },
+          { type: "grid", name: "", schema: [
+            { name: "show_scene", selector: { boolean: {} } },
+            { name: "show_sd", selector: { boolean: {} } }
+          ] }
+        ]),
+        group("grp_stream", "mdi:cctv", [
+          { type: "grid", name: "", schema: [
+            { name: "default_quality", selector: { select: { mode: "dropdown", options: Q_BASE.map((q) => ({ value: q, label: STR[this._lang][Q[q].key] })) } } },
+            { name: "live_timeout", selector: { number: { min: 0, max: 3600, step: 30, mode: "box", unit_of_measurement: "s" } } }
+          ] },
+          { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
+          { type: "grid", name: "", schema: [
+            { name: "auto_live", selector: { boolean: {} } },
+            { name: "auto_switch", selector: { boolean: {} } }
+          ] }
+        ]),
+        group("grp_playback", "mdi:play-box-multiple-outline", [
+          { type: "grid", name: "", schema: [
+            { name: "playback", selector: { boolean: {} } },
+            { name: "autoplay_next", selector: { boolean: {} } }
+          ] }
+        ]),
+        group("grp_doorbell", "mdi:doorbell-video", [
+          { type: "grid", name: "", schema: [
+            { name: "doorbell_timeout", selector: { number: { min: 10, max: 120, step: 5, mode: "box", unit_of_measurement: "s" } } },
+            { name: "doorbell_sound", selector: { boolean: {} } }
+          ] }
+        ]),
+        group("grp_warn", "mdi:alert-outline", [
+          { type: "grid", name: "", schema: [
+            { name: "battery_warning", selector: { number: { min: 0, max: 100, step: 5, mode: "box", unit_of_measurement: "%" } } },
+            { name: "temperature_warning", selector: { number: { min: 20, max: 80, step: 1, mode: "box", unit_of_measurement: "°C" } } }
+          ] }
+        ])
       ];
       const camSchema = [
         { name: "prefix", required: true, selector: { select: { mode: "dropdown", custom_value: true, options: camOpts } } },
         { type: "grid", name: "", schema: [{ name: "name", selector: { text: {} } }, { name: "media_name", selector: { text: {} } }] },
-        { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } }
+        { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } },
+        // Voreingestellter Bildausschnitt, z. B. bei Fischaugen-Objektiven
+        { type: "expandable", name: "zoom_grp", flatten: true, title: L.zoom_grp, icon: "mdi:magnify-plus-outline", schema: [
+          { name: "zoom", selector: { number: { min: 1, max: 4, step: 0.1, mode: "slider" } } },
+          { type: "grid", name: "", schema: [
+            { name: "zoom_x", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } },
+            { name: "zoom_y", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } }
+          ] }
+        ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_hub: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
-      .cams { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 20px; }
-      .cam { border: 1px solid var(--divider-color); border-radius: 12px; padding: 12px; }
-      .ch { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 500; }
-      .ch span { flex: 1; }
-      h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 500; }
+      .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+      #btnbox { margin-top: 12px; }
+      .cam { border: 1px solid var(--divider-color); border-radius: 12px; }
+      .ch { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
+      .ch .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .ch .tt b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ch .tt small { color: var(--secondary-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chev { width: 20px; text-align: center; color: var(--secondary-text-color); transition: transform .15s; }
+      .cam.open .chev { transform: rotate(90deg); }
+      .cb { display: none; padding: 0 12px 12px; }
+      .cam.open .cb { display: block; }
+      h3 { margin: 18px 0 6px; font-size: 16px; font-weight: 500; }
+      h4 { margin: 16px 0 4px; font-size: 14px; font-weight: 500; }
+      .hint { margin: 0 0 8px; font-size: 12px; color: var(--secondary-text-color); }
       button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--divider-color); background: none; color: inherit; padding: 6px 10px; }
+      button:disabled { opacity: .35; cursor: default; }
       .add { width: 100%; padding: 10px; color: var(--primary-color); border-style: dashed; }
+      .own { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 14px; }
+      .btns { display: flex; flex-direction: column; gap: 6px; }
+      .brow { border: 1px solid var(--divider-color); border-radius: 10px; padding: 6px 8px; }
+      .bh { display: flex; align-items: center; gap: 8px; }
+      .bh .bl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .bh .bl.off { color: var(--secondary-text-color); }
+      .bh button { padding: 2px 8px; }
+      .bf { margin-top: 6px; }
     </style>
     <h3>${L.cameras}</h3><div class="cams" id="cams"></div><button class="add" id="add">+ ${L.add}</button>
-    <h3>${L.options}</h3><div id="gen"></div>`;
+    <h3>${L.general}</h3><div id="gen"></div>
+    <div class="cam${this._openBtns ? " open" : ""}" id="btnbox"><div class="ch" id="btnhead"><span class="chev">›</span><span class="tt"><b>${L.buttons}</b><small>${L.buttons_sub}</small></span></div>
+      <div class="cb"><p class="hint">${L.buttons_hint}</p><div id="btns"></div></div></div>`;
       const label = (s) => L[s.name] || s.name;
       const cams = this.shadowRoot.getElementById("cams");
       this._config.cameras.forEach((cam, i) => {
         const box = document.createElement("div");
-        box.className = "cam";
-        box.innerHTML = `<div class="ch"><span>${esc(cam.name || cam.prefix || "—")}</span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div>`;
+        box.className = `cam${this._openCams.has(i) ? " open" : ""}`;
+        const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
+        box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || hit0 && hit0.name || cam.prefix || "—")}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
         const form = document.createElement("ha-form");
         form.hass = this._hass;
         form.schema = camSchema;
@@ -3675,21 +3932,72 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             if (!v.name) v.name = hit.name;
             if (!v.media_name) v.media_name = hit.name;
             if (needsEntity(hit.entity)) v.entity = hit.entity;
+            else delete v.entity;
+          }
+          const other = others.find((o) => o.entity === v.prefix);
+          if (other && v.prefix !== cam.prefix) {
+            if (!v.name) v.name = other.name;
+            delete v.media_name;
+            delete v.entity;
           }
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
           });
+          if (!(+v.zoom > 1)) {
+            delete v.zoom;
+            delete v.zoom_x;
+            delete v.zoom_y;
+          }
+          ["zoom_x", "zoom_y"].forEach((k) => {
+            if (+v[k] === 50) delete v[k];
+          });
           const list = [...this._config.cameras];
           list[i] = v;
           this._changed({ ...this._config, cameras: list });
-          if (hit && v.prefix !== cam.prefix) this._render();
+          if ((hit || other) && v.prefix !== cam.prefix) this._render();
+          else form.data = v;
         });
-        box.appendChild(form);
-        box.querySelectorAll("button").forEach((b) => {
+        const body = box.querySelector(".cb");
+        body.appendChild(form);
+        const own = document.createElement("label");
+        own.className = "own";
+        own.innerHTML = `<input type="checkbox" ${Array.isArray(cam.buttons) ? "checked" : ""}><span>${L.own_buttons}</span>`;
+        own.querySelector("input").onchange = (e) => {
+          const list = [...this._config.cameras], v = { ...cam };
+          if (e.target.checked) v.buttons = [...Array.isArray(this._config.buttons) ? this._config.buttons : BTN_DEFAULT];
+          else delete v.buttons;
+          list[i] = v;
+          this._changed({ ...this._config, cameras: list });
+          this._render();
+        };
+        body.appendChild(own);
+        if (Array.isArray(cam.buttons)) {
+          body.appendChild(this._btnEditor(cam.buttons, (next) => {
+            const list = [...this._config.cameras];
+            list[i] = { ...this._config.cameras[i], buttons: next };
+            this._changed({ ...this._config, cameras: list });
+          }));
+        }
+        box.querySelector(".ch").onclick = (e) => {
+          if (e.target.closest("button")) return;
+          if (this._openCams.has(i)) this._openCams.delete(i);
+          else this._openCams.add(i);
+          box.classList.toggle("open", this._openCams.has(i));
+        };
+        box.querySelectorAll(".ch button").forEach((b) => {
           b.onclick = () => {
             const list = [...this._config.cameras];
-            if (b.dataset.a === "rm") list.splice(i, 1);
-            else [list[i - 1], list[i]] = [list[i], list[i - 1]];
+            if (b.dataset.a === "rm") {
+              list.splice(i, 1);
+              this._openCams = new Set([...this._openCams].filter((x) => x !== i).map((x) => x > i ? x - 1 : x));
+            } else {
+              [list[i - 1], list[i]] = [list[i], list[i - 1]];
+              const a = this._openCams.has(i), z = this._openCams.has(i - 1);
+              this._openCams.delete(i);
+              this._openCams.delete(i - 1);
+              if (a) this._openCams.add(i - 1);
+              if (z) this._openCams.add(i);
+            }
             this._changed({ ...this._config, cameras: list });
             this._render();
           };
@@ -3700,6 +4008,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const used = this._config.cameras.map((c) => c.prefix);
         const next = detected.find((d) => !used.includes(d.prefix));
         const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name } : { prefix: "" };
+        this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
         this._render();
       };
@@ -3707,20 +4016,115 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       gen.hass = this._hass;
       gen.schema = general;
       gen.computeLabel = label;
+      const defOf = (k) => defaults[k];
       const data = { ...defaults };
       Object.keys(defaults).forEach((k) => {
         if (this._config[k] !== void 0) data[k] = this._config[k];
       });
+      if (this._config.show_hub === false) {
+        if (this._config.show_scene === void 0) data.show_scene = false;
+        if (this._config.show_sd === void 0) data.show_sd = false;
+      }
       gen.data = data;
       gen.addEventListener("value-changed", (e) => {
         const v = e.detail.value, cfg = { ...this._config };
+        delete cfg.show_hub;
         Object.keys(defaults).forEach((k) => {
-          if (v[k] === void 0 || v[k] === null || v[k] === defaults[k]) delete cfg[k];
+          if (v[k] === void 0 || v[k] === null || v[k] === defOf(k)) delete cfg[k];
           else cfg[k] = v[k];
         });
+        gen.data = { ...v };
         this._changed(cfg);
       });
       this.shadowRoot.getElementById("gen").appendChild(gen);
+      this.shadowRoot.getElementById("btnhead").onclick = () => {
+        this._openBtns = !this._openBtns;
+        this.shadowRoot.getElementById("btnbox").classList.toggle("open", this._openBtns);
+      };
+      const cardBtns = Array.isArray(this._config.buttons) ? this._config.buttons : BTN_DEFAULT;
+      this.shadowRoot.getElementById("btns").appendChild(this._btnEditor(cardBtns, (next) => {
+        const cfg = { ...this._config };
+        if (JSON.stringify(next) === JSON.stringify(BTN_DEFAULT)) delete cfg.buttons;
+        else cfg.buttons = next;
+        this._changed(cfg);
+      }));
+    }
+    /* Liste der Knöpfe: eingebaute ein-/ausblenden und anordnen, eigene Knöpfe (Licht, Türöffner …) hinzufügen.
+       Gespeichert wird nur, was sichtbar ist, in der gewählten Reihenfolge. */
+    _btnEditor(list, onChange) {
+      const L = this._l, T = STR[this._lang] || STR.en;
+      const wrap = document.createElement("div");
+      wrap.className = "btns";
+      const vis = list.filter((b) => typeof b !== "string" || BTN_DEFAULT.includes(b));
+      const hidden = BTN_DEFAULT.filter((b) => !vis.includes(b));
+      const save = (next) => {
+        onChange(next);
+        this._render();
+      };
+      const name = (b) => typeof b === "string" ? T[BTN_LABEL[b]] || b : b.name || b.entity && this._hass.states[b.entity] && this._hass.states[b.entity].attributes.friendly_name || b.entity || L.custom_button;
+      vis.forEach((b, i) => {
+        const row = document.createElement("div");
+        row.className = "brow";
+        row.dataset.b = typeof b === "string" ? b : `x${i}`;
+        row.innerHTML = `<div class="bh">${typeof b === "string" ? '<input type="checkbox" checked>' : '<span style="width:13px"></span>'}
+        <span class="bl">${esc(name(b))}${typeof b === "string" ? "" : ` <small>· ${esc(L.custom_button)}</small>`}</span>
+        <button data-a="up" title="${L.up}" ${i ? "" : "disabled"}>↑</button><button data-a="down" title="${L.down}" ${i < vis.length - 1 ? "" : "disabled"}>↓</button>
+        ${typeof b === "string" ? "" : `<button data-a="rm" title="${L.remove}">✕</button>`}</div>`;
+        const cb = row.querySelector("input");
+        if (cb) cb.onchange = () => save(vis.filter((_, k) => k !== i));
+        row.querySelectorAll("button").forEach((btn) => {
+          btn.onclick = () => {
+            const next = [...vis];
+            if (btn.dataset.a === "rm") next.splice(i, 1);
+            else {
+              const j = btn.dataset.a === "up" ? i - 1 : i + 1;
+              [next[i], next[j]] = [next[j], next[i]];
+            }
+            save(next);
+          };
+        });
+        if (typeof b !== "string") {
+          const form = document.createElement("ha-form");
+          form.className = "bf";
+          form.hass = this._hass;
+          form.schema = [
+            { name: "entity", selector: { entity: { domain: ["light", "switch", "input_boolean", "lock", "cover", "fan", "button", "input_button", "script", "scene", "automation", "siren"] } } },
+            { type: "grid", name: "", schema: [{ name: "name", selector: { text: {} } }, { name: "icon", selector: { icon: {} } }] },
+            { type: "grid", name: "", schema: [{ name: "service", selector: { text: {} } }, { name: "confirm", selector: { boolean: {} } }] }
+          ];
+          form.data = b;
+          form.computeLabel = (sch) => L[`btn_${sch.name}`] || sch.name;
+          form.addEventListener("value-changed", (e) => {
+            const v = { ...e.detail.value };
+            Object.keys(v).forEach((k) => {
+              if (v[k] === "" || v[k] === void 0 || v[k] === null) delete v[k];
+            });
+            const next = [...vis];
+            next[i] = v;
+            onChange(next);
+            vis[i] = v;
+            form.data = v;
+            row.querySelector(".bl").firstChild.textContent = name(v);
+          });
+          row.appendChild(form);
+        }
+        wrap.appendChild(row);
+      });
+      hidden.forEach((b) => {
+        const row = document.createElement("div");
+        row.className = "brow";
+        row.dataset.b = b;
+        row.innerHTML = `<div class="bh"><input type="checkbox"><span class="bl off">${esc(name(b))}</span></div>`;
+        row.querySelector("input").onchange = () => save([...vis, b]);
+        wrap.appendChild(row);
+      });
+      const add = document.createElement("button");
+      add.className = "add";
+      add.dataset.a = "add-btn";
+      add.textContent = `+ ${L.add_button}`;
+      add.onclick = () => save([...vis, { entity: "" }]);
+      wrap.appendChild(add);
+      return wrap;
     }
   };
 

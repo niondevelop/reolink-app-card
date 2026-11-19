@@ -9,7 +9,7 @@ after(async () => { await browser.close(); await server.close(); });
 const open = async (width, layout, extra = {}) => {
   const c = await openCard(browser, server, {
     config: { cameras: [{ name: 'Garten', prefix: 'garten', media_name: 'Garten' }], auto_live: false, show_hub: false, ...(layout ? { layout } : {}) },
-    hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off' }, mediaCameras: ['Garten'], files: ['08:00:00 0:00:30 Person'] },
+    hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off', 'number.garten_pir_empfindlichkeit': ['50', { min: 0, max: 100, step: 1 }] }, mediaCameras: ['Garten'], files: ['08:00:00 0:00:30 Person'] },
     ...extra,
   });
   await c.page.setViewportSize({ width: width + 40, height: 900 });
@@ -161,7 +161,7 @@ test('Seitenleiste: zugeklappt bleibt zugeklappt (gespeichert) und panel: settin
   await c.close();
   c = await openCard(browser, server, {
     config: { cameras: [{ name: 'Garten', prefix: 'garten', media_name: 'Garten' }], auto_live: false, show_hub: false, panel: 'settings' },
-    hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off' }, mediaCameras: ['Garten'], files: ['08:00:00 0:00:30 Person'] },
+    hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off', 'number.garten_pir_empfindlichkeit': ['50', { min: 0, max: 100, step: 1 }] }, mediaCameras: ['Garten'], files: ['08:00:00 0:00:30 Person'] },
   });
   await c.page.setViewportSize({ width: 1140, height: 900 });
   await c.run(() => { document.getElementById('wrap').style.width = '1100px'; });
@@ -172,7 +172,7 @@ test('Seitenleiste: zugeklappt bleibt zugeklappt (gespeichert) und panel: settin
 });
 
 test('Seitenleiste ohne Aufnahmen: zugeklappt, Griff öffnet die Einstellungen', async () => {
-  const c = await open(1100, null, { hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off' }, mediaCameras: [] } });
+  const c = await open(1100, null, { hass: { states: { ...CAM_STATES, 'light.garten_flutlicht': 'off', 'number.garten_pir_empfindlichkeit': ['50', { min: 0, max: 100, step: 1 }] }, mediaCameras: [] } });
   await wait(300);
   let g = await geo(c);
   assert.equal(g.edge, true);

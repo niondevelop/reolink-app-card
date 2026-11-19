@@ -31,10 +31,10 @@ test('fünf Modi in Handy-Breite: SD-Anzeige darunter, Modi kompakt, nichts abge
   await c.close();
 });
 
-test('genug Platz: alles in einer Zeile mit Namen', async () => {
+test('genug Platz: Modus mit Namen, SD-Belegung in eigener Zeile darunter', async () => {
   const c = await open(700);
   const s = await state(c);
-  assert.equal(s.wrap, false);
+  assert.equal(s.wrap, true);
   assert.equal(s.compact, false);
   assert.equal(s.fits, true);
   await c.close();
@@ -47,7 +47,7 @@ test('wird die Karte breiter, kommen die Namen zurück', async () => {
   await wait(300);
   const s = await state(c);
   assert.equal(s.compact, false);
-  assert.equal(s.wrap, false);
+  assert.equal(s.wrap, true);
   await c.close();
 });
 
