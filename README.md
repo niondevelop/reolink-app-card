@@ -2,19 +2,18 @@
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md)
 
-[![HACS](https://img.shields.io/badge/HACS-Dashboard-41BDF5.svg)](https://github.com/hacs/integration)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Release](https://img.shields.io/github/v/release/niondevelop/reolink-app-card)](https://github.com/niondevelop/reolink-app-card/releases)
 [![Validate](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml/badge.svg)](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#known-limitations)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 
 A Lovelace card for Home Assistant that feels like the official Reolink app: live view, controls, settings and playback of SD card recordings in a single card. Built for Reolink cameras connected to a **Reolink Home Hub** (e.g. the battery-powered Argus series) or **directly to Home Assistant**, using the official [Reolink integration](https://www.home-assistant.io/integrations/reolink/).
 
+> [!NOTE]
+> ⚠️ This card is still a work in progress. You may encounter unfinished features or bugs. If you come across any issues, please [open an issue](https://github.com/niondevelop/reolink-app-card/issues) on GitHub. 🐛
+
 > [!IMPORTANT]
 > **Reolink integration required.** The card works with cameras added to Home Assistant with the official Reolink integration: through a **Reolink Home Hub** (or Home Hub Pro) or **directly**, without a hub. Cameras that only reach this Home Assistant from another Home Assistant instance show the live view, but no recordings (see [Known limitations](#known-limitations)).
-
-> [!WARNING]
-> **Alpha – still in development.** The card is in daily use on one setup (Reolink Home Hub with two Argus battery cameras), but many parts are new and some have only been tested in a simulated Home Assistant. Expect bugs and changes between versions, and don't rely on it as your only alarm. See [Known limitations](#known-limitations) and please [report problems](https://github.com/niondevelop/reolink-app-card/issues).
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live view">
@@ -87,7 +86,7 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 2. Search for “Reolink App Card” and select **Install**
 3. Reload your browser (in the Companion app: Settings → *Reset frontend cache*)
 
-If the card doesn't show up in the search yet, add it yourself: in the Marketplace select **Add from link** in the upper-right corner, enter `niondevelop/reolink-app-card` and select **Add** (the Marketplace asks you to connect GitHub the first time). On older versions with HACS: menu at the top right → **Custom repositories**, type **Dashboard**. Once the card is in the catalog, the Marketplace switches over on its own.
+The card is part of the default Marketplace / HACS catalog, so no custom repository is needed. If you added it as a custom repository before, you can remove that entry; the installed card stays.
 
 The Marketplace adds the dashboard resource for you (`/local/community/reolink-app-card/reolink-app-card.js`). If you manage resources in YAML, add it there yourself.
 
@@ -322,7 +321,7 @@ The accent colour comes from the CSS variable `--reolink-accent` (default `#1e8b
 
 ## Known limitations
 
-This is an alpha version. What has been tested, and how:
+What has been tested, and how:
 
 - **Tested on real hardware with one setup only:** Reolink Home Hub with two Argus battery cameras, Android Companion app, Home Assistant 2026.11. Other models, an NVR or several hubs have not been tested.
 - **Only tested in a simulated Home Assistant, not with real devices:** the second lens of TrackMix and Duo cameras, the doorbell call blueprint, recordings that Home Assistant streams as HLS, the doorbell screen in the card, pan & tilt (PTZ), French or renamed entity IDs, the iPhone app, and the Companion app sending the microphone over plain HTTP.
