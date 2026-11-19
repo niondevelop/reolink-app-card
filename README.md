@@ -2,7 +2,7 @@
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md)
 
-[![HACS](https://img.shields.io/badge/HACS-Dashboard-41BDF5.svg)](https://github.com/hacs/integration)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Release](https://img.shields.io/github/v/release/niondevelop/reolink-app-card)](https://github.com/niondevelop/reolink-app-card/releases)
 [![Validate](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml/badge.svg)](https://github.com/niondevelop/reolink-app-card/actions/workflows/validate.yml)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#known-limitations)
@@ -87,7 +87,7 @@ Entries for entities that don't exist or are disabled are hidden automatically.
 2. Search for “Reolink App Card” and select **Install**
 3. Reload your browser (in the Companion app: Settings → *Reset frontend cache*)
 
-If the card doesn't show up in the search yet, add it yourself: in the Marketplace select **Add from link** in the upper-right corner, enter `niondevelop/reolink-app-card` and select **Add** (the Marketplace asks you to connect GitHub the first time). On older versions with HACS: menu at the top right → **Custom repositories**, type **Dashboard**. Once the card is in the catalog, the Marketplace switches over on its own.
+The card is part of the default Marketplace / HACS catalog, so no custom repository is needed. If you added it as a custom repository before, you can remove that entry; the installed card stays.
 
 The Marketplace adds the dashboard resource for you (`/local/community/reolink-app-card/reolink-app-card.js`). If you manage resources in YAML, add it there yourself.
 

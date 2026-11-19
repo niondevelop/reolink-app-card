@@ -2,6 +2,7 @@
 
 [English](README.md) · [Deutsch](README.de.md) · **Français**
 
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
 [![Statut : alpha](https://img.shields.io/badge/statut-alpha-orange)](README.md#known-limitations)
 
@@ -56,7 +57,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 2. Rechercher « Reolink App Card » et **Installer**
 3. Recharger le navigateur
 
-Si la carte n’apparaît pas encore dans la recherche, ajoutez-la vous-même : dans le Marketplace, en haut à droite, choisir **Ajouter depuis un lien** (*Add from link*), saisir `niondevelop/reolink-app-card` puis **Ajouter** (la première fois, le Marketplace demande de connecter GitHub). Avec HACS sur les versions plus anciennes : menu en haut à droite → **Dépôts personnalisés**, type **Dashboard**.
+La carte fait partie du catalogue par défaut du Marketplace / de HACS : aucun dépôt personnalisé n’est nécessaire. Si vous l’aviez ajoutée comme dépôt personnalisé, vous pouvez supprimer cette entrée ; la carte installée reste.
 
 ## Configuration
 
