@@ -4,15 +4,11 @@
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](#bekannte-einschränkungen)
 
 Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App anfühlt: Livebild, Steuerung, Einstellungen und Wiedergabe der SD-Karten-Aufnahmen in einer Karte. Gebaut für Reolink-Kameras an einem **Reolink Home Hub** (z. B. die akkubetriebene Argus-Serie) oder **direkt in Home Assistant**, über die offizielle [Reolink-Integration](https://www.home-assistant.io/integrations/reolink/).
 
 > [!IMPORTANT]
 > **Reolink-Integration nötig.** Die Karte funktioniert mit Kameras, die über die offizielle Reolink-Integration in Home Assistant eingebunden sind: über einen **Reolink Home Hub** (oder Home Hub Pro) oder **direkt**, ohne Hub. Kameras, die nur von einem anderen Home Assistant übernommen werden, zeigen das Livebild, aber keine Aufnahmen (siehe [Bekannte Einschränkungen](#bekannte-einschränkungen)).
-
-> [!WARNING]
-> **Alpha – noch in Entwicklung.** Die Karte läuft täglich bei einer Installation (Reolink Home Hub mit zwei Argus-Akkukameras), aber vieles ist neu und manches nur in einem nachgebauten Home Assistant getestet. Rechne mit Fehlern und Änderungen zwischen den Versionen und verlass dich nicht als einzige Alarmierung darauf. Siehe [Bekannte Einschränkungen](#bekannte-einschränkungen), und [melde Probleme](https://github.com/niondevelop/reolink-app-card/issues) gern.
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Live-Ansicht">
@@ -320,7 +316,7 @@ Die Akzentfarbe kommt aus der CSS-Variable `--reolink-accent` (Standard `#1e8bff
 
 ## Bekannte Einschränkungen
 
-Das ist eine Alpha-Version. Was wie getestet ist:
+Was wie getestet ist:
 
 - **Mit echter Hardware nur bei einer Installation getestet:** Reolink Home Hub mit zwei Argus-Akkukameras, Android-Companion-App, Home Assistant 2026.11. Andere Modelle, ein NVR oder mehrere Hubs sind nicht getestet.
 - **Nur in einem nachgebauten Home Assistant getestet, nicht mit echten Geräten:** das zweite Objektiv von TrackMix und Duo, der Blueprint Klingel-Anruf, Aufnahmen, die Home Assistant als HLS-Stream liefert, die Klingel-Ansicht in der Karte, Schwenken & Neigen (PTZ), französische oder umbenannte Entity-IDs, die iPhone-App und das Senden des Mikrofons durch die Companion-App über reines HTTP.

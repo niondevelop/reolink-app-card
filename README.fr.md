@@ -4,15 +4,11 @@
 
 [![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/nion_zh)
-[![Statut : alpha](https://img.shields.io/badge/statut-alpha-orange)](README.md#known-limitations)
 
 Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reolink : direct, commandes, réglages et lecture des enregistrements de la carte SD dans une seule carte. Conçue pour les caméras Reolink reliées à un **Reolink Home Hub** (p. ex. la série Argus sur batterie) ou **directement à Home Assistant**, via l’[intégration Reolink](https://www.home-assistant.io/integrations/reolink/) officielle.
 
 > [!IMPORTANT]
 > **Intégration Reolink nécessaire.** La carte fonctionne avec les caméras ajoutées à Home Assistant via l’intégration Reolink officielle : par un **Reolink Home Hub** (ou Home Hub Pro) ou **directement**, sans hub. Les caméras reprises d’une autre instance de Home Assistant affichent le direct, mais pas les enregistrements (voir les [limitations connues](README.md#known-limitations), en anglais).
-
-> [!WARNING]
-> **Alpha – encore en développement.** La carte est utilisée au quotidien sur une seule installation (Reolink Home Hub avec deux caméras Argus sur batterie), mais beaucoup de parties sont nouvelles et certaines n’ont été testées que dans un Home Assistant simulé. Attendez-vous à des bugs et à des changements, et ne l’utilisez pas comme seule alarme. Voir les [limitations connues](README.md#known-limitations) (en anglais) et [signalez les problèmes](https://github.com/niondevelop/reolink-app-card/issues).
 
 <p>
   <img src="https://raw.githubusercontent.com/niondevelop/reolink-app-card/main/images/live.png" width="260" alt="Direct">
