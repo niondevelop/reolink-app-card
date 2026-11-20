@@ -35,8 +35,12 @@ customElements.define('ha-camera-stream', class extends HTMLElement {
   set muted(v) { this._muted = !!v; this.player.muted = !!v; }
   get updateComplete() { return Promise.resolve(true); }
   get microphoneTrack() { return this._track; }
+  /* Direkt eingesetzt (wie in der Advanced Camera Card): Entität aus stateObj */
+  set stateObj(v) { this._stateObj = v; window.__R.streamEntity = v && v.entity_id; }
+  get stateObj() { return this._stateObj; }
   connectedCallback() {
-    this.player.entityid = 'camera.test';
+    window.__R.streamEls = (window.__R.streamEls || 0) + 1;
+    this.player.entityid = (this._stateObj && this._stateObj.entity_id) || 'camera.test';
     setTimeout(() => fire(this, 'stream-type-changed', { type: window.__T.streamType || 'web_rtc' }), 50);
   }
   async toggleMicrophone() {
@@ -99,7 +103,8 @@ function media(opts, id) {
 window.makeHass = (opts = {}) => {
   const st = (state, attributes = {}) => ({ state, attributes });
   const states = {};
-  Object.entries(opts.states || {}).forEach(([id, v]) => { states[id] = Array.isArray(v) ? st(v[0], v[1] || {}) : st(v); });
+  // Wie in Home Assistant enthält jeder Zustand seine entity_id
+  Object.entries(opts.states || {}).forEach(([id, v]) => { states[id] = { entity_id: id, ...(Array.isArray(v) ? st(v[0], v[1] || {}) : st(v)) }; });
   const hass = {
     language: opts.language || 'de', locale: { language: opts.language || 'de' }, themes: {},
     states, entities: opts.entities || {}, devices: opts.devices || {},
@@ -111,7 +116,7 @@ window.makeHass = (opts = {}) => {
     callService: async (domain, service, data) => { window.__R.calls.push(`${domain}.${service} ${data.entity_id}${data.option ? ' ' + data.option : ''}`); },
     callWS: async (m) => {
       window.__R.ws.push(m.type);
-      if (m.type === 'camera/capabilities') return { frontend_stream_types: ['web_rtc'], two_way_audio: opts.twoWay !== false };
+      if (m.type === 'camera/capabilities') return { frontend_stream_types: window.__T.noWebRtc ? ['hls'] : ['hls', 'web_rtc'], two_way_audio: opts.twoWay !== false };
       if (m.type === 'fire_event') { if (opts.noAdmin) throw new Error('Unauthorized'); window.__R.events.push({ type: m.event_type, data: m.event_data }); return {}; }
       if (m.type === 'media_source/resolve_media') {
         window.__R.resolved.push(m.media_content_id);

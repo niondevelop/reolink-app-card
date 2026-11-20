@@ -59,7 +59,22 @@ export default {
     return img;
   },
 
+  /* Livebild: Player von Home Assistant (ha-camera-stream) direkt einsetzen, wie das Kamerafenster von Home Assistant.
+     Ohne den Umweg über eine Bildentitäts-Karte startet der Stream schneller, und Ton ein/aus braucht keine neue Verbindung,
+     wenn er schon beim Start gewünscht ist. Fehlt der Player (noch nicht geladen), dient die Bildentitäts-Karte als Rückfall. */
   async _liveCard(entity) {
+    if (await this._streamReady()) {
+      const el = document.createElement('ha-camera-stream');
+      el.hass = this._hass;
+      el.stateObj = this._st(entity);
+      // Mit Ton erst, wenn der Browser es erlaubt (nach dem ersten Antippen), sonst bliebe das Bild schwarz
+      const ua = navigator.userActivation;
+      el.muted = !(this._sound && (!ua || ua.hasBeenActive));
+      el.fitMode = 'contain';
+      el.controls = false;
+      el.dataset.entity = entity;
+      return el;
+    }
     const helpers = await window.loadCardHelpers();
     const el = helpers.createCardElement({
       type: 'picture-entity', entity, show_name: false, show_state: false,
@@ -69,8 +84,27 @@ export default {
     return el;
   },
 
+  /* Player-Modul von Home Assistant einmal vorab laden (beim Aufbau der Karte, nicht erst beim Start des Livebilds).
+     Home Assistant lädt ha-camera-stream erst mit einer Kamera-Karte; darum einmal eine Bildentitäts-Karte erzeugen. */
+  _streamReady() {
+    if (customElements.get('ha-camera-stream')) return Promise.resolve(true);
+    if (!this._streamLoad) {
+      this._streamLoad = (async () => {
+        try {
+          const helpers = window.loadCardHelpers && await window.loadCardHelpers();
+          const cam = this._cams.map((c) => this._streamEnt(c)).find(Boolean);
+          if (helpers && cam) helpers.createCardElement({ type: 'picture-entity', entity: cam, camera_view: 'live' });
+          await Promise.race([customElements.whenDefined('ha-camera-stream'), new Promise((r) => setTimeout(r, 4000))]);
+        } catch (_) { /* Rückfall auf die Bildentitäts-Karte */ }
+        return !!customElements.get('ha-camera-stream');
+      })();
+    }
+    return this._streamLoad;
+  },
+
   async _makePic() {
     const token = (this._picToken = Symbol());
+    if (this._live) this._t0 = performance.now();
     const host = this.$('pic'), grid = this.$('grid');
     this._pics = [];
     this._micReset();

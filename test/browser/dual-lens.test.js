@@ -37,7 +37,7 @@ test('TrackMix ohne Hub: Streams, Name, Tele-Stufe', async () => {
   await c.run(() => window.__card._setQuality('tele'));
   await c.click('#bigplay');
   await wait(300);
-  const used = await c.run(() => window.__card.shadowRoot.querySelector('#pic hui-picture-entity-card').cfg.entity);
+  const used = await c.run(() => window.__card.shadowRoot.querySelector('#pic ha-camera-stream').dataset.entity);
   assert.equal(used, 'camera.trackmix_fluent_lens_1');
   assert.deepEqual(c.errors, []);
   await c.close();

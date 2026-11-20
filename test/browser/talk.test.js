@@ -54,10 +54,21 @@ test('ausgegraut ohne HTTPS', async () => {
   await c.close();
 });
 
-test('ausgegraut, wenn der Stream nicht über WebRTC läuft', async () => {
-  const c = await openCard(browser, server, { hass: { states: CAM_STATES }, test: { streamType: 'hls' } });
+test('ausgegraut, wenn die Kamera kein WebRTC kann', async () => {
+  const c = await openCard(browser, server, { hass: { states: CAM_STATES }, test: { noWebRtc: true } });
   await wait(200);
   assert.match((await c.info()).talkClass, /dis/);
+  await c.close();
+});
+
+/* Wie das Kamerafenster von Home Assistant: solange WebRTC noch lädt, zeigt HA HLS an – Gegensprechen geht trotzdem */
+test('Gegensprechen auch, wenn gerade HLS sichtbar ist (WebRTC lädt im Hintergrund)', async () => {
+  const c = await openCard(browser, server, { hass: { states: CAM_STATES }, test: { streamType: 'hls' } });
+  await wait(200);
+  assert.doesNotMatch((await c.info()).talkClass, /dis/);
+  await c.click('[data-id="talk"]');
+  await wait(500);
+  assert.equal((await c.info()).mic, 'on');
   await c.close();
 });
 

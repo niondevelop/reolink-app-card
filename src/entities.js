@@ -2,10 +2,10 @@
 
 /* Entity-Suffixe der Reolink-Integration: [deutsch, englisch, Alternativen] */
 export const ENT = {
-  cam_sd: ['camera', 'standardauflosung', 'fluent'],
+  cam_sd: ['camera', 'standardauflosung', 'fluent', 'fliessend'],
   cam_bal: ['camera', 'ausgewogen', 'balanced'],
   cam_hd: ['camera', 'hochauflosung', 'clear'],
-  snap: ['camera', 'schnappschusse_in_standardauflosung', 'snapshots_fluent'],
+  snap: ['camera', 'schnappschusse_in_standardauflosung', 'snapshots_fluent', 'schnappschusse_fliessend'],
   cam_tele: ['camera', 'tele_standardauflosung', 'telephoto_fluent'],
   snap_hd: ['camera', 'schnappschusse_in_hochauflosung', 'snapshots_clear'],
   light: ['light', 'flutlicht', 'floodlight'],
@@ -105,7 +105,7 @@ export function modeIcon(o) {
 
 /* Gemeinsamen Teil der Entity-IDs aus einer Kamera-Entität ableiten, z. B. camera.kamera_eingang_standardauflosung → kamera_eingang */
 /* Kameras mit zwei Objektiven (direkt eingebundene TrackMix, Duo): Streams heissen „… lens 0“ / „… lens 1“ */
-export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
+export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|fliessend|schnappschusse_in_(standard|hoch)auflosung|schnappschusse_fliessend|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
 
 /* Interner Schlüssel einer Kamera-Entität ohne Objektiv-Zusatz: sub_lens_0 → sub */
 export const baseKey = (tk) => String(tk || '').replace(/_lens_\d$/, '');
@@ -140,7 +140,7 @@ export function detectCameras(hass) {
   };
   // 1. Über die Namensendung (deutsche/englische Entity-IDs)
   Object.keys(hass.states).forEach((id) => {
-    const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)(_(lens|objektiv|linse)_0)?$/);
+    const m = id.match(/^camera\.(.+)_(standardauflosung|fluent|fliessend)(_(lens|objektiv|linse)_0)?$/);
     if (!m) return;
     const reg = hass.entities && hass.entities[id];
     if (reg && reg.platform && reg.platform !== 'reolink') return;
@@ -160,7 +160,7 @@ export function detectCameras(hass) {
     add(id, prefixOf(id) || id.slice(7), '');
   });
   Object.keys(hass.states).forEach((id) => {
-    const m = id.match(/^camera\.(.+)_(schnappschusse_in_standardauflosung|snapshots_fluent)$/);
+    const m = id.match(/^camera\.(.+)_(schnappschusse_in_standardauflosung|schnappschusse_fliessend|snapshots_fluent)$/);
     if (!m || out.some((c) => c.prefix === m[1])) return;
     const reg = hass.entities && hass.entities[id];
     if (reg && reg.platform && reg.platform !== 'reolink') return;
