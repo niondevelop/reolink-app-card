@@ -204,7 +204,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
     this.shadowRoot.getElementById('add').onclick = () => {
       const used = this._config.cameras.map((c) => c.prefix);
       const next = detected.find((d) => !used.includes(d.prefix));
-      const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name } : { prefix: '' };
+      const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...(needsEntity(next.entity) ? { entity: next.entity } : {}) } : { prefix: '' };
       this._openCams.add(this._config.cameras.length);
       this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
       this._render();

@@ -70,15 +70,18 @@ export default {
 
   _talkLegacy() { return !!(this._cam.talk_url || this._config.talk_url); },
 
-  /* Kann die Kamera Zwei-Wege-Audio? (undefined = wird noch abgefragt; Antwort 1 Minute zwischengespeichert) */
+  /* Kann die Kamera Zwei-Wege-Audio und WebRTC? (undefined = wird noch abgefragt; Antwort 1 Minute zwischengespeichert)
+     Wie das Kamerafenster von Home Assistant zählt die Fähigkeit der Kamera, nicht welcher Player gerade sichtbar ist:
+     solange WebRTC noch lädt, zeigt Home Assistant HLS an und schaltet das Mikrofon trotzdem auf den WebRTC-Player. */
   _talkCaps(ent) {
-    if (!ent || !this._hass || !this._hass.callWS) return false;
+    if (!ent || !this._hass || !this._hass.callWS) return { twa: false, webrtc: false };
     const c = this._twa[ent];
     if (c && (c.p || Date.now() - c.t < 60000)) return c.v;
     this._twa[ent] = { v: c ? c.v : undefined, p: true };
     this._hass.callWS({ type: 'camera/capabilities', entity_id: ent })
-      .then((r) => !!(r && r.two_way_audio), () => false)
-      .then((v) => { this._twa[ent] = { v, t: Date.now() }; if (!c || c.v !== v) this._update(); });
+      .then((r) => ({ twa: !!(r && r.two_way_audio), webrtc: !r || !Array.isArray(r.frontend_stream_types) || r.frontend_stream_types.includes('web_rtc') }),
+        () => ({ twa: false, webrtc: false }))
+      .then((v) => { this._twa[ent] = { v, t: Date.now() }; if (!c || !c.v || c.v.twa !== v.twa || c.v.webrtc !== v.webrtc) this._update(); });
     return c ? c.v : undefined;
   },
 
@@ -87,9 +90,9 @@ export default {
     if (this._snapOnly()) return 'nostream';
     const caps = this._talkCaps(this._talkEnt);
     if (caps === undefined) return 'wait';
-    if (!caps) return 'feature';
+    if (!caps.twa) return 'feature';
     if (!window.isSecureContext && !this._appMic) return 'https';
-    if (this._streamType && this._streamType !== 'web_rtc') return 'webrtc';
+    if (!caps.webrtc) return 'webrtc';
     return null;
   },
 
@@ -109,7 +112,7 @@ export default {
     if (req !== this._micReq) return;
     if (!stream) {
       this._setMic('off');
-      this._toast({ text: this._t(this._streamType && this._streamType !== 'web_rtc' ? 'talk_na_webrtc' : 'talk_failed'), color: '#636366', icon: 'mdi:phone-off', wrap: true });
+      this._toast({ text: this._t('talk_failed'), color: '#636366', icon: 'mdi:phone-off', wrap: true });
       return;
     }
     this._micStream = stream;
@@ -120,7 +123,6 @@ export default {
   async _findStream(req) {
     for (let n = 0; n < 75; n++) {
       if (req !== this._micReq) return null;
-      if (this._streamType && this._streamType !== 'web_rtc') return null;
       const s = deepFind(this.$('pic'), 'ha-camera-stream');
       if (s && typeof s.toggleMicrophone === 'function' && s.shadowRoot && s.shadowRoot.querySelector('ha-web-rtc-player')) return s;
       await new Promise((r) => setTimeout(r, 200));

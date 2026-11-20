@@ -120,6 +120,12 @@ export default {
     $('ring-no').onclick = () => this._endRing(false);
     $('pic').addEventListener('microphone-changed', (e) => { if (!this._appSession && !this._appMic) this._setMic(e.detail.state); });
     $('pic').addEventListener('stream-type-changed', (e) => { this._streamType = e.detail.type || null; this._update(); });
+    // Messung: Zeit bis zum ersten Bild des Livebilds (Browser-Konsole), zum Vergleich mit anderen Karten
+    $('pic').addEventListener('load', () => {
+      if (!this._t0) return;
+      console.info(`[reolink-app-card] Livebild nach ${Math.round(performance.now() - this._t0)} ms (${this._cam.name})`);
+      this._t0 = 0;
+    }, true);
     $('prev').onload = () => { $('prev').classList.add('ok'); };
     $('prev').onerror = () => { $('prev').classList.remove('ok'); };
     const v = $('video');

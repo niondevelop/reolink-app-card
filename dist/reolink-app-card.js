@@ -3,10 +3,10 @@
 (() => {
   // src/entities.js
   var ENT = {
-    cam_sd: ["camera", "standardauflosung", "fluent"],
+    cam_sd: ["camera", "standardauflosung", "fluent", "fliessend"],
     cam_bal: ["camera", "ausgewogen", "balanced"],
     cam_hd: ["camera", "hochauflosung", "clear"],
-    snap: ["camera", "schnappschusse_in_standardauflosung", "snapshots_fluent"],
+    snap: ["camera", "schnappschusse_in_standardauflosung", "snapshots_fluent", "schnappschusse_fliessend"],
     cam_tele: ["camera", "tele_standardauflosung", "telephoto_fluent"],
     snap_hd: ["camera", "schnappschusse_in_hochauflosung", "snapshots_clear"],
     light: ["light", "flutlicht", "floodlight"],
@@ -143,7 +143,7 @@
     if (/^(aus|off|arr[eê]t)$|stumm|mute|deaktiv|disarm|silence/.test(s)) return "mdi:bell-off-outline";
     return "mdi:circle-medium";
   }
-  var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|schnappschusse_in_(standard|hoch)auflosung|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
+  var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|fliessend|schnappschusse_in_(standard|hoch)auflosung|schnappschusse_fliessend|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
   var baseKey = (tk) => String(tk || "").replace(/_lens_\d$/, "");
   function prefixOf(entityId) {
     const m = String(entityId || "").match(/^camera\.(.+)$/);
@@ -172,7 +172,7 @@
       out.push({ prefix, name, entity: id, device_id: reg ? reg.device_id : void 0 });
     };
     Object.keys(hass.states).forEach((id) => {
-      const m = id.match(/^camera\.(.+)_(standardauflosung|fluent)(_(lens|objektiv|linse)_0)?$/);
+      const m = id.match(/^camera\.(.+)_(standardauflosung|fluent|fliessend)(_(lens|objektiv|linse)_0)?$/);
       if (!m) return;
       const reg = hass.entities && hass.entities[id];
       if (reg && reg.platform && reg.platform !== "reolink") return;
@@ -189,7 +189,7 @@
       add(id, prefixOf(id) || id.slice(7), "");
     });
     Object.keys(hass.states).forEach((id) => {
-      const m = id.match(/^camera\.(.+)_(schnappschusse_in_standardauflosung|snapshots_fluent)$/);
+      const m = id.match(/^camera\.(.+)_(schnappschusse_in_standardauflosung|schnappschusse_fliessend|snapshots_fluent)$/);
       if (!m || out.some((c) => c.prefix === m[1])) return;
       const reg = hass.entities && hass.entities[id];
       if (reg && reg.platform && reg.platform !== "reolink") return;
@@ -1095,15 +1095,20 @@
     _talkLegacy() {
       return !!(this._cam.talk_url || this._config.talk_url);
     },
-    /* Kann die Kamera Zwei-Wege-Audio? (undefined = wird noch abgefragt; Antwort 1 Minute zwischengespeichert) */
+    /* Kann die Kamera Zwei-Wege-Audio und WebRTC? (undefined = wird noch abgefragt; Antwort 1 Minute zwischengespeichert)
+       Wie das Kamerafenster von Home Assistant zählt die Fähigkeit der Kamera, nicht welcher Player gerade sichtbar ist:
+       solange WebRTC noch lädt, zeigt Home Assistant HLS an und schaltet das Mikrofon trotzdem auf den WebRTC-Player. */
     _talkCaps(ent) {
-      if (!ent || !this._hass || !this._hass.callWS) return false;
+      if (!ent || !this._hass || !this._hass.callWS) return { twa: false, webrtc: false };
       const c = this._twa[ent];
       if (c && (c.p || Date.now() - c.t < 6e4)) return c.v;
       this._twa[ent] = { v: c ? c.v : void 0, p: true };
-      this._hass.callWS({ type: "camera/capabilities", entity_id: ent }).then((r) => !!(r && r.two_way_audio), () => false).then((v) => {
+      this._hass.callWS({ type: "camera/capabilities", entity_id: ent }).then(
+        (r) => ({ twa: !!(r && r.two_way_audio), webrtc: !r || !Array.isArray(r.frontend_stream_types) || r.frontend_stream_types.includes("web_rtc") }),
+        () => ({ twa: false, webrtc: false })
+      ).then((v) => {
         this._twa[ent] = { v, t: Date.now() };
-        if (!c || c.v !== v) this._update();
+        if (!c || !c.v || c.v.twa !== v.twa || c.v.webrtc !== v.webrtc) this._update();
       });
       return c ? c.v : void 0;
     },
@@ -1112,9 +1117,9 @@
       if (this._snapOnly()) return "nostream";
       const caps = this._talkCaps(this._talkEnt);
       if (caps === void 0) return "wait";
-      if (!caps) return "feature";
+      if (!caps.twa) return "feature";
       if (!window.isSecureContext && !this._appMic) return "https";
-      if (this._streamType && this._streamType !== "web_rtc") return "webrtc";
+      if (!caps.webrtc) return "webrtc";
       return null;
     },
     async _toggleTalk() {
@@ -1141,7 +1146,7 @@
       if (req !== this._micReq) return;
       if (!stream) {
         this._setMic("off");
-        this._toast({ text: this._t(this._streamType && this._streamType !== "web_rtc" ? "talk_na_webrtc" : "talk_failed"), color: "#636366", icon: "mdi:phone-off", wrap: true });
+        this._toast({ text: this._t("talk_failed"), color: "#636366", icon: "mdi:phone-off", wrap: true });
         return;
       }
       this._micStream = stream;
@@ -1151,7 +1156,6 @@
     async _findStream(req) {
       for (let n = 0; n < 75; n++) {
         if (req !== this._micReq) return null;
-        if (this._streamType && this._streamType !== "web_rtc") return null;
         const s = deepFind(this.$("pic"), "ha-camera-stream");
         if (s && typeof s.toggleMicrophone === "function" && s.shadowRoot && s.shadowRoot.querySelector("ha-web-rtc-player")) return s;
         await new Promise((r) => setTimeout(r, 200));
@@ -1318,7 +1322,7 @@
           if (c[k]) over[v] = c[k];
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
-        const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots)$/, "");
+        const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, "");
         return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
@@ -1532,10 +1536,12 @@
       if (!this._built) this._build();
       this._pics.forEach((p) => {
         p.hass = hass;
+        if (p.localName === "ha-camera-stream" && p.dataset.entity && hass.states[p.dataset.entity]) p.stateObj = hass.states[p.dataset.entity];
       });
       if (first) {
         this._cams.forEach((c) => this._devIndex(c));
         this._resetZoom();
+        this._streamReady();
         this._loadMediaRoot();
         setTimeout(() => this._onLink(), 0);
         this._renderTabs();
@@ -1973,7 +1979,21 @@
       img.src = this._hass.hassUrl(`/api/camera_proxy_stream/${id}?token=${this._st(id).attributes.access_token}`);
       return img;
     },
+    /* Livebild: Player von Home Assistant (ha-camera-stream) direkt einsetzen, wie das Kamerafenster von Home Assistant.
+       Ohne den Umweg über eine Bildentitäts-Karte startet der Stream schneller, und Ton ein/aus braucht keine neue Verbindung,
+       wenn er schon beim Start gewünscht ist. Fehlt der Player (noch nicht geladen), dient die Bildentitäts-Karte als Rückfall. */
     async _liveCard(entity) {
+      if (await this._streamReady()) {
+        const el2 = document.createElement("ha-camera-stream");
+        el2.hass = this._hass;
+        el2.stateObj = this._st(entity);
+        const ua = navigator.userActivation;
+        el2.muted = !(this._sound && (!ua || ua.hasBeenActive));
+        el2.fitMode = "contain";
+        el2.controls = false;
+        el2.dataset.entity = entity;
+        return el2;
+      }
       const helpers = await window.loadCardHelpers();
       const el = helpers.createCardElement({
         type: "picture-entity",
@@ -1988,8 +2008,27 @@
       el.hass = this._hass;
       return el;
     },
+    /* Player-Modul von Home Assistant einmal vorab laden (beim Aufbau der Karte, nicht erst beim Start des Livebilds).
+       Home Assistant lädt ha-camera-stream erst mit einer Kamera-Karte; darum einmal eine Bildentitäts-Karte erzeugen. */
+    _streamReady() {
+      if (customElements.get("ha-camera-stream")) return Promise.resolve(true);
+      if (!this._streamLoad) {
+        this._streamLoad = (async () => {
+          try {
+            const helpers = window.loadCardHelpers && await window.loadCardHelpers();
+            const cam = this._cams.map((c) => this._streamEnt(c)).find(Boolean);
+            if (helpers && cam) helpers.createCardElement({ type: "picture-entity", entity: cam, camera_view: "live" });
+            await Promise.race([customElements.whenDefined("ha-camera-stream"), new Promise((r) => setTimeout(r, 4e3))]);
+          } catch (_) {
+          }
+          return !!customElements.get("ha-camera-stream");
+        })();
+      }
+      return this._streamLoad;
+    },
     async _makePic() {
       const token = this._picToken = Symbol();
+      if (this._live) this._t0 = performance.now();
       const host = this.$("pic"), grid = this.$("grid");
       this._pics = [];
       this._micReset();
@@ -2865,6 +2904,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
 .stage.live .media > .prev { opacity: 0; }
 .pic, .pic > * { position: absolute; inset: 0; }
 .mjpeg { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.pic ha-camera-stream { display: block; width: 100%; height: 100%; background: transparent; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
 ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
@@ -2955,7 +2995,8 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .chip.sel { background: var(--ra); color: #fff; }
 .stage.talking .talk { display: block; }
 .stage.talking .bigplay { display: none !important; }
-.tpill { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+/* Sprechanzeige klein oben in der Mitte, damit sie das Bild nicht verdeckt */
+.tpill { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; background: rgba(255,59,48,.85); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 1px 6px rgba(0,0,0,.3); max-width: calc(100% - 140px); overflow: hidden; }
 .talk.conn .tpill { background: color-mix(in srgb, var(--ra) 92%, transparent); }
 .tw { display: inline-flex; align-items: center; gap: 2px; height: 16px; }
 .tw i { width: 3px; height: 5px; border-radius: 2px; background: #fff; }
@@ -3077,7 +3118,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.4";
+  var RAC_VERSION = "0.3.5";
 
   // src/card/render.js
   var render_default = {
@@ -3213,6 +3254,11 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         this._streamType = e.detail.type || null;
         this._update();
       });
+      $("pic").addEventListener("load", () => {
+        if (!this._t0) return;
+        console.info(`[reolink-app-card] Livebild nach ${Math.round(performance.now() - this._t0)} ms (${this._cam.name})`);
+        this._t0 = 0;
+      }, true);
       $("prev").onload = () => {
         $("prev").classList.add("ok");
       };
@@ -4007,7 +4053,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       this.shadowRoot.getElementById("add").onclick = () => {
         const used = this._config.cameras.map((c) => c.prefix);
         const next = detected.find((d) => !used.includes(d.prefix));
-        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name } : { prefix: "" };
+        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : { prefix: "" };
         this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
         this._render();
