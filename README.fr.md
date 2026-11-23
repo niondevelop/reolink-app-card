@@ -35,7 +35,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Son :** le bouton haut-parleur sur l’image active ou coupe le son de la caméra. Avec `audio: auto`, le son est activé dès que le direct démarre.
 - **Interphone :** parler à travers la caméra directement depuis la carte, avec un bouton combiné et un écran d’appel comme dans l’app Reolink. Nécessite la fonction Labs « Audio bidirectionnel » de Home Assistant (2026.11+), une caméra qui la prend en charge en RTSP et un accès en **HTTPS** ; sinon le bouton est grisé.
 - **Sonnette :** pour une sonnette Reolink ou une caméra utilisée comme sonnette (option `doorbell`) : un écran d’appel avec Refuser et Répondre apparaît ; Répondre lance l’interphone.
-- **Orientation (PTZ) :** croix directionnelle, zoom et positions enregistrées pour les caméras motorisées.
+- **Orientation (PTZ) :** croix directionnelle, zoom et positions enregistrées pour les caméras motorisées. Sur une TrackMix sans boutons de zoom, + et − pilotent l’entité de zoom optique.
 - **Ouverture depuis une notification :** `?rac=live&rac_cam=<caméra>` ouvre le direct, `?rac=event&rac_cam=<caméra>&rac_t=<horodatage>` lit l’enregistrement correspondant (voir la [documentation en anglais](README.md#open-from-a-notification), avec un exemple complet d’automatisation d’alarme).
 - **Barre de commandes comme dans l’app Reolink :** parler, sirène, projecteur, enregistrement, capture et qualité (fluide, équilibrée, nette), mémorisée sur chaque appareil.
 - **Caméras d’autres marques :** toute autre entité caméra (p. ex. Tapo, Unifi) s’ajoute avec `entity:` : direct, capture, zoom, conversation si la caméra le permet et vos propres boutons ; les fonctions propres à Reolink sont masquées.
@@ -44,7 +44,7 @@ Une carte Lovelace pour Home Assistant qui ressemble à l’app officielle Reoli
 - **Bascule automatique** vers la caméra qui détecte une personne, un véhicule ou un animal.
 - **Écrans larges :** sur une carte large, le direct continue et un panneau latéral s'affiche à côté (droite ou gauche, option `layout` ; ou tout en bas). Il montre les **événements** – un appui lit l'enregistrement dans l'image. Les **réglages** s'ouvrent dans leur propre panneau, seulement sur demande. Le panneau se replie et se rouvre via la poignée au bord de l'image (option `panel` : `events`, `settings` ou `none`).
 - **Vue en grille** de toutes les caméras, **zoom numérique**, **réglages groupés**, **lecture** avec chronologie de 24 heures, filtres et choix de la résolution **Basse / Haute** (mémorisé sur chaque appareil, indépendamment de la qualité du direct).
-- **Alertes batterie** et **éditeur visuel** qui détecte les caméras automatiquement.
+- **Alertes batterie** et **éditeur visuel** qui détecte les caméras automatiquement. La sélection des caméras, la bascule Direct / Lecture, le panneau de commande et les réglages peuvent être masqués (`show_camera_tabs`, `show_live_playback`, `show_controls`, `show_settings`).
 - **Suggestions de carte :** via *Ajouter au tableau de bord* sur une caméra Reolink (ou le hub), la carte apparaît dans les suggestions de la communauté, déjà configurée.
 - **Anglais, allemand et français,** selon la langue de Home Assistant (option `language: fr` pour forcer le français).
 

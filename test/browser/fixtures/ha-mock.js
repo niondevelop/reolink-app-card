@@ -113,7 +113,7 @@ window.makeHass = (opts = {}) => {
     auth: opts.appMic ? { external: { config: { webrtc: { hasCameraMicrophoneStream: true } },
       sendMessage: async (m) => { window.__R.msgs.push(m); await new Promise((r) => setTimeout(r, 100)); return { session_id: 'S1' }; },
       fireMessage: (m) => window.__R.msgs.push(m) } } : {},
-    callService: async (domain, service, data) => { window.__R.calls.push(`${domain}.${service} ${data.entity_id}${data.option ? ' ' + data.option : ''}`); },
+    callService: async (domain, service, data) => { window.__R.calls.push(`${domain}.${service} ${data.entity_id}${data.option ? ' ' + data.option : ''}${data.value !== undefined ? ' ' + data.value : ''}`); },
     callWS: async (m) => {
       window.__R.ws.push(m.type);
       if (m.type === 'camera/capabilities') return { frontend_stream_types: window.__T.noWebRtc ? ['hls'] : ['hls', 'web_rtc'], two_way_audio: opts.twoWay !== false };

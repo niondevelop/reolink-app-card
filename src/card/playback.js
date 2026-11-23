@@ -44,7 +44,7 @@ export default {
     const p = this._panel || 'events';
     if (p === 'events' && !this._hasPlayback()) return 'none';
     // Ohne Einstellungen (z. B. Kamera eines anderen Herstellers): Ereignisse, sonst zugeklappt
-    if (p === 'settings' && !this._settingGroups().length) return this._hasPlayback() ? 'events' : 'none';
+    if (p === 'settings' && !this._hasSettings()) return this._hasPlayback() ? 'events' : 'none';
     return p;
   },
 

@@ -56,7 +56,9 @@
     ptz_stop: ["button", "ptz_stopp", "ptz_stop"],
     ptz_zoom_in: ["button", "ptz_hineinzoomen", "ptz_zoom_in"],
     ptz_zoom_out: ["button", "ptz_herauszoomen", "ptz_zoom_out"],
-    ptz_preset: ["select", "ptz_voreinstellung", "ptz_preset"]
+    ptz_preset: ["select", "ptz_voreinstellung", "ptz_preset"],
+    // Zoomstufe als Zahl (z. B. TrackMix: Tele-Objektiv ohne Zoom-Tasten)
+    zoom_num: ["number", "zoom", "optischer_zoom"]
   };
   var TK = {
     cam_sd: "sub",
@@ -110,7 +112,8 @@
     ptz_stop: "ptz_stop",
     ptz_zoom_in: "ptz_zoom_in",
     ptz_zoom_out: "ptz_zoom_out",
-    ptz_preset: "ptz_preset"
+    ptz_preset: "ptz_preset",
+    zoom_num: "zoom"
   };
   var DC = { battery: "battery", det_motion: "motion", restart: "restart" };
   var HUB_ENT = {
@@ -423,7 +426,11 @@
       zoom: "Zoomfaktor (1 = ganzes Bild)",
       zoom_x: "Mitte horizontal",
       zoom_y: "Mitte vertikal",
-      other_cam: "andere Kamera (Livebild und Bedienpanel)"
+      other_cam: "andere Kamera (Livebild und Bedienpanel)",
+      show_camera_tabs: "Kameraauswahl oben anzeigen",
+      show_live_playback: "Umschalter Live / Wiedergabe anzeigen",
+      show_controls: "Bedienpanel unter dem Bild anzeigen",
+      show_settings: "Einstellungen anzeigen"
     }
   };
 
@@ -635,7 +642,11 @@
       zoom: "Zoom factor (1 = whole image)",
       zoom_x: "Centre horizontal",
       zoom_y: "Centre vertical",
-      other_cam: "other camera (live view and control panel)"
+      other_cam: "other camera (live view and control panel)",
+      show_camera_tabs: "Show camera selection on top",
+      show_live_playback: "Show Live / Playback switch",
+      show_controls: "Show control panel under the image",
+      show_settings: "Show settings"
     }
   };
 
@@ -847,7 +858,11 @@
       zoom: "Facteur de zoom (1 = image entière)",
       zoom_x: "Centre horizontal",
       zoom_y: "Centre vertical",
-      other_cam: "autre caméra (direct et panneau de commande)"
+      other_cam: "autre caméra (direct et panneau de commande)",
+      show_camera_tabs: "Afficher la sélection des caméras en haut",
+      show_live_playback: "Afficher le sélecteur Direct / Lecture",
+      show_controls: "Afficher le panneau de commande sous l’image",
+      show_settings: "Afficher les réglages"
     }
   };
 
@@ -1406,7 +1421,6 @@
           const id = dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
-        if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
       }
       const reg = this._hass && this._hass.entities || {};
       const wrongKey = (id) => {
@@ -1417,6 +1431,7 @@
         const id = `${domain}.${cam.prefix}_${s}`;
         if (this._st(id) && !wrongKey(id)) return id;
       }
+      if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
       return `${domain}.${cam.prefix}_${suf[0]}`;
     },
     /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
@@ -1438,7 +1453,10 @@
         const domain = id.split(".")[0];
         if (r.translation_key) idx[`${domain}:${r.translation_key}`] = id;
         const st = this._hass.states[id], dc = st && st.attributes.device_class;
-        if (dc && !idx[`${domain}:dc:${dc}`]) idx[`${domain}:dc:${dc}`] = id;
+        if (dc) {
+          const k = `${domain}:dc:${dc}`, rank = (e) => (reg[e].translation_key ? 2 : 0) + (/_(lens|objektiv|linse)_[1-9]$/.test(e) ? 1 : 0);
+          if (!idx[k] || rank(id) < rank(idx[k])) idx[k] = id;
+        }
       });
       cam._dev = idx;
       const dev = this._hass.devices && this._hass.devices[cam._devId];
@@ -2313,7 +2331,7 @@
     _panelNow() {
       const p = this._panel || "events";
       if (p === "events" && !this._hasPlayback()) return "none";
-      if (p === "settings" && !this._settingGroups().length) return this._hasPlayback() ? "events" : "none";
+      if (p === "settings" && !this._hasSettings()) return this._hasPlayback() ? "events" : "none";
       return p;
     },
     _setPanel(p) {
@@ -2828,16 +2846,20 @@
       const preset = this._e("ptz_preset"), ps = this._st(preset);
       const opts = ps && Array.isArray(ps.attributes.options) ? ps.attributes.options : [];
       const has = (k) => !!this._st(this._e(k));
-      const sig = `${this._idx}|${this._lang}|${opts.join(",")}|${["ptz_up", "ptz_down", "ptz_left", "ptz_right", "ptz_zoom_in", "ptz_zoom_out"].map(has).join()}`;
+      const numZoom = !has("ptz_zoom_in") && !has("ptz_zoom_out") && has("zoom_num");
+      const sig = `${this._idx}|${this._lang}|${opts.join(",")}|${["ptz_up", "ptz_down", "ptz_left", "ptz_right", "ptz_zoom_in", "ptz_zoom_out"].map(has).join()}|${numZoom}`;
       if (box.dataset.sig !== sig) {
         box.dataset.sig = sig;
         const dir = (k, icon, cls) => has(k) ? `<button class="pd ${cls}" data-k="${k}" title="${esc(`${this._t("ptz")}: ${this._t(`dir_${cls}`)}`)}"><ha-icon icon="${icon}"></ha-icon></button>` : "";
         box.innerHTML = `<div class="pwrap">
           <div class="pad">${dir("ptz_up", "mdi:chevron-up", "u")}${dir("ptz_left", "mdi:chevron-left", "l")}<button class="pd c" id="pstop" title="${esc(this._t("ptz_stop"))}"><ha-icon icon="mdi:stop"></ha-icon></button>${dir("ptz_right", "mdi:chevron-right", "r")}${dir("ptz_down", "mdi:chevron-down", "d")}</div>
-          <div class="pzoom">${has("ptz_zoom_in") ? `<button class="pz" data-k="ptz_zoom_in" title="${esc(this._t("zoom_in"))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button>` : ""}${has("ptz_zoom_out") ? `<button class="pz" data-k="ptz_zoom_out" title="${esc(this._t("zoom_out"))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ""}</div>
+          <div class="pzoom">${has("ptz_zoom_in") ? `<button class="pz" data-k="ptz_zoom_in" title="${esc(this._t("zoom_in"))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button>` : ""}${has("ptz_zoom_out") ? `<button class="pz" data-k="ptz_zoom_out" title="${esc(this._t("zoom_out"))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ""}${numZoom ? `<button class="pz" data-z="1" title="${esc(this._t("zoom_in"))}"><ha-icon icon="mdi:magnify-plus-outline"></ha-icon></button><small class="zv" id="zv"></small><button class="pz" data-z="-1" title="${esc(this._t("zoom_out"))}"><ha-icon icon="mdi:magnify-minus-outline"></ha-icon></button>` : ""}</div>
         </div>
         ${opts.length ? `<div class="pre"><small>${esc(this._t("ptz_presets"))}</small><div class="chips">${opts.map((o) => `<button class="chip" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>` : ""}`;
         box.querySelectorAll("[data-k]").forEach((b) => this._bindHold(b, b.dataset.k));
+        box.querySelectorAll("[data-z]").forEach((b) => {
+          b.onclick = () => this._stepZoom(+b.dataset.z);
+        });
         const st = box.querySelector("#pstop");
         if (st) st.onclick = () => this._press(this._e("ptz_stop"));
         box.querySelectorAll(".chip").forEach((b) => {
@@ -2845,6 +2867,17 @@
         });
       }
       box.querySelectorAll(".chip").forEach((b) => b.classList.toggle("sel", !!ps && ps.state === b.dataset.o));
+      const zv = box.querySelector("#zv"), z = this._num(this._e("zoom_num"));
+      if (zv) zv.textContent = z === null ? "" : String(Math.round(z));
+    },
+    /* Zoomstufe um etwa ein Zehntel des Bereichs ändern (mindestens einen Schritt der Entität) */
+    _stepZoom(dir) {
+      const id = this._e("zoom_num"), st = this._st(id), v = this._num(id);
+      if (!st || v === null) return;
+      const a = st.attributes, min = +(a.min ?? 0), max = +(a.max ?? 100), step = +(a.step || 1);
+      const inc = Math.max(step, Math.round((max - min) / 10 / step) * step);
+      const next = Math.min(max, Math.max(min, v + dir * inc));
+      if (next !== v) this._call("number", "set_value", id, { value: next });
     }
   };
 
@@ -2988,6 +3021,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .pd.u { grid-area: 1 / 2; } .pd.l { grid-area: 2 / 1; } .pd.c { grid-area: 2 / 2; background: #2c2c2e; } .pd.r { grid-area: 2 / 3; } .pd.d { grid-area: 3 / 2; }
 .pd.c ha-icon { --mdc-icon-size: 20px; }
 .pzoom { display: flex; flex-direction: column; gap: 10px; }
+.zv { text-align: center; font-size: 12px; opacity: .75; min-height: 14px; }
 .pz { width: 48px; height: 48px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
 .pre { margin-top: 10px; } .pre small { display: block; margin: 0 2px 6px; opacity: .7; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -3103,6 +3137,8 @@ ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-
 ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
 ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+/* Bedienpanel ausgeblendet (Option show_controls: false) */
+ha-card.no-controls .barwrap, ha-card.no-controls .ptz { display: none !important; }
 .backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
 .backlive ha-icon { --mdc-icon-size: 20px; }
 ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }
@@ -3529,7 +3565,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       const hasPlay = this._hasPlayback();
       const side = !!this._side, pan = side ? this._panelNow() : null;
       if (pan && pan !== "none") this._lastPanel = pan;
-      this.shadowRoot.querySelector(".seg").style.display = hasPlay && !side ? "" : "none";
+      const cfgShow = (k) => this._config[k] !== false;
+      root.querySelector(".top").style.display = cfgShow("show_camera_tabs") ? "" : "none";
+      root.querySelector("ha-card").classList.toggle("no-controls", !cfgShow("show_controls"));
+      this.shadowRoot.querySelector(".seg").style.display = hasPlay && !side && cfgShow("show_live_playback") ? "" : "none";
       if (!hasPlay && this._mode === "play") {
         this._setMode("live");
         return;
@@ -3541,7 +3580,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       card.classList.toggle("pan-set", side && pan === "settings");
       card.classList.toggle("playing", playing);
       $("phead").style.display = side && pan !== "none" ? "" : "none";
-      const hasSet = this._settingGroups().length > 0;
+      const hasSet = this._hasSettings();
       $("pedge").style.display = side && pan === "none" && !this._grid && (hasPlay || hasSet) ? "grid" : "none";
       $("more").style.display = hasSet ? "" : "none";
       if (side) {
@@ -3708,7 +3747,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           });
         }
       }
-      const setOpen = this._side ? this._panelNow() === "settings" : this._settingsOpen;
+      const setOpen = this._hasSettings() && (this._side ? this._panelNow() === "settings" : this._settingsOpen);
       $("chev").setAttribute("icon", this._settingsOpen ? "mdi:chevron-up" : "mdi:chevron-down");
       const box = $("settings");
       box.style.display = setOpen ? "" : "none";
@@ -3721,6 +3760,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     /* ---------- Einstellungen: gruppiert, mit Reglern ---------- */
     _settingGroups() {
       return SETTINGS.map((g) => ({ ...g, items: g.items.map(([key, type, icon, btn, confirmKey]) => ({ key, type, icon, btn, confirmKey, id: this._e(key) })).filter((it) => this._st(it.id)) })).filter((g) => g.items.length);
+    },
+    /* Einstellungen anzeigen? (Option show_settings, und nur wenn die Kamera welche hat) */
+    _hasSettings() {
+      return this._config.show_settings !== false && this._settingGroups().length > 0;
     },
     _updateSettings(box) {
       const groups = this._settingGroups();
@@ -3874,7 +3917,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
             { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } }
           ] },
-          { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } }
+          { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } },
+          { type: "grid", name: "", schema: [
+            { name: "show_camera_tabs", selector: { boolean: {} } },
+            { name: "show_live_playback", selector: { boolean: {} } },
+            { name: "show_controls", selector: { boolean: {} } },
+            { name: "show_settings", selector: { boolean: {} } }
+          ] }
         ]),
         group("grp_scene", "mdi:shield-home-outline", [
           { name: "mode_entity", selector: { entity: { domain: ["input_select", "select"] } } },
@@ -3926,7 +3975,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }

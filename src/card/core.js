@@ -80,7 +80,6 @@ export default {
         const id = dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
-      if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
     const reg = (this._hass && this._hass.entities) || {};
@@ -89,6 +88,8 @@ export default {
       return !!(dev && domain === 'camera' && tk && TK[key] && ![].concat(TK[key]).some((k) => baseKey(tk) === baseKey(k)));
     };
     for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id) && !wrongKey(id)) return id; }
+    // Zuletzt nach Geräteklasse (z. B. Bewegung, die bei Reolink keinen internen Schlüssel hat)
+    if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     return `${domain}.${cam.prefix}_${suf[0]}`;
   },
 
@@ -110,7 +111,12 @@ export default {
       const domain = id.split('.')[0];
       if (r.translation_key) idx[`${domain}:${r.translation_key}`] = id;
       const st = this._hass.states[id], dc = st && st.attributes.device_class;
-      if (dc && !idx[`${domain}:dc:${dc}`]) idx[`${domain}:dc:${dc}`] = id;
+      // Nach Geräteklasse: am besten passt eine Entität ohne eigenen internen Schlüssel (bei Reolink hat nur der eigentliche
+      // Bewegungssensor keinen – Person, Fahrzeug, Tier, Paket … haben einen) und nicht die des zweiten Objektivs
+      if (dc) {
+        const k = `${domain}:dc:${dc}`, rank = (e) => (reg[e].translation_key ? 2 : 0) + (/_(lens|objektiv|linse)_[1-9]$/.test(e) ? 1 : 0);
+        if (!idx[k] || rank(id) < rank(idx[k])) idx[k] = id;
+      }
     });
     cam._dev = idx;
     // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)

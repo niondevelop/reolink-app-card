@@ -56,6 +56,8 @@ export const ENT = {
   ptz_zoom_in: ['button', 'ptz_hineinzoomen', 'ptz_zoom_in'],
   ptz_zoom_out: ['button', 'ptz_herauszoomen', 'ptz_zoom_out'],
   ptz_preset: ['select', 'ptz_voreinstellung', 'ptz_preset'],
+  // Zoomstufe als Zahl (z. B. TrackMix: Tele-Objektiv ohne Zoom-Tasten)
+  zoom_num: ['number', 'zoom', 'optischer_zoom'],
 };
 
 /* Interne Schlüssel (translation_key) der Reolink-Integration – unabhängig von Sprache und Umbenennungen */
@@ -73,7 +75,7 @@ export const TK = {
   battery_state: 'battery_state', battery_temp: 'battery_temperature', wifi: 'wifi_signal', sleep: 'sleep',
   det_person: 'person', det_vehicle: 'vehicle', det_animal: ['animal', 'pet'], visitor: 'visitor',
   ptz_left: 'ptz_left', ptz_right: 'ptz_right', ptz_up: 'ptz_up', ptz_down: 'ptz_down', ptz_stop: 'ptz_stop',
-  ptz_zoom_in: 'ptz_zoom_in', ptz_zoom_out: 'ptz_zoom_out', ptz_preset: 'ptz_preset',
+  ptz_zoom_in: 'ptz_zoom_in', ptz_zoom_out: 'ptz_zoom_out', ptz_preset: 'ptz_preset', zoom_num: 'zoom',
 };
 
 /* Entitäten ohne internen Schlüssel: über die Geräteklasse finden */

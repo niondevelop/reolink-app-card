@@ -373,7 +373,11 @@ export default {
     const hasPlay = this._hasPlayback();
     const side = !!this._side, pan = side ? this._panelNow() : null;
     if (pan && pan !== 'none') this._lastPanel = pan;
-    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side ? '' : 'none';
+    // Ausblendbare Bereiche (Darstellung): Kameraauswahl oben, Live/Wiedergabe, Bedienpanel, Einstellungen
+    const cfgShow = (k) => this._config[k] !== false;
+    root.querySelector('.top').style.display = cfgShow('show_camera_tabs') ? '' : 'none';
+    root.querySelector('ha-card').classList.toggle('no-controls', !cfgShow('show_controls'));
+    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side && cfgShow('show_live_playback') ? '' : 'none';
     if (!hasPlay && this._mode === 'play') { this._setMode('live'); return; }
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
@@ -383,7 +387,7 @@ export default {
     card.classList.toggle('pan-set', side && pan === 'settings');
     card.classList.toggle('playing', playing);
     $('phead').style.display = side && pan !== 'none' ? '' : 'none';
-    const hasSet = this._settingGroups().length > 0;
+    const hasSet = this._hasSettings();
     $('pedge').style.display = side && pan === 'none' && !this._grid && (hasPlay || hasSet) ? 'grid' : 'none';
     $('more').style.display = hasSet ? '' : 'none';
     if (side) {
@@ -546,7 +550,7 @@ export default {
       }
     }
 
-    const setOpen = this._side ? this._panelNow() === 'settings' : this._settingsOpen;
+    const setOpen = this._hasSettings() && (this._side ? this._panelNow() === 'settings' : this._settingsOpen);
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
     box.style.display = setOpen ? '' : 'none';

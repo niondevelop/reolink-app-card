@@ -205,6 +205,10 @@
     "zoom": "Zoom factor (1 = whole image)",
     "zoom_x": "Centre horizontal",
     "zoom_y": "Centre vertical",
-    "other_cam": "other camera (live view and control panel)"
+    "other_cam": "other camera (live view and control panel)",
+    "show_camera_tabs": "Show camera selection on top",
+    "show_live_playback": "Show Live / Playback switch",
+    "show_controls": "Show control panel under the image",
+    "show_settings": "Show settings"
   }
 }

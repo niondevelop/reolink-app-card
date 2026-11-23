@@ -140,6 +140,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .pd.u { grid-area: 1 / 2; } .pd.l { grid-area: 2 / 1; } .pd.c { grid-area: 2 / 2; background: #2c2c2e; } .pd.r { grid-area: 2 / 3; } .pd.d { grid-area: 3 / 2; }
 .pd.c ha-icon { --mdc-icon-size: 20px; }
 .pzoom { display: flex; flex-direction: column; gap: 10px; }
+.zv { text-align: center; font-size: 12px; opacity: .75; min-height: 14px; }
 .pz { width: 48px; height: 48px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
 .pre { margin-top: 10px; } .pre small { display: block; margin: 0 2px 6px; opacity: .7; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -255,6 +256,8 @@ ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-
 ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
 ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+/* Bedienpanel ausgeblendet (Option show_controls: false) */
+ha-card.no-controls .barwrap, ha-card.no-controls .ptz { display: none !important; }
 .backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
 .backlive ha-icon { --mdc-icon-size: 20px; }
 ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }
