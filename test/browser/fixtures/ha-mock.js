@@ -20,12 +20,25 @@ customElements.define('ha-web-rtc-player', class extends HTMLElement {
     // Neu verbinden beendet ein laufendes Mikrofon (wie der echte Player)
     if (this.microphoneState !== 'off') { this.microphoneState = 'off'; fire(this, 'microphone-changed', { state: 'off' }); }
     this._eid = v;
+    if (v && window.__T.privatePlayer) this._startWebRtc();
     if (v) {
       window.__R.connects++;
       window.__R.lastMuted = this.muted;
       setTimeout(() => fire(this, 'streams', { hasVideo: true, hasAudio: !this.muted && window.__T.hasAudio !== false }), 30);
     }
   }
+  /* Interne Funktionen wie im echten Player (nur mit __T.privatePlayer): Verbindung mit oder ohne Sprechkanal */
+  async _startWebRtc(track) {
+    (window.__R.starts = window.__R.starts || []).push(!!track);
+    this._microphoneSender = undefined;
+    if (track) { this._localReturnAudioTrack = track; this._microphoneConnecting = true; this._fireMicrophoneChanged(); }
+    await new Promise((r) => setTimeout(r, 20));
+    if (track) {
+      window.__R.senderTrack = 'silent';
+      this._microphoneSender = { replaceTrack: async (t) => { window.__R.senderTrack = t ? 'mic' : null; } };
+    }
+  }
+  _fireMicrophoneChanged() { fire(this, 'microphone-changed', { state: this._localReturnAudioTrack ? 'on' : this._microphoneConnecting ? 'connecting' : 'off' }); }
 });
 
 customElements.define('ha-camera-stream', class extends HTMLElement {
@@ -35,8 +48,12 @@ customElements.define('ha-camera-stream', class extends HTMLElement {
   set muted(v) { this._muted = !!v; this.player.muted = !!v; }
   get updateComplete() { return Promise.resolve(true); }
   get microphoneTrack() { return this._track; }
+  /* Direkt eingesetzt (wie in der Advanced Camera Card): Entität aus stateObj */
+  set stateObj(v) { this._stateObj = v; window.__R.streamEntity = v && v.entity_id; }
+  get stateObj() { return this._stateObj; }
   connectedCallback() {
-    this.player.entityid = 'camera.test';
+    window.__R.streamEls = (window.__R.streamEls || 0) + 1;
+    this.player.entityid = (this._stateObj && this._stateObj.entity_id) || 'camera.test';
     setTimeout(() => fire(this, 'stream-type-changed', { type: window.__T.streamType || 'web_rtc' }), 50);
   }
   async toggleMicrophone() {
@@ -99,7 +116,8 @@ function media(opts, id) {
 window.makeHass = (opts = {}) => {
   const st = (state, attributes = {}) => ({ state, attributes });
   const states = {};
-  Object.entries(opts.states || {}).forEach(([id, v]) => { states[id] = Array.isArray(v) ? st(v[0], v[1] || {}) : st(v); });
+  // Wie in Home Assistant enthält jeder Zustand seine entity_id
+  Object.entries(opts.states || {}).forEach(([id, v]) => { states[id] = { entity_id: id, ...(Array.isArray(v) ? st(v[0], v[1] || {}) : st(v)) }; });
   const hass = {
     language: opts.language || 'de', locale: { language: opts.language || 'de' }, themes: {},
     states, entities: opts.entities || {}, devices: opts.devices || {},
@@ -108,10 +126,10 @@ window.makeHass = (opts = {}) => {
     auth: opts.appMic ? { external: { config: { webrtc: { hasCameraMicrophoneStream: true } },
       sendMessage: async (m) => { window.__R.msgs.push(m); await new Promise((r) => setTimeout(r, 100)); return { session_id: 'S1' }; },
       fireMessage: (m) => window.__R.msgs.push(m) } } : {},
-    callService: async (domain, service, data) => { window.__R.calls.push(`${domain}.${service} ${data.entity_id}${data.option ? ' ' + data.option : ''}`); },
+    callService: async (domain, service, data) => { window.__R.calls.push(`${domain}.${service} ${data.entity_id}${data.option ? ' ' + data.option : ''}${data.value !== undefined ? ' ' + data.value : ''}`); },
     callWS: async (m) => {
       window.__R.ws.push(m.type);
-      if (m.type === 'camera/capabilities') return { frontend_stream_types: ['web_rtc'], two_way_audio: opts.twoWay !== false };
+      if (m.type === 'camera/capabilities') return { frontend_stream_types: window.__T.noWebRtc ? ['hls'] : ['hls', 'web_rtc'], two_way_audio: opts.twoWay !== false };
       if (m.type === 'fire_event') { if (opts.noAdmin) throw new Error('Unauthorized'); window.__R.events.push({ type: m.event_type, data: m.event_data }); return {}; }
       if (m.type === 'media_source/resolve_media') {
         window.__R.resolved.push(m.media_content_id);

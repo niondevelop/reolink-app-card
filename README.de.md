@@ -46,7 +46,7 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Ton:** Der Lautsprecher-Button im Bild schaltet den Ton der Kamera ein und aus. Mit `audio: auto` ist der Ton an, sobald das Livebild läuft.
 - **Gegensprechen:** direkt aus der Karte durch die Kamera sprechen, mit Hörer-Button und Gesprächsansicht wie in der Reolink-App (Labs-Funktion von Home Assistant, siehe Hinweise).
 - **Klingel:** für eine Reolink-Klingel oder eine Kamera, die du als Klingel nutzt: Beim Klingeln erscheint eine Anrufansicht mit Ablehnen und Annehmen. Annehmen startet das Gegensprechen.
-- **Schwenken & Neigen (PTZ):** Steuerkreuz, Zoom und gespeicherte Positionen für schwenkbare Kameras.
+- **Schwenken & Neigen (PTZ):** Steuerkreuz, Zoom und gespeicherte Positionen für schwenkbare Kameras. Bei einer TrackMix ohne Zoom-Tasten steuern + und − die Entität für den optischen Zoom.
 - **Zwei Objektive:** Bei TrackMix und Duo ist das zweite Objektiv (Tele) eine zusätzliche Stufe im Qualitätsmenü und in der Wiedergabe.
 - **Breite Bildschirme:** Bei einer breiten Karte läuft das Livebild links weiter, daneben steht ein Panel (rechts oder links, Option `layout`; oder alles unten). Im Panel stehen die **Ereignisse** – antippen spielt die Aufnahme im Bild ab. Die **Einstellungen** öffnen sich als eigenes Panel nur auf Wunsch. Das Panel lässt sich zuklappen und über den Griff am Bildrand wieder öffnen; die Wahl merkt sich das Gerät. Die Knöpfe sitzen kompakt unter dem Bild.
 - **Öffnen aus einer Mitteilung:** Ein Link in deiner Push-Mitteilung öffnet die richtige Kamera live oder spielt die passende Aufnahme ab.
@@ -125,6 +125,12 @@ cameras:
 | `show_scene`              | `true`        | Reolink-Szenenmodus des Hubs anzeigen. Mit `mode_entity` erscheint nur die eigene Modus-Zeile, es gibt also höchstens eine Modus-Zeile |
 | `show_sd`                 | `true`        | SD-Belegung anzeigen (der gewählten Kamera, sonst des Hubs) und Warnung, wenn sie fast voll ist |
 | `show_hub`                | `true`        | Ältere Option: `false` blendet Szenenmodus und SD-Belegung zusammen aus |
+| `show_camera_tabs`        | `true`        | Kameraauswahl oben anzeigen |
+| `show_live_playback`      | `true`        | Umschalter Live / Wiedergabe anzeigen |
+| `show_controls`           | `true`        | Bedienpanel und Steuerkreuz unter dem Bild anzeigen |
+| `show_settings`           | `true`        | Einstellungen der Kamera anzeigen |
+| `show_mode`               | `true`        | Modus-Zeile anzeigen (eigene `mode_entity` oder Reolink-Szenenmodus). Die SD-Belegung bleibt |
+| `talk_prepare`            | `false`       | Gegensprechen vorbereiten: Das Livebild öffnet mit einem stummen Sprechkanal, Sprechen startet dann sofort statt nach einem Neuaufbau der Verbindung. Der Kanal ist nur offen, solange das Livebild läuft; das Mikrofon wird erst beim Sprechen benutzt. Auch pro Kamera möglich |
 | `buttons`                 | alle          | Knöpfe des Bedienpanels und ihre Reihenfolge, siehe [Bedienpanel](#bedienpanel). Auch pro Kamera möglich |
 | `hub_prefix`              | automatisch   | Gemeinsamer Teil der Hub-Entity-IDs. Nur nötig, wenn der Hub nicht automatisch gefunden wird |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
@@ -144,6 +150,7 @@ cameras:
 | `prefix`     | Alternative zu `entity`: der gemeinsame Teil der Entity-IDs, z. B. `kamera_eingang` für `camera.kamera_eingang_standardauflosung` |
 | `name`       | Angezeigter Name |
 | `media_name` | Name der Kamera in der Reolink-Medienquelle (Medien → Reolink). Nötig für die Wiedergabe, wenn er vom Gerätenamen abweicht |
+| `talk_prepare` | Gegensprechen für diese Kamera vorbereiten (siehe oben), z. B. nur bei der Klingel |
 | `talk_url`   | Link für den Sprechen-Button dieser Kamera, wenn Gegensprechen nicht verfügbar ist |
 | `doorbell`   | Was bei dieser Kamera klingelt: ein beliebiger Binärsensor, Taster, Schalter, Helfer oder ein Ereignis. Ohne Angabe wird der Besucher-Sensor einer Reolink-Klingel genommen, falls vorhanden. `false` schaltet es ab |
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |

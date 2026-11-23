@@ -19,9 +19,10 @@ export default {
       Object.entries(LEGACY).forEach(([k, v]) => { if (c[k]) over[v] = c[k]; });
       // Steht unter prefix versehentlich eine ganze Entity-ID (camera.…), wie entity behandeln
       const entity = c.entity || (/^camera\./.test(String(c.prefix || '')) ? c.prefix : undefined);
-      // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix
-      const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+      // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix,
+      // und bei neuen deutschen Entitäts-IDs („…_fliessend“) die ganze ID ohne „camera.“
+      const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, '');
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -79,7 +80,6 @@ export default {
         const id = dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
-      if (DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
     const reg = (this._hass && this._hass.entities) || {};
@@ -88,6 +88,8 @@ export default {
       return !!(dev && domain === 'camera' && tk && TK[key] && ![].concat(TK[key]).some((k) => baseKey(tk) === baseKey(k)));
     };
     for (const s of suf) { const id = `${domain}.${cam.prefix}_${s}`; if (this._st(id) && !wrongKey(id)) return id; }
+    // Zuletzt nach Geräteklasse (z. B. Bewegung, die bei Reolink keinen internen Schlüssel hat)
+    if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     return `${domain}.${cam.prefix}_${suf[0]}`;
   },
 
@@ -109,7 +111,12 @@ export default {
       const domain = id.split('.')[0];
       if (r.translation_key) idx[`${domain}:${r.translation_key}`] = id;
       const st = this._hass.states[id], dc = st && st.attributes.device_class;
-      if (dc && !idx[`${domain}:dc:${dc}`]) idx[`${domain}:dc:${dc}`] = id;
+      // Nach Geräteklasse: am besten passt eine Entität ohne eigenen internen Schlüssel (bei Reolink hat nur der eigentliche
+      // Bewegungssensor keinen – Person, Fahrzeug, Tier, Paket … haben einen) und nicht die des zweiten Objektivs
+      if (dc) {
+        const k = `${domain}:dc:${dc}`, rank = (e) => (reg[e].translation_key ? 2 : 0) + (/_(lens|objektiv|linse)_[1-9]$/.test(e) ? 1 : 0);
+        if (!idx[k] || rank(id) < rank(idx[k])) idx[k] = id;
+      }
     });
     cam._dev = idx;
     // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)
@@ -199,8 +206,12 @@ export default {
     // Home Assistant setzt hass bei jeder Zustandsänderung im ganzen System neu – nur reagieren, wenn es die Karte betrifft
     if (this._built && !this._relevantChange(old, hass)) return;
     if (!this._built) this._build();
-    this._pics.forEach((p) => { p.hass = hass; });
-    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._resetZoom(); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
+    this._pics.forEach((p) => {
+      p.hass = hass;
+      // Direkt eingesetzter Player: aktuellen Zustand der Kamera mitgeben (Zugriffstoken)
+      if (p.localName === 'ha-camera-stream' && p.dataset.entity && hass.states[p.dataset.entity]) p.stateObj = hass.states[p.dataset.entity];
+    });
+    if (first) { this._cams.forEach((c) => this._devIndex(c)); this._resetZoom(); this._streamReady(); this._loadMediaRoot(); setTimeout(() => this._onLink(), 0); this._renderTabs(); this._renderFilters(); this._loadSnap(this._idx); }
     if (this._ensureQ() && this._live) this._makePic();
     this._checkDoorbell(old, hass);
     this._checkDetections();

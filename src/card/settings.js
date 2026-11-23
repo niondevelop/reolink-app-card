@@ -9,6 +9,9 @@ export default {
       .filter((it) => this._st(it.id)) })).filter((g) => g.items.length);
   },
 
+  /* Einstellungen anzeigen? (Option show_settings, und nur wenn die Kamera welche hat) */
+  _hasSettings() { return this._config.show_settings !== false && this._settingGroups().length > 0; },
+
   _updateSettings(box) {
     const groups = this._settingGroups();
     if (!this._group || !groups.some((g) => g.g === this._group)) this._group = groups.length ? groups[0].g : null;

@@ -56,6 +56,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
 .stage.live .media > .prev { opacity: 0; }
 .pic, .pic > * { position: absolute; inset: 0; }
 .mjpeg { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.pic ha-camera-stream { display: block; width: 100%; height: 100%; background: transparent; }
 .pic ha-card, .pic hui-picture-entity-card { height: 100%; border-radius: 0; border: 0; box-shadow: none; background: transparent; }
 video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; border-radius: 0; }
 ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
@@ -139,6 +140,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .pd.u { grid-area: 1 / 2; } .pd.l { grid-area: 2 / 1; } .pd.c { grid-area: 2 / 2; background: #2c2c2e; } .pd.r { grid-area: 2 / 3; } .pd.d { grid-area: 3 / 2; }
 .pd.c ha-icon { --mdc-icon-size: 20px; }
 .pzoom { display: flex; flex-direction: column; gap: 10px; }
+.zv { text-align: center; font-size: 12px; opacity: .75; min-height: 14px; }
 .pz { width: 48px; height: 48px; background: #1f1f21; border: 1px solid rgba(255,255,255,.08); }
 .pre { margin-top: 10px; } .pre small { display: block; margin: 0 2px 6px; opacity: .7; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -146,7 +148,8 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .chip.sel { background: var(--ra); color: #fff; }
 .stage.talking .talk { display: block; }
 .stage.talking .bigplay { display: none !important; }
-.tpill { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 14px; background: rgba(255,59,48,.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+/* Sprechanzeige klein oben in der Mitte, damit sie das Bild nicht verdeckt */
+.tpill { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; background: rgba(255,59,48,.85); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 1px 6px rgba(0,0,0,.3); max-width: calc(100% - 140px); overflow: hidden; }
 .talk.conn .tpill { background: color-mix(in srgb, var(--ra) 92%, transparent); }
 .tw { display: inline-flex; align-items: center; gap: 2px; height: 16px; }
 .tw i { width: 3px; height: 5px; border-radius: 2px; background: #fff; }
@@ -253,6 +256,8 @@ ha-card.lay-left > .phead, ha-card.lay-left .settings, ha-card.lay-left > #pane-
 ha-card.lay-side.pan-none { grid-template-columns: minmax(0, 1fr) 0; }
 ha-card.lay-left.pan-none { grid-template-columns: 0 minmax(0, 1fr); }
 ha-card.lay-side.playing .barwrap, ha-card.lay-side.playing .ptz { display: none; }
+/* Bedienpanel ausgeblendet (Option show_controls: false) */
+ha-card.no-controls .barwrap, ha-card.no-controls .ptz { display: none !important; }
 .backlive { display: none; align-items: center; gap: 8px; padding: 10px 20px; margin: 12px auto; border-radius: 24px; background: var(--ra); color: #fff; font-weight: 600; font-size: 15px; }
 .backlive ha-icon { --mdc-icon-size: 20px; }
 ha-card.lay-side.playing .backlive { display: flex; grid-row: 6; grid-column: 1; justify-self: center; }

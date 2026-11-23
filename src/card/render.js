@@ -118,8 +118,19 @@ export default {
     // Meldungen des Kamera-Streams von Home Assistant (WebRTC-Player in der picture-entity-Karte)
     $('ring-yes').onclick = () => this._endRing(true);
     $('ring-no').onclick = () => this._endRing(false);
-    $('pic').addEventListener('microphone-changed', (e) => { if (!this._appSession && !this._appMic) this._setMic(e.detail.state); });
+    $('pic').addEventListener('microphone-changed', (e) => {
+      // Meldungen beim Vorbereiten des Sprechkanals (Option talk_prepare) sind kein Gegensprechen
+      const src = e.composedPath ? e.composedPath()[0] : null;
+      if (src && src.__racPrepping) return;
+      if (!this._appSession && !this._appMic) this._setMic(e.detail.state);
+    });
     $('pic').addEventListener('stream-type-changed', (e) => { this._streamType = e.detail.type || null; this._update(); });
+    // Messung: Zeit bis zum ersten Bild des Livebilds (Browser-Konsole), zum Vergleich mit anderen Karten
+    $('pic').addEventListener('load', () => {
+      if (!this._t0) return;
+      console.info(`[reolink-app-card] Livebild nach ${Math.round(performance.now() - this._t0)} ms (${this._cam.name})`);
+      this._t0 = 0;
+    }, true);
     $('prev').onload = () => { $('prev').classList.add('ok'); };
     $('prev').onerror = () => { $('prev').classList.remove('ok'); };
     const v = $('video');
@@ -367,7 +378,11 @@ export default {
     const hasPlay = this._hasPlayback();
     const side = !!this._side, pan = side ? this._panelNow() : null;
     if (pan && pan !== 'none') this._lastPanel = pan;
-    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side ? '' : 'none';
+    // Ausblendbare Bereiche (Darstellung): Kameraauswahl oben, Live/Wiedergabe, Bedienpanel, Einstellungen
+    const cfgShow = (k) => this._config[k] !== false;
+    root.querySelector('.top').style.display = cfgShow('show_camera_tabs') ? '' : 'none';
+    root.querySelector('ha-card').classList.toggle('no-controls', !cfgShow('show_controls'));
+    this.shadowRoot.querySelector('.seg').style.display = hasPlay && !side && cfgShow('show_live_playback') ? '' : 'none';
     if (!hasPlay && this._mode === 'play') { this._setMode('live'); return; }
     $('m-live').classList.toggle('sel', this._mode === 'live');
     $('m-play').classList.toggle('sel', this._mode === 'play');
@@ -377,7 +392,7 @@ export default {
     card.classList.toggle('pan-set', side && pan === 'settings');
     card.classList.toggle('playing', playing);
     $('phead').style.display = side && pan !== 'none' ? '' : 'none';
-    const hasSet = this._settingGroups().length > 0;
+    const hasSet = this._hasSettings();
     $('pedge').style.display = side && pan === 'none' && !this._grid && (hasPlay || hasSet) ? 'grid' : 'none';
     $('more').style.display = hasSet ? '' : 'none';
     if (side) {
@@ -412,10 +427,12 @@ export default {
   /* Kopfzeile: eigener Modus (z. B. input_select für Benachrichtigungen) oder Reolink-Szenenmodus, dazu SD-Karte */
   _updateHub() {
     const box = this.$('hub'), cfg = this._config;
-    const modeId = cfg.mode_entity || null;
+    // show_mode: false blendet die Modus-Zeile ganz aus (eigener Modus und Reolink-Szenenmodus), die SD-Belegung bleibt
+    const showMode = cfg.show_mode !== false;
+    const modeId = showMode ? cfg.mode_entity || null : null;
     // Immer nur eine Modus-Zeile: mit eigener Modus-Auswahl nie zusätzlich der Reolink-Szenenmodus.
     // show_hub: false blendet Szenenmodus und SD-Belegung aus (ältere Option); sonst einzeln mit show_scene und show_sd
-    const useScene = cfg.show_hub !== false && !modeId && cfg.show_scene !== false;
+    const useScene = showMode && cfg.show_hub !== false && !cfg.mode_entity && cfg.show_scene !== false;
     const scene = useScene ? this._hubE('scene') : null;
     // SD-Karte der gewählten Kamera, sonst die des Hubs
     const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE('storage') : null;
@@ -540,7 +557,7 @@ export default {
       }
     }
 
-    const setOpen = this._side ? this._panelNow() === 'settings' : this._settingsOpen;
+    const setOpen = this._hasSettings() && (this._side ? this._panelNow() === 'settings' : this._settingsOpen);
     $('chev').setAttribute('icon', this._settingsOpen ? 'mdi:chevron-up' : 'mdi:chevron-down');
     const box = $('settings');
     box.style.display = setOpen ? '' : 'none';

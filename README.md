@@ -48,7 +48,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Sound:** the speaker button on the video turns the camera's sound on and off. With `audio: auto` the sound is on as soon as the live view runs.
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
 - **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
-- **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move.
+- **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move. On a TrackMix without zoom buttons, + and − use the optical zoom entity.
 - **Two lenses:** for the TrackMix and Duo, the second lens (telephoto) is an extra quality level in the quality menu and in playback.
 - **Wide screens:** on a wide card the live view keeps running and a side panel sits next to it (right or left, option `layout`; or everything below). The panel shows the **events** – tap one to play it in the image. **Settings** open as their own panel only when you want them. The panel can be collapsed and reopened with the handle at the image edge; the device remembers the choice. The control buttons sit compact under the image.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
@@ -127,6 +127,12 @@ cameras:
 | `show_scene`              | `true`        | Show the Reolink scene mode of the hub. With `mode_entity` only your own mode row is shown, so there is always one mode row at most |
 | `show_sd`                 | `true`        | Show the SD card usage (of the selected camera, otherwise of the hub) and the warning when it is almost full |
 | `show_hub`                | `true`        | Older option: `false` hides both the scene mode and the SD card usage |
+| `show_camera_tabs`        | `true`        | Show the camera selection at the top |
+| `show_live_playback`      | `true`        | Show the Live / Playback switch |
+| `show_controls`           | `true`        | Show the control panel and PTZ pad under the image |
+| `show_settings`           | `true`        | Show the camera settings |
+| `show_mode`               | `true`        | Show the mode row (your own `mode_entity` or the Reolink scene mode). The SD card usage stays |
+| `talk_prepare`            | `false`       | Prepare two-way audio: the live view opens with a silent talk channel, so talking starts at once instead of after a new connection. The channel is only open while the live view runs; the microphone is not used until you talk. Can also be set per camera |
 | `buttons`                 | all           | Buttons of the control panel and their order, see [Control panel](#control-panel). Can also be set per camera |
 | `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
@@ -146,6 +152,7 @@ cameras:
 | `prefix`     | Alternative to `entity`: the common part of the entity IDs, e.g. `front_door` for `camera.front_door_fluent` |
 | `name`       | Display name |
 | `media_name` | Name of the camera in the Reolink media source (Media → Reolink). Needed for playback if it differs from the device name |
+| `talk_prepare` | Prepare two-way audio for this camera (see above), e.g. only for the doorbell |
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
 | `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |

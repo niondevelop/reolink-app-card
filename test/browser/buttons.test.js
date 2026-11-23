@@ -296,7 +296,7 @@ test('Kamera eines anderen Herstellers: Livebild über ihre Entität, nur Schnap
   const c = await openCard(browser, server, { config: cfg, hass: OTHER });
   await wait(300);
   const r = await c.run(() => {
-    const k = window.__card, root = k.shadowRoot, card = root.querySelector('#pic hui-picture-entity-card');
+    const k = window.__card, root = k.shadowRoot, card = root.querySelector('#pic ha-camera-stream');
     return { foreign: k._foreign(), live: card && card._config ? card._config.entity : (card && card.getAttribute('entity')), name: k._cam.name,
       ids: [...root.querySelectorAll('#ctrls [data-id]')].map((b) => b.dataset.id), seg: root.querySelector('.seg').style.display, more: root.getElementById('more').style.display };
   });
