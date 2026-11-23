@@ -22,7 +22,7 @@ export default {
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix,
       // und bei neuen deutschen Entitäts-IDs („…_fliessend“) die ganze ID ohne „camera.“
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';

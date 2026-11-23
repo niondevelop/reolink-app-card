@@ -20,12 +20,25 @@ customElements.define('ha-web-rtc-player', class extends HTMLElement {
     // Neu verbinden beendet ein laufendes Mikrofon (wie der echte Player)
     if (this.microphoneState !== 'off') { this.microphoneState = 'off'; fire(this, 'microphone-changed', { state: 'off' }); }
     this._eid = v;
+    if (v && window.__T.privatePlayer) this._startWebRtc();
     if (v) {
       window.__R.connects++;
       window.__R.lastMuted = this.muted;
       setTimeout(() => fire(this, 'streams', { hasVideo: true, hasAudio: !this.muted && window.__T.hasAudio !== false }), 30);
     }
   }
+  /* Interne Funktionen wie im echten Player (nur mit __T.privatePlayer): Verbindung mit oder ohne Sprechkanal */
+  async _startWebRtc(track) {
+    (window.__R.starts = window.__R.starts || []).push(!!track);
+    this._microphoneSender = undefined;
+    if (track) { this._localReturnAudioTrack = track; this._microphoneConnecting = true; this._fireMicrophoneChanged(); }
+    await new Promise((r) => setTimeout(r, 20));
+    if (track) {
+      window.__R.senderTrack = 'silent';
+      this._microphoneSender = { replaceTrack: async (t) => { window.__R.senderTrack = t ? 'mic' : null; } };
+    }
+  }
+  _fireMicrophoneChanged() { fire(this, 'microphone-changed', { state: this._localReturnAudioTrack ? 'on' : this._microphoneConnecting ? 'connecting' : 'off' }); }
 });
 
 customElements.define('ha-camera-stream', class extends HTMLElement {

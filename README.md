@@ -131,6 +131,8 @@ cameras:
 | `show_live_playback`      | `true`        | Show the Live / Playback switch |
 | `show_controls`           | `true`        | Show the control panel and PTZ pad under the image |
 | `show_settings`           | `true`        | Show the camera settings |
+| `show_mode`               | `true`        | Show the mode row (your own `mode_entity` or the Reolink scene mode). The SD card usage stays |
+| `talk_prepare`            | `false`       | Prepare two-way audio: the live view opens with a silent talk channel, so talking starts at once instead of after a new connection. The channel is only open while the live view runs; the microphone is not used until you talk. Can also be set per camera |
 | `buttons`                 | all           | Buttons of the control panel and their order, see [Control panel](#control-panel). Can also be set per camera |
 | `hub_prefix`              | automatic     | Common part of the hub entity IDs. Only needed if the hub is not found automatically |
 | `hub_entities`            | –             | Set hub entities individually: `scene`, `storage` |
@@ -150,6 +152,7 @@ cameras:
 | `prefix`     | Alternative to `entity`: the common part of the entity IDs, e.g. `front_door` for `camera.front_door_fluent` |
 | `name`       | Display name |
 | `media_name` | Name of the camera in the Reolink media source (Media → Reolink). Needed for playback if it differs from the device name |
+| `talk_prepare` | Prepare two-way audio for this camera (see above), e.g. only for the doorbell |
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
 | `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |

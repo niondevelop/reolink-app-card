@@ -209,6 +209,8 @@
     "show_camera_tabs": "Afficher la sélection des caméras en haut",
     "show_live_playback": "Afficher le sélecteur Direct / Lecture",
     "show_controls": "Afficher le panneau de commande sous l’image",
-    "show_settings": "Afficher les réglages"
+    "show_settings": "Afficher les réglages",
+    "show_mode": "Afficher la ligne de mode",
+    "talk_prepare": "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
   }
 }

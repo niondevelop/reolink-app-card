@@ -209,6 +209,8 @@
     "show_camera_tabs": "Show camera selection on top",
     "show_live_playback": "Show Live / Playback switch",
     "show_controls": "Show control panel under the image",
-    "show_settings": "Show settings"
+    "show_settings": "Show settings",
+    "show_mode": "Show mode row",
+    "talk_prepare": "Prepare two-way audio (faster start, talk channel open while live)"
   }
 }

@@ -73,6 +73,8 @@ export default {
       el.fitMode = 'contain';
       el.controls = false;
       el.dataset.entity = entity;
+      // Gegensprechen vorbereiten: Verbindung gleich mit (stummem) Sprechkanal, damit das Mikrofon später sofort da ist
+      if (this._talkPrepWanted() && (await this._talkPrepOk(entity))) this._talkPrep(el);
       return el;
     }
     const helpers = await window.loadCardHelpers();

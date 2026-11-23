@@ -129,6 +129,8 @@ cameras:
 | `show_live_playback`      | `true`        | Umschalter Live / Wiedergabe anzeigen |
 | `show_controls`           | `true`        | Bedienpanel und Steuerkreuz unter dem Bild anzeigen |
 | `show_settings`           | `true`        | Einstellungen der Kamera anzeigen |
+| `show_mode`               | `true`        | Modus-Zeile anzeigen (eigene `mode_entity` oder Reolink-Szenenmodus). Die SD-Belegung bleibt |
+| `talk_prepare`            | `false`       | Gegensprechen vorbereiten: Das Livebild öffnet mit einem stummen Sprechkanal, Sprechen startet dann sofort statt nach einem Neuaufbau der Verbindung. Der Kanal ist nur offen, solange das Livebild läuft; das Mikrofon wird erst beim Sprechen benutzt. Auch pro Kamera möglich |
 | `buttons`                 | alle          | Knöpfe des Bedienpanels und ihre Reihenfolge, siehe [Bedienpanel](#bedienpanel). Auch pro Kamera möglich |
 | `hub_prefix`              | automatisch   | Gemeinsamer Teil der Hub-Entity-IDs. Nur nötig, wenn der Hub nicht automatisch gefunden wird |
 | `hub_entities`            | –             | Hub-Entitäten einzeln setzen: `scene`, `storage` |
@@ -148,6 +150,7 @@ cameras:
 | `prefix`     | Alternative zu `entity`: der gemeinsame Teil der Entity-IDs, z. B. `kamera_eingang` für `camera.kamera_eingang_standardauflosung` |
 | `name`       | Angezeigter Name |
 | `media_name` | Name der Kamera in der Reolink-Medienquelle (Medien → Reolink). Nötig für die Wiedergabe, wenn er vom Gerätenamen abweicht |
+| `talk_prepare` | Gegensprechen für diese Kamera vorbereiten (siehe oben), z. B. nur bei der Klingel |
 | `talk_url`   | Link für den Sprechen-Button dieser Kamera, wenn Gegensprechen nicht verfügbar ist |
 | `doorbell`   | Was bei dieser Kamera klingelt: ein beliebiger Binärsensor, Taster, Schalter, Helfer oder ein Ereignis. Ohne Angabe wird der Besucher-Sensor einer Reolink-Klingel genommen, falls vorhanden. `false` schaltet es ab |
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |

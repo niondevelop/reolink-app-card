@@ -85,6 +85,62 @@ export default {
     return c ? c.v : undefined;
   },
 
+  /* ---------- Gegensprechen vorbereiten (Option talk_prepare) ----------
+     Home Assistant baut beim ersten Sprechen die ganze Verbindung neu auf (über go2rtc, ffmpeg und den Hub bis zur
+     Kamera); das dauert bei Reolink oft viele Sekunden. Steht die Verbindung schon mit einem Sprechkanal, setzt der
+     Player das Mikrofon dagegen nur noch ein. Die Karte öffnet das Livebild darum mit einem stummen Sprechkanal:
+     ohne Mikrofon, ohne Rückfrage im Browser und nur, solange das Livebild läuft.
+     Nutzt eine interne Funktion des Players von Home Assistant; fehlt sie, bleibt alles wie ohne die Option. */
+  _talkPrepWanted(cam = this._cam) {
+    const v = cam && cam.talk_prepare !== undefined ? cam.talk_prepare : this._config.talk_prepare;
+    return v === true && !this._appMic && window.isSecureContext && typeof RTCPeerConnection !== 'undefined';
+  },
+
+  /* Nur bei Kameras mit Zwei-Wege-Audio und WebRTC (Antwort von Home Assistant max. 1,5 s abwarten) */
+  async _talkPrepOk(ent) {
+    for (let n = 0; n < 15; n++) {
+      const c = this._talkCaps(ent);
+      if (c !== undefined) return c.twa && c.webrtc;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return false;
+  },
+
+  _talkPrep(stream) {
+    stream.__racPrep = true;
+    customElements.whenDefined('ha-web-rtc-player').then((P) => {
+      const proto = P && P.prototype;
+      if (!proto || proto.__racPrepPatched || typeof proto._startWebRtc !== 'function') return;
+      const orig = proto._startWebRtc;
+      proto.__racPrepPatched = true;
+      proto._startWebRtc = async function startWebRtc(track, ...rest) {
+        const root = this.getRootNode && this.getRootNode();
+        const host = root && root.host;
+        if (track || !host || !host.__racPrep || typeof AudioContext === 'undefined') return orig.call(this, track, ...rest);
+        let silent;
+        try {
+          const ac = new AudioContext();
+          silent = ac.createMediaStreamDestination().stream.getAudioTracks()[0];
+          ac.close().catch(() => {});
+        } catch (_) { return orig.call(this, track, ...rest); }
+        this.__racPrepping = true;
+        try {
+          await orig.call(this, silent, ...rest);
+        } finally {
+          // Sprechkanal leer lassen: nichts wird gesendet, der Player meldet das Mikrofon als aus
+          if (this._localReturnAudioTrack === silent) {
+            this._localReturnAudioTrack = undefined;
+            this._microphoneConnecting = false;
+          }
+          silent.stop();
+          if (this._microphoneSender) this._microphoneSender.replaceTrack(null).catch(() => {});
+          this.__racPrepping = false;
+          if (typeof this._fireMicrophoneChanged === 'function') this._fireMicrophoneChanged();
+        }
+      };
+    });
+  },
+
   /* Warum Gegensprechen gerade nicht geht – null heisst: bereit */
   _talkReason() {
     if (this._snapOnly()) return 'nostream';

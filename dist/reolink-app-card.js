@@ -430,7 +430,9 @@
       show_camera_tabs: "Kameraauswahl oben anzeigen",
       show_live_playback: "Umschalter Live / Wiedergabe anzeigen",
       show_controls: "Bedienpanel unter dem Bild anzeigen",
-      show_settings: "Einstellungen anzeigen"
+      show_settings: "Einstellungen anzeigen",
+      show_mode: "Modus-Zeile anzeigen",
+      talk_prepare: "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)"
     }
   };
 
@@ -646,7 +648,9 @@
       show_camera_tabs: "Show camera selection on top",
       show_live_playback: "Show Live / Playback switch",
       show_controls: "Show control panel under the image",
-      show_settings: "Show settings"
+      show_settings: "Show settings",
+      show_mode: "Show mode row",
+      talk_prepare: "Prepare two-way audio (faster start, talk channel open while live)"
     }
   };
 
@@ -862,7 +866,9 @@
       show_camera_tabs: "Afficher la sélection des caméras en haut",
       show_live_playback: "Afficher le sélecteur Direct / Lecture",
       show_controls: "Afficher le panneau de commande sous l’image",
-      show_settings: "Afficher les réglages"
+      show_settings: "Afficher les réglages",
+      show_mode: "Afficher la ligne de mode",
+      talk_prepare: "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
     }
   };
 
@@ -1127,6 +1133,62 @@
       });
       return c ? c.v : void 0;
     },
+    /* ---------- Gegensprechen vorbereiten (Option talk_prepare) ----------
+       Home Assistant baut beim ersten Sprechen die ganze Verbindung neu auf (über go2rtc, ffmpeg und den Hub bis zur
+       Kamera); das dauert bei Reolink oft viele Sekunden. Steht die Verbindung schon mit einem Sprechkanal, setzt der
+       Player das Mikrofon dagegen nur noch ein. Die Karte öffnet das Livebild darum mit einem stummen Sprechkanal:
+       ohne Mikrofon, ohne Rückfrage im Browser und nur, solange das Livebild läuft.
+       Nutzt eine interne Funktion des Players von Home Assistant; fehlt sie, bleibt alles wie ohne die Option. */
+    _talkPrepWanted(cam = this._cam) {
+      const v = cam && cam.talk_prepare !== void 0 ? cam.talk_prepare : this._config.talk_prepare;
+      return v === true && !this._appMic && window.isSecureContext && typeof RTCPeerConnection !== "undefined";
+    },
+    /* Nur bei Kameras mit Zwei-Wege-Audio und WebRTC (Antwort von Home Assistant max. 1,5 s abwarten) */
+    async _talkPrepOk(ent) {
+      for (let n = 0; n < 15; n++) {
+        const c = this._talkCaps(ent);
+        if (c !== void 0) return c.twa && c.webrtc;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    },
+    _talkPrep(stream) {
+      stream.__racPrep = true;
+      customElements.whenDefined("ha-web-rtc-player").then((P) => {
+        const proto = P && P.prototype;
+        if (!proto || proto.__racPrepPatched || typeof proto._startWebRtc !== "function") return;
+        const orig = proto._startWebRtc;
+        proto.__racPrepPatched = true;
+        proto._startWebRtc = async function startWebRtc(track, ...rest) {
+          const root = this.getRootNode && this.getRootNode();
+          const host = root && root.host;
+          if (track || !host || !host.__racPrep || typeof AudioContext === "undefined") return orig.call(this, track, ...rest);
+          let silent;
+          try {
+            const ac = new AudioContext();
+            silent = ac.createMediaStreamDestination().stream.getAudioTracks()[0];
+            ac.close().catch(() => {
+            });
+          } catch (_) {
+            return orig.call(this, track, ...rest);
+          }
+          this.__racPrepping = true;
+          try {
+            await orig.call(this, silent, ...rest);
+          } finally {
+            if (this._localReturnAudioTrack === silent) {
+              this._localReturnAudioTrack = void 0;
+              this._microphoneConnecting = false;
+            }
+            silent.stop();
+            if (this._microphoneSender) this._microphoneSender.replaceTrack(null).catch(() => {
+            });
+            this.__racPrepping = false;
+            if (typeof this._fireMicrophoneChanged === "function") this._fireMicrophoneChanged();
+          }
+        };
+      });
+    },
     /* Warum Gegensprechen gerade nicht geht – null heisst: bereit */
     _talkReason() {
       if (this._snapOnly()) return "nostream";
@@ -1338,7 +1400,7 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, "");
-        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
       this._mode = "live";
@@ -2010,6 +2072,7 @@
         el2.fitMode = "contain";
         el2.controls = false;
         el2.dataset.entity = entity;
+        if (this._talkPrepWanted() && await this._talkPrepOk(entity)) this._talkPrep(el2);
         return el2;
       }
       const helpers = await window.loadCardHelpers();
@@ -3284,6 +3347,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       $("ring-yes").onclick = () => this._endRing(true);
       $("ring-no").onclick = () => this._endRing(false);
       $("pic").addEventListener("microphone-changed", (e) => {
+        const src = e.composedPath ? e.composedPath()[0] : null;
+        if (src && src.__racPrepping) return;
         if (!this._appSession && !this._appMic) this._setMic(e.detail.state);
       });
       $("pic").addEventListener("stream-type-changed", (e) => {
@@ -3613,8 +3678,9 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     /* Kopfzeile: eigener Modus (z. B. input_select für Benachrichtigungen) oder Reolink-Szenenmodus, dazu SD-Karte */
     _updateHub() {
       const box = this.$("hub"), cfg = this._config;
-      const modeId = cfg.mode_entity || null;
-      const useScene = cfg.show_hub !== false && !modeId && cfg.show_scene !== false;
+      const showMode = cfg.show_mode !== false;
+      const modeId = showMode ? cfg.mode_entity || null : null;
+      const useScene = showMode && cfg.show_hub !== false && !cfg.mode_entity && cfg.show_scene !== false;
       const scene = useScene ? this._hubE("scene") : null;
       const storage = cfg.show_hub !== false && cfg.show_sd !== false ? this._camSdE() || this._hubE("storage") : null;
       const m = this._st(modeId), s = this._st(scene), sd = this._num(storage);
@@ -3922,7 +3988,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             { name: "show_camera_tabs", selector: { boolean: {} } },
             { name: "show_live_playback", selector: { boolean: {} } },
             { name: "show_controls", selector: { boolean: {} } },
-            { name: "show_settings", selector: { boolean: {} } }
+            { name: "show_settings", selector: { boolean: {} } },
+            { name: "show_mode", selector: { boolean: {} } }
           ] }
         ]),
         group("grp_scene", "mdi:shield-home-outline", [
@@ -3966,6 +4033,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         { name: "prefix", required: true, selector: { select: { mode: "dropdown", custom_value: true, options: camOpts } } },
         { type: "grid", name: "", schema: [{ name: "name", selector: { text: {} } }, { name: "media_name", selector: { text: {} } }] },
         { name: "doorbell", selector: { entity: { domain: ["binary_sensor", "input_boolean", "input_button", "button", "event", "switch", "sensor"] } } },
+        { name: "talk_prepare", selector: { boolean: {} } },
         // Voreingestellter Bildausschnitt, z. B. bei Fischaugen-Objektiven
         { type: "expandable", name: "zoom_grp", flatten: true, title: L.zoom_grp, icon: "mdi:magnify-plus-outline", schema: [
           { name: "zoom", selector: { number: { min: 1, max: 4, step: 0.1, mode: "slider" } } },
@@ -3975,7 +4043,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }

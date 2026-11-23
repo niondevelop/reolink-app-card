@@ -55,6 +55,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
           { name: 'show_live_playback', selector: { boolean: {} } },
           { name: 'show_controls', selector: { boolean: {} } },
           { name: 'show_settings', selector: { boolean: {} } },
+          { name: 'show_mode', selector: { boolean: {} } },
         ] },
       ]),
       group('grp_scene', 'mdi:shield-home-outline', [
@@ -98,6 +99,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
       { name: 'prefix', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: camOpts } } },
       { type: 'grid', name: '', schema: [{ name: 'name', selector: { text: {} } }, { name: 'media_name', selector: { text: {} } }] },
       { name: 'doorbell', selector: { entity: { domain: ['binary_sensor', 'input_boolean', 'input_button', 'button', 'event', 'switch', 'sensor'] } } },
+      { name: 'talk_prepare', selector: { boolean: {} } },
       // Voreingestellter Bildausschnitt, z. B. bei Fischaugen-Objektiven
       { type: 'expandable', name: 'zoom_grp', flatten: true, title: L.zoom_grp, icon: 'mdi:magnify-plus-outline', schema: [
         { name: 'zoom', selector: { number: { min: 1, max: 4, step: 0.1, mode: 'slider' } } },
@@ -107,7 +109,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         ] },
       ] },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
