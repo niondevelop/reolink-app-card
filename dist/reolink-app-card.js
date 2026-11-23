@@ -370,6 +370,7 @@
       live_timeout: "Live-Limit (Sekunden, 0 = kein Limit)",
       auto_live: "Live automatisch starten",
       auto_switch: "Bei Erkennung zur Kamera springen",
+      alert_other_only: "Erkennungs-Hinweis nur für andere Kameras",
       autoplay_next: "Nächsten Clip automatisch abspielen",
       battery_warning: "Akku-Warnung ab (%)",
       temperature_warning: "Temperatur-Warnung ab (°C)",
@@ -588,6 +589,7 @@
       live_timeout: "Live limit (seconds, 0 = no limit)",
       auto_live: "Start live automatically",
       auto_switch: "Jump to camera on detection",
+      alert_other_only: "Detection notice only for other cameras",
       autoplay_next: "Autoplay next clip",
       battery_warning: "Battery warning at (%)",
       temperature_warning: "Temperature warning at (°C)",
@@ -806,6 +808,7 @@
       live_timeout: "Limite du direct (secondes, 0 = sans limite)",
       auto_live: "Démarrer le direct automatiquement",
       auto_switch: "Basculer vers la caméra lors d’une détection",
+      alert_other_only: "Alerte de détection uniquement pour les autres caméras",
       autoplay_next: "Lire automatiquement le clip suivant",
       battery_warning: "Alerte batterie à partir de (%)",
       temperature_warning: "Alerte température à partir de (°C)",
@@ -1388,6 +1391,7 @@
         show_hub: true,
         layout: "auto",
         alert_seconds: 8,
+        alert_other_only: false,
         language: "auto",
         doorbell_timeout: 30,
         doorbell_sound: true,
@@ -1741,7 +1745,8 @@
         const fresh = list.filter((k) => !prev[i].includes(k));
         if (!fresh.length) return;
         const type = fresh[0];
-        this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
+        const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
+        if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
         if (!this._live) this._loadSnap(i, true);
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
         if (i !== this._idx && !this._grid) {
@@ -4007,7 +4012,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
           { type: "grid", name: "", schema: [
             { name: "auto_live", selector: { boolean: {} } },
-            { name: "auto_switch", selector: { boolean: {} } }
+            { name: "auto_switch", selector: { boolean: {} } },
+            { name: "alert_other_only", selector: { boolean: {} } }
           ] }
         ]),
         group("grp_playback", "mdi:play-box-multiple-outline", [
@@ -4043,7 +4049,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }

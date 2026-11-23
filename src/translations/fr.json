@@ -149,6 +149,7 @@
     "live_timeout": "Limite du direct (secondes, 0 = sans limite)",
     "auto_live": "Démarrer le direct automatiquement",
     "auto_switch": "Basculer vers la caméra lors d’une détection",
+    "alert_other_only": "Alerte de détection uniquement pour les autres caméras",
     "autoplay_next": "Lire automatiquement le clip suivant",
     "battery_warning": "Alerte batterie à partir de (%)",
     "temperature_warning": "Alerte température à partir de (°C)",

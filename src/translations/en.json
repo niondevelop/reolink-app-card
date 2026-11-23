@@ -149,6 +149,7 @@
     "live_timeout": "Live limit (seconds, 0 = no limit)",
     "auto_live": "Start live automatically",
     "auto_switch": "Jump to camera on detection",
+    "alert_other_only": "Detection notice only for other cameras",
     "autoplay_next": "Autoplay next clip",
     "battery_warning": "Battery warning at (%)",
     "temperature_warning": "Temperature warning at (°C)",

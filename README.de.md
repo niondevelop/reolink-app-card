@@ -116,6 +116,7 @@ cameras:
 | `auto_live`               | `true`        | Livebild automatisch starten, sobald die Karte sichtbar ist |
 | `auto_switch`             | `true`        | Bei einer Erkennung automatisch zur betroffenen Kamera springen |
 | `alert_seconds`           | `8`           | Wie lange der Erkennungs-Hinweis sichtbar bleibt |
+| `alert_other_only`        | `false`       | Erkennungs-Hinweis nur zeigen, wenn die erkennende Kamera nicht gerade im Bild ist. Die kleinen Erkennungs-Chips bleiben sichtbar |
 | `autoplay_next`           | `true`        | Nach dem Ende eines Clips den nächsten abspielen |
 | `battery_warning`         | `20`          | Akku-Warnung ab diesem Ladestand (%). `0` = aus |
 | `temperature_warning`     | `45`          | Warnung bei Batterietemperatur ab (°C). `false` = aus |

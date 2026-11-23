@@ -118,6 +118,7 @@ cameras:
 | `auto_live`               | `true`        | Start the live view automatically when the card becomes visible |
 | `auto_switch`             | `true`        | Jump to the camera that detected something |
 | `alert_seconds`           | `8`           | How long the detection notice stays visible |
+| `alert_other_only`        | `false`       | Show the detection notice only when the camera that detected something is not the one currently on screen. The small detection chips stay visible |
 | `autoplay_next`           | `true`        | Play the next clip when a clip ends |
 | `battery_warning`         | `20`          | Battery warning at or below this charge (%). `0` = off |
 | `temperature_warning`     | `45`          | Warning at or above this battery temperature (°C). `false` = off |

@@ -11,7 +11,7 @@ export default {
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
       default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
-      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
+      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, alert_other_only: false, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
       ...config,
     };
     this._cams = config.cameras.map((c) => {
@@ -325,7 +325,9 @@ export default {
       const fresh = list.filter((k) => !prev[i].includes(k));
       if (!fresh.length) return;
       const type = fresh[0];
-      this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
+      // Optional: Hinweis nur zeigen, wenn die Kamera nicht bereits im Bild ist
+      const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
+      if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
       if (!this._live) this._loadSnap(i, true);
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
       if (i !== this._idx && !this._grid) { this._idx = i; this._expired = false; this._rebuildCamera(); }
