@@ -149,6 +149,7 @@
     "live_timeout": "Live-Limit (Sekunden, 0 = kein Limit)",
     "auto_live": "Live automatisch starten",
     "auto_switch": "Bei Erkennung zur Kamera springen",
+    "alert_other_only": "Erkennungs-Hinweis nur für andere Kameras",
     "autoplay_next": "Nächsten Clip automatisch abspielen",
     "battery_warning": "Akku-Warnung ab (%)",
     "temperature_warning": "Temperatur-Warnung ab (°C)",

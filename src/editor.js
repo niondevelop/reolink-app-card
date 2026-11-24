@@ -74,6 +74,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         { type: 'grid', name: '', schema: [
           { name: 'auto_live', selector: { boolean: {} } },
           { name: 'auto_switch', selector: { boolean: {} } },
+          { name: 'alert_other_only', selector: { boolean: {} } },
         ] },
       ]),
       group('grp_playback', 'mdi:play-box-multiple-outline', [
@@ -109,7 +110,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         ] },
       ] },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     // Kameras mit zwei Objektiven: Auswahl, welches Objektiv die Kamera zeigt (lens; ergibt sich sonst aus entity)
     const lensField = { name: 'lens', selector: { select: { mode: 'dropdown', options: [{ value: '0', label: L.lens_0 }, { value: '1', label: L.lens_1 }] } } };
     const effLens = (c) => (c.lens != null && c.lens !== '' ? +c.lens || 0 : lensOf(c.entity));

@@ -6,6 +6,8 @@ import { esc } from '../util.js';
 
 /* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
 const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
+/* TrackMix: das Tele-Objektiv hat eigene Schlüssel statt „…_lens_1“ */
+const TELE_TK = { cam_sd: 'telephoto_sub', cam_hd: 'telephoto_main', snap: 'snapshots_telephoto_sub', snap_hd: 'snapshots_telephoto_main' };
 /* Interne Schlüssel bzw. Namensendungen der Sensoren für Zonen und Linien (Reolink „Smarte Erkennung“) */
 const ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
 const ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
@@ -17,7 +19,7 @@ export default {
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
       default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
-      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
+      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, alert_other_only: false, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
       ...config,
     };
     this._cams = config.cameras.map((c) => {
@@ -91,6 +93,7 @@ export default {
         const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
+      if (lens === 1 && TELE_TK[key] && dev[`${domain}:${TELE_TK[key]}`]) return dev[`${domain}:${TELE_TK[key]}`];
     }
     if (lens) {
       for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }
@@ -382,7 +385,9 @@ export default {
       const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
       const type = zone ? 'smart' : fresh[0];
       const what = zone ? zone.label : this._t(`evt_${type}`);
-      this._toast({ text: this._t('detected', { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
+      // Optional: Hinweis nur zeigen, wenn die Kamera nicht bereits im Bild ist
+      const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
+      if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
       if (!this._live) this._loadSnap(i, true);
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
       if (i !== this._idx && this._grid) this._gridSelect(i);

@@ -155,7 +155,7 @@
   function hasSecondLens(hass, cam) {
     if (!hass || !cam) return false;
     const reg = hass.entities || {}, states = hass.states || {};
-    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1);
+    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$|^telephoto_/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1);
     const start = cam.entity && reg[cam.entity] && cam.entity || Object.keys(states).find((id) => id.startsWith("camera.") && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
     const dev = start && reg[start].device_id;
     if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
@@ -383,6 +383,7 @@
       live_timeout: "Live-Limit (Sekunden, 0 = kein Limit)",
       auto_live: "Live automatisch starten",
       auto_switch: "Bei Erkennung zur Kamera springen",
+      alert_other_only: "Erkennungs-Hinweis nur für andere Kameras",
       autoplay_next: "Nächsten Clip automatisch abspielen",
       battery_warning: "Akku-Warnung ab (%)",
       temperature_warning: "Temperatur-Warnung ab (°C)",
@@ -604,6 +605,7 @@
       live_timeout: "Live limit (seconds, 0 = no limit)",
       auto_live: "Start live automatically",
       auto_switch: "Jump to camera on detection",
+      alert_other_only: "Detection notice only for other cameras",
       autoplay_next: "Autoplay next clip",
       battery_warning: "Battery warning at (%)",
       temperature_warning: "Temperature warning at (°C)",
@@ -825,6 +827,7 @@
       live_timeout: "Limite du direct (secondes, 0 = sans limite)",
       auto_live: "Démarrer le direct automatiquement",
       auto_switch: "Basculer vers la caméra lors d’une détection",
+      alert_other_only: "Alerte de détection uniquement pour les autres caméras",
       autoplay_next: "Lire automatiquement le clip suivant",
       battery_warning: "Alerte batterie à partir de (%)",
       temperature_warning: "Alerte température à partir de (°C)",
@@ -1393,6 +1396,7 @@
 
   // src/card/core.js
   var LENS_KEYS = ["cam_sd", "cam_bal", "cam_hd", "snap", "snap_hd"];
+  var TELE_TK = { cam_sd: "telephoto_sub", cam_hd: "telephoto_main", snap: "snapshots_telephoto_sub", snap_hd: "snapshots_telephoto_main" };
   var ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
   var ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
   var core_default = {
@@ -1413,6 +1417,7 @@
         show_hub: true,
         layout: "auto",
         alert_seconds: 8,
+        alert_other_only: false,
         language: "auto",
         doorbell_timeout: 30,
         doorbell_sound: true,
@@ -1511,6 +1516,7 @@
           const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
+        if (lens === 1 && TELE_TK[key] && dev[`${domain}:${TELE_TK[key]}`]) return dev[`${domain}:${TELE_TK[key]}`];
       }
       if (lens) {
         for (const s of suf) for (const w of ["objektiv", "lens", "linse"]) {
@@ -1812,7 +1818,8 @@
         const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
         const type = zone ? "smart" : fresh[0];
         const what = zone ? zone.label : this._t(`evt_${type}`);
-        this._toast({ text: this._t("detected", { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
+        const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
+        if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
         if (!this._live) this._loadSnap(i, true);
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
         if (i !== this._idx && this._grid) this._gridSelect(i);
@@ -2635,7 +2642,8 @@
             res.teleFolder = false;
           } else if (lens1) res.tele = lens1;
           else if (res.tele) res.teleFolder = true;
-          const pick = useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
+          const teleOwn = this._cam.lens && !own && res.tele;
+          const pick = teleOwn ? res.tele : useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
           res.used = useLens1 || pick === res.tele ? "tele" : pick === res.high ? "high" : "low";
           node = await this._browse(pick.media_content_id);
           kids = node.children || [];
@@ -4152,7 +4160,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
           { type: "grid", name: "", schema: [
             { name: "auto_live", selector: { boolean: {} } },
-            { name: "auto_switch", selector: { boolean: {} } }
+            { name: "auto_switch", selector: { boolean: {} } },
+            { name: "alert_other_only", selector: { boolean: {} } }
           ] }
         ]),
         group("grp_playback", "mdi:play-box-multiple-outline", [
@@ -4188,7 +4197,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       const lensField = { name: "lens", selector: { select: { mode: "dropdown", options: [{ value: "0", label: L.lens_0 }, { value: "1", label: L.lens_1 }] } } };
       const effLens = (c) => c.lens != null && c.lens !== "" ? +c.lens || 0 : lensOf(c.entity);
       const withLens = (c) => ({ ...c, lens: String(effLens(c)) });
