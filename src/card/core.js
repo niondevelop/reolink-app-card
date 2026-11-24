@@ -4,6 +4,9 @@ import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, prefixOf } from '
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
 
+/* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
+const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
+
 export default {
   setConfig(config) {
     if (!config || !Array.isArray(config.cameras) || !config.cameras.length) throw new Error(STR.de.need_cameras);
@@ -22,7 +25,10 @@ export default {
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix,
       // und bei neuen deutschen Entitäts-IDs („…_fliessend“) die ganze ID ohne „camera.“
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+      // Kameras mit zwei Objektiven: welches diese Kachel zeigt (lens: 1 oder Entität „… objektiv 1“ / „… lens 1“)
+      const lensM = String(entity || '').match(/_(lens|objektiv|linse)_(\d)$/);
+      const lens = c.lens != null && c.lens !== '' && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : (lensM ? +lensM[2] : 0);
+      return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -75,11 +81,18 @@ export default {
     // Kamera eines anderen Herstellers: nur das Livebild, alle Reolink-Funktionen fehlen (ausser per entities gesetzt)
     if (this._foreign(cam)) return key === 'cam_sd' ? cam.entity : `${domain}.rac_none_${key}`;
     const dev = this._devIndex(cam);
+    // Kachel für ein weiteres Objektiv: dessen Streams; „2. Objektiv“ als eigene Stufe gibt es dort nicht
+    const lens = domain === 'camera' && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
+    if (cam.lens && key === 'cam_tele') return `${domain}.rac_none_${key}`;
     if (dev) {
       for (const tk of [].concat(TK[key] || [])) {
-        const id = dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
+        const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
+    }
+    if (lens) {
+      for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }
+      return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
     const reg = (this._hass && this._hass.entities) || {};
@@ -122,7 +135,11 @@ export default {
     // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)
     const dev = this._hass.devices && this._hass.devices[cam._devId];
     const devName = dev && (dev.name_by_user || dev.name);
-    if (devName) { if (!cam.nameSet) cam.name = devName; if (!cam.mediaSet) cam.media_name = devName; }
+    if (devName) {
+      // Kachel für das zweite Objektiv: „Gerät – Tele“ bzw. „Gerät – 2. Objektiv“, damit beide Kacheln unterscheidbar sind
+      if (!cam.nameSet) cam.name = cam.lens ? `${devName} – ${this._qLabel('tele', cam)}` : devName;
+      if (!cam.mediaSet) cam.media_name = devName;
+    }
     return idx;
   },
 

@@ -100,3 +100,43 @@ test('TrackMix ohne Hub: Tele-Aufnahmen vom zweiten Objektiv', async () => {
   assert.match((await c.rec()).resolved.at(-1), /^R\|1\|/); // „TrackMix lens 1“
   await c.close();
 });
+
+/* Eigene Kachel je Objektiv: Entität „… objektiv 1“ (oder lens: 1) zeigt Livebild und Aufnahmen des zweiten Objektivs */
+const L1 = {
+  'camera.hof_standardauflosung_objektiv_0': 'sub_lens_0', 'camera.hof_standardauflosung_objektiv_1': 'sub_lens_1',
+  'camera.hof_ost_hochauflosung_objektiv_0': 'main_lens_0', 'camera.hof_ost_hochauflosung_objektiv_1': 'main_lens_1',
+  'button.hof_ptz_links': 'ptz_left',
+};
+const l1st = {}, l1en = {};
+Object.entries(L1).forEach(([id, tk]) => { l1st[id] = id.startsWith('camera') ? img : 'off'; l1en[id] = { entity_id: id, device_id: 'dH', platform: 'reolink', translation_key: tk }; });
+const L1HASS = { states: l1st, entities: l1en, devices: { dH: { name: 'Hof', model: 'OMVI 3i PoE' } }, mediaCameras: ['Hof lens 0', 'Hof lens 1'], files: ['08:00:00 0:00:40 Person'], resolutions: true };
+
+for (const [label, cam] of [['Entität des zweiten Objektivs', { entity: 'camera.hof_standardauflosung_objektiv_1' }], ['lens: 1', { prefix: 'hof', lens: 1 }]]) {
+  test(`Zweites Objektiv als eigene Kachel (${label}): Streams, Name, PTZ`, async () => {
+    const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }, cam], auto_live: false, show_hub: false }, hass: L1HASS });
+    const r = await c.run(() => {
+      const k = window.__card, [a, b] = k._cams;
+      return { a: [k._e('cam_sd', a), k._e('cam_hd', a), k._e('cam_tele', a)], b: [k._e('cam_sd', b), k._e('cam_hd', b)], bTele: !!k._st(k._e('cam_tele', b)), names: [a.name, b.name], ptz: k._hasPtz(b) };
+    });
+    assert.deepEqual(r, {
+      a: ['camera.hof_standardauflosung_objektiv_0', 'camera.hof_ost_hochauflosung_objektiv_0', 'camera.hof_standardauflosung_objektiv_1'],
+      b: ['camera.hof_standardauflosung_objektiv_1', 'camera.hof_ost_hochauflosung_objektiv_1'],
+      bTele: false, names: ['Hof', 'Hof – 2. Objektiv'], ptz: true,
+    });
+    assert.deepEqual(c.errors, []);
+    await c.close();
+  });
+}
+
+test('Zweites Objektiv als eigene Kachel: Aufnahmen vom zweiten Objektiv, ohne Objektiv-Umschalter', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_1' }], auto_live: false, show_hub: false }, hass: L1HASS });
+  await c.click('#m-play');
+  await wait(400);
+  const btns = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#pq button')].filter((b) => b.style.display !== 'none').map((b) => b.textContent));
+  assert.deepEqual(btns, ['Niedrig', 'Hoch']);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /^R\|1\|/); // „Hof lens 1“
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});

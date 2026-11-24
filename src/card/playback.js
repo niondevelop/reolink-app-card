@@ -133,14 +133,16 @@ export default {
       if (!camNode) throw new Error(this._t('cam_not_found'));
       // Direkt eingebundene TrackMix/Duo: zweites Objektiv als eigener Eintrag „Name lens 1“
       const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
-      const useLens1 = this._playQ === 'tele' && lens1;
-      let node = await this._browse((useLens1 ? lens1 : camNode).media_content_id);
+      // Kachel für ein weiteres Objektiv (lens: 1): immer dessen Aufnahmen, ohne Umschalter zum anderen Objektiv
+      const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
+      const useLens1 = !own && this._playQ === 'tele' && lens1;
+      let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
       let kids = node.children || [];
       // Auflösungsebene (falls vorhanden): gewählte Auflösung, sonst die andere
       let res = null;
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
         res = this._resNodes(kids);
-        if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
+        if (own) res.tele = null; else if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
         const pick = useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
         res.used = useLens1 || pick === res.tele ? 'tele' : pick === res.high ? 'high' : 'low';
         node = await this._browse(pick.media_content_id);

@@ -1370,6 +1370,7 @@
   };
 
   // src/card/core.js
+  var LENS_KEYS = ["cam_sd", "cam_bal", "cam_hd", "snap", "snap_hd"];
   var core_default = {
     setConfig(config) {
       if (!config || !Array.isArray(config.cameras) || !config.cameras.length) throw new Error(STR.de.need_cameras);
@@ -1400,7 +1401,9 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, "");
-        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+        const lensM = String(entity || "").match(/_(lens|objektiv|linse)_(\d)$/);
+        const lens = c.lens != null && c.lens !== "" && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensM ? +lensM[2] : 0;
+        return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
       this._mode = "live";
@@ -1478,11 +1481,20 @@
       const [domain, ...suf] = ENT[key];
       if (this._foreign(cam)) return key === "cam_sd" ? cam.entity : `${domain}.rac_none_${key}`;
       const dev = this._devIndex(cam);
+      const lens = domain === "camera" && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
+      if (cam.lens && key === "cam_tele") return `${domain}.rac_none_${key}`;
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
-          const id = dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
+          const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
+      }
+      if (lens) {
+        for (const s of suf) for (const w of ["objektiv", "lens", "linse"]) {
+          const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`;
+          if (this._st(id)) return id;
+        }
+        return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
       }
       const reg = this._hass && this._hass.entities || {};
       const wrongKey = (id) => {
@@ -1524,7 +1536,7 @@
       const dev = this._hass.devices && this._hass.devices[cam._devId];
       const devName = dev && (dev.name_by_user || dev.name);
       if (devName) {
-        if (!cam.nameSet) cam.name = devName;
+        if (!cam.nameSet) cam.name = cam.lens ? `${devName} – ${this._qLabel("tele", cam)}` : devName;
         if (!cam.mediaSet) cam.media_name = devName;
       }
       return idx;
@@ -2490,13 +2502,15 @@
         const camNode = await this._findCameraNode();
         if (!camNode) throw new Error(this._t("cam_not_found"));
         const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
-        const useLens1 = this._playQ === "tele" && lens1;
-        let node = await this._browse((useLens1 ? lens1 : camNode).media_content_id);
+        const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
+        const useLens1 = !own && this._playQ === "tele" && lens1;
+        let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
         let kids = node.children || [];
         let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
           res = this._resNodes(kids);
-          if (lens1) res.tele = lens1;
+          if (own) res.tele = null;
+          else if (lens1) res.tele = lens1;
           else if (res.tele) res.teleFolder = true;
           const pick = useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
           res.used = useLens1 || pick === res.tele ? "tele" : pick === res.high ? "high" : "low";
