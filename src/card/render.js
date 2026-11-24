@@ -352,7 +352,10 @@ export default {
     this._updateTimer();
     $('stop').style.display = this._live || playing ? '' : 'none';
     $('stop').title = this._t('stop_live');
+    const fsOn = !!(this._pseudoFs || document.fullscreenElement || document.webkitFullscreenElement);
     $('fs').title = this._t('fullscreen');
+    const fsIcon = $('fs').querySelector('ha-icon'), fsWant = fsOn ? 'mdi:fullscreen-exit' : 'mdi:fullscreen';
+    if (fsIcon.getAttribute('icon') !== fsWant) fsIcon.setAttribute('icon', fsWant);
     $('bigplay').title = this._t('start_live');
     $('bigplay').style.display = this._live || playing || this._mode !== 'live' ? 'none' : '';
     $('speed').style.display = playing ? '' : 'none';
