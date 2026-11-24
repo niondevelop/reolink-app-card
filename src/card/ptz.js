@@ -23,7 +23,7 @@ export default {
 
   _updatePtz() {
     const box = this.$('ptz');
-    const show = this._ptzOpen && !this._grid && this._mode === 'live' && this._hasPtz();
+    const show = this._ptzOpen && this._mode === 'live' && this._hasPtz();
     box.classList.toggle('open', !!show);
     if (!show) return;
     const preset = this._e('ptz_preset'), ps = this._st(preset);

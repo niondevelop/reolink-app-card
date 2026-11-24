@@ -1784,7 +1784,8 @@
         this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
         if (!this._live) this._loadSnap(i, true);
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
-        if (i !== this._idx && !this._grid) {
+        if (i !== this._idx && this._grid) this._gridSelect(i);
+        else if (i !== this._idx) {
           this._idx = i;
           this._expired = false;
           this._rebuildCamera();
@@ -2175,6 +2176,17 @@
         if (this._sound) this._applySound();
       }
     },
+    /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
+    _gridSelect(i) {
+      if (i === this._idx) return;
+      this._idx = i;
+      this._ptzOpen = false;
+      this._qOpen = false;
+      this._ensureQ();
+      this._loadSnap(i);
+      if (this._live && this._quality !== "fluent") this._makePic();
+      else this._update();
+    },
     _renderGrid(liveEls) {
       const grid = this.$("grid");
       grid.innerHTML = "";
@@ -2189,9 +2201,10 @@
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
         if (liveEls[i]) cell.querySelector(".pic").appendChild(liveEls[i]);
         cell.onclick = () => {
-          this._idx = i;
-          this._setGrid(false);
-          this._rebuildCamera();
+          if (i === this._idx) {
+            this._setGrid(false);
+            this._rebuildCamera();
+          } else this._gridSelect(i);
         };
         grid.appendChild(cell);
       });
@@ -2947,7 +2960,7 @@
     },
     _updatePtz() {
       const box = this.$("ptz");
-      const show = this._ptzOpen && !this._grid && this._mode === "live" && this._hasPtz();
+      const show = this._ptzOpen && this._mode === "live" && this._hasPtz();
       box.classList.toggle("open", !!show);
       if (!show) return;
       const preset = this._e("ptz_preset"), ps = this._st(preset);
@@ -3054,7 +3067,9 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }
 .cell { position: relative; aspect-ratio: 16/9; background: #111; overflow: hidden; cursor: pointer; }
 .cell::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: box-shadow .2s; }
+.cell.sel::after { box-shadow: inset 0 0 0 3px var(--primary-color, #1e8bff); }
 .cell.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b; }
+.cell.sel.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b, inset 0 0 0 6px var(--primary-color, #1e8bff); }
 .cell .cl { z-index: 3; }
 .cell .cl { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; font-weight: 600; }
 .ov { position: absolute; left: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
@@ -3458,7 +3473,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         light: () => this._st(light) && { icon: "mdi:flashlight", label: this._t("spotlight"), on: this._on(light), run: () => this._call("light", "toggle", light) },
         rec: () => this._st(mrec) && { icon: "mdi:video-outline", label: this._t("record"), on: this._on(mrec), run: () => this._call("switch", "toggle", mrec) },
         snap: () => ({ icon: "mdi:camera-outline", label: this._t("snapshot"), run: () => this._snapshot() }),
-        ptz: () => !this._grid && this._hasPtz() && {
+        ptz: () => this._hasPtz() && {
           icon: "mdi:arrow-all",
           label: this._t("ptz"),
           on: this._ptzOpen,
@@ -3468,7 +3483,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             this._update();
           }
         },
-        q: () => this._qAvail().length && !this._grid && {
+        q: () => this._qAvail().length && {
           icon: Q[this._quality].icon,
           label: `${this._t("quality")}: ${this._t(Q[this._quality].key)}`,
           on: this._qOpen,
@@ -3646,6 +3661,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         cell.querySelector(".cb").textContent = bat ? ` · ${bat.v}%` : "";
         cell.querySelector(".dot").className = `dot ${this._camDot(cam)}`;
         cell.classList.toggle("alert", this._det(cam).length > 0);
+        cell.classList.toggle("sel", this._cams.length > 1 && +cell.dataset.i === this._idx);
       });
       this._updateTimer();
       $("stop").style.display = this._live || playing ? "" : "none";
