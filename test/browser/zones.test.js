@@ -54,3 +54,20 @@ test('Ohne Geräteregister: Zonen über die Namensendungen (deutsch)', async () 
   assert.deepEqual(zones, ['Person-Grenzlinie Mauer']);
   await c.close();
 });
+
+test('Ohne Register: Präfix „hof“ übernimmt keine Zonen von „hof_ost“; Zone allein löst Hinweis aus', async () => {
+  const st = {
+    'camera.hof_standardauflosung': img, 'camera.hof_ost_standardauflosung': img,
+    'binary_sensor.hof_person_grenzlinie_mauer': ['off', { friendly_name: 'Hof Person-Grenzlinie Mauer' }],
+    'binary_sensor.hof_ost_person_grenzlinie_tor': ['off', { friendly_name: 'Hof Ost Person-Grenzlinie Tor' }],
+  };
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'hof_ost', name: 'Hof Ost' }, { prefix: 'hof', name: 'Hof' }], auto_live: false, show_hub: false }, hass: { states: st } });
+  const r = await c.run(() => window.__card._cams.map((cam) => window.__card._zoneSensors(cam).map((z) => z.id)));
+  assert.deepEqual(r, [['binary_sensor.hof_ost_person_grenzlinie_tor'], ['binary_sensor.hof_person_grenzlinie_mauer']]);
+  await c.run(() => window.setState('binary_sensor.hof_person_grenzlinie_mauer', 'on'));
+  await wait(100);
+  const i = await c.info();
+  assert.match(i.toast, /Grenzlinie Mauer/);
+  assert.equal(i.cam, 'Hof');
+  await c.close();
+});

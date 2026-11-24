@@ -181,6 +181,8 @@ export default {
       Object.values(cam.over).forEach((id) => ids.add(id));
       if (this._devIndex(cam)) Object.keys(reg).forEach((id) => { if (reg[id].device_id === cam._devId) ids.add(id); });
       Object.values(ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${cam.prefix}_${x}`)));
+      // Zonen/Linien (ohne Register nicht in der Geräteliste)
+      this._zoneSensors(cam).forEach((z) => ids.add(z.id));
     });
     [this._config.hub_prefix, this._hubAuto].filter(Boolean).forEach((pre) => Object.values(HUB_ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${pre}_${x}`))));
     Object.values(this._config.hub_entities || {}).forEach((id) => ids.add(id));
@@ -206,9 +208,14 @@ export default {
     const dev = this._devIndex(cam);
     if (dev && cam._zones) return cam._zones;
     const states = (this._hass && this._hass.states) || {}, reg = (this._hass && this._hass.entities) || {};
+    // Ohne Register: Suche über alle Zustände nur einmal je Zustandsobjekt
+    if (!dev && cam._zonesFor === states && cam._zonesNoReg) return cam._zonesNoReg;
+    // Längere Präfixe anderer Kameras (z. B. „hof_ost“ neben „hof“) gehören nicht zu dieser Kamera
+    const longer = this._cams.map((c) => c.prefix).filter((p) => p && p !== cam.prefix && p.startsWith(`${cam.prefix}_`));
     const ids = dev
       ? Object.keys(reg).filter((id) => reg[id].device_id === cam._devId && id.startsWith('binary_sensor.') && ZONE_TK.test(reg[id].translation_key || ''))
-      : Object.keys(states).filter((id) => id.startsWith(`binary_sensor.${cam.prefix}_`) && ZONE_ID.test(id.slice(`binary_sensor.${cam.prefix}_`.length)));
+      : Object.keys(states).filter((id) => id.startsWith(`binary_sensor.${cam.prefix}_`) && ZONE_ID.test(id.slice(`binary_sensor.${cam.prefix}_`.length))
+        && !longer.some((p) => id.startsWith(`binary_sensor.${p}_`)));
     const devObj = dev && this._hass.devices && this._hass.devices[cam._devId];
     const names = [devObj && devObj.name_by_user, devObj && devObj.name, cam.name].filter(Boolean);
     const list = ids.map((id) => {
@@ -218,6 +225,7 @@ export default {
       return { id, label };
     }).sort((a, b) => a.label.localeCompare(b.label));
     if (dev) cam._zones = list;
+    else { cam._zonesFor = states; cam._zonesNoReg = list; }
     return list;
   },
 
