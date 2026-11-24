@@ -32,3 +32,25 @@ test('Einstellungen: Gruppen einzeln auf- und zuklappen, 0 oder mehrere offen', 
   assert.deepEqual(c.errors, []);
   await c.close();
 });
+
+test('Seitenleiste: offene Gruppen werden nicht gestaucht (die Leiste scrollt stattdessen)', async () => {
+  const states = { ...STATES, 'number.hof_ki_personen_empfindlichkeit': ['100', { min: 0, max: 100, step: 1 }], 'number.hof_ki_fahrzeug_empfindlichkeit': ['60', { min: 0, max: 100, step: 1 }], 'number.hof_ki_tier_empfindlichkeit': ['100', { min: 0, max: 100, step: 1 }],
+    'switch.hof_push_benachrichtigungen': 'on', 'switch.hof_infrarotlicht_im_nachtmodus': 'on', 'light.hof_status_led': 'on',
+    'select.hof_tag_nacht_modus': ['auto', { options: ['auto', 'color', 'black_white'] }], 'number.hof_lautstarke': ['100', { min: 0, max: 100, step: 1 }],
+    'switch.hof_audio_aufnehmen': 'on', 'switch.hof_sirene_bei_ereignis': 'off' };
+  const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'hof' }], auto_live: false, show_hub: false }, hass: { states } });
+  await c.page.setViewportSize({ width: 1140, height: 900 });
+  await c.run(() => { document.getElementById('wrap').style.width = '1100px'; });
+  await wait(300);
+  await c.click('#p-set');
+  await wait(300);
+  const n = await c.run(() => window.__card.shadowRoot.querySelectorAll('#settings .gh').length);
+  for (let i = 1; i < n; i += 1) await tap(c, i);
+  await wait(100);
+  const r = await c.run(() => {
+    const box = window.__card.shadowRoot.getElementById('settings');
+    return { squeezed: [...box.querySelectorAll('.grp.open')].some((g) => g.scrollHeight > g.clientHeight + 1), scrolls: box.scrollHeight > box.clientHeight };
+  });
+  assert.deepEqual(r, { squeezed: false, scrolls: true });
+  await c.close();
+});

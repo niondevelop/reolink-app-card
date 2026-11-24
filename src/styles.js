@@ -170,7 +170,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .more span { flex: 1; text-align: left; }
 .more ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); }
 .settings { padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
-.grp { border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
+.grp { flex: none; border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
 .gh { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600; text-align: left; }
 .gh span { flex: 1; }
 .gh ha-icon { --mdc-icon-size: 20px; }
