@@ -240,6 +240,7 @@ export default {
     if (this._onVis) { document.removeEventListener('visibilitychange', this._onVis); this._onVis = null; }
     this._visible = false;
     this._stopLive(true);
+    this._fsCleanup();
   },
 
   /* ---------- Sichtbarkeit & Auto-Live ---------- */

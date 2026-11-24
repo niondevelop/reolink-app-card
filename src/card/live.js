@@ -230,10 +230,40 @@ export default {
   },
 
   /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+  /* Bildfläche über den ganzen Bildschirm. Wo möglich in der obersten Ebene (Popover): dort stören weder
+     Container mit transform/filter noch die Kopfleiste. Escape beendet; die Seite dahinter scrollt nicht. */
   _setPseudoFs(on) {
-    this._pseudoFs = !!on;
-    this.$('stage').classList.toggle('pseudofs', this._pseudoFs);
-    this._update();
+    on = !!on;
+    if (on === !!this._pseudoFs) return;
+    this._pseudoFs = on;
+    const st = this.$ && this.$('stage');
+    if (st) {
+      st.classList.toggle('pseudofs', on);
+      if (typeof st.showPopover === 'function') {
+        try {
+          if (on) { st.setAttribute('popover', 'manual'); st.showPopover(); } else { if (st.matches(':popover-open')) st.hidePopover(); st.removeAttribute('popover'); }
+        } catch (_) { /* ohne Popover: nur CSS */ }
+      }
+    }
+    const root = document.documentElement;
+    if (on) {
+      this._fsOverflow = root.style.overflow;
+      root.style.overflow = 'hidden';
+      this._fsKey = (e) => { if (e.key === 'Escape') this._setPseudoFs(false); };
+      document.addEventListener('keydown', this._fsKey);
+    } else {
+      root.style.overflow = this._fsOverflow || '';
+      if (this._fsKey) document.removeEventListener('keydown', this._fsKey);
+      this._fsKey = null;
+    }
+    if (this.$) this._update();
+  },
+
+  /* Beim Abhängen der Karte: Vollbild-Ersatz beenden und Listener am Dokument entfernen */
+  _fsCleanup() {
+    this._setPseudoFs(false);
+    if (this._fsListen) ['fullscreenchange', 'webkitfullscreenchange'].forEach((t) => document.removeEventListener(t, this._fsListen));
+    this._fsListen = null;
   },
 
   /* ---------- Digitaler Zoom ---------- */
