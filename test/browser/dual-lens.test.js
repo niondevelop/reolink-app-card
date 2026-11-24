@@ -211,21 +211,21 @@ test('Nur Objektiv 0 eingetragen: „2. Objektiv“ bleibt wie bisher', async ()
   await c.close();
 });
 
-test('Zwei Objektiv-Kacheln: eine Erkennung, ein Hinweis, die gewählte Kachel bleibt', async () => {
+test('Zwei Objektiv-Kacheln: eine Erkennung, die gewählte Kachel bleibt, kein doppelter Hinweis', async () => {
   const states = { ...L1HASS.states, 'camera.tor_standardauflosung': img, 'binary_sensor.tor_person': 'off' };
   const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.tor_standardauflosung' }, { entity: 'camera.hof_standardauflosung_objektiv_0' }, { entity: 'camera.hof_standardauflosung_objektiv_1' }], auto_live: false, show_hub: false, auto_switch: true }, hass: { ...L1HASS, states } });
   // Tor gewählt: Erkennung am Hof wechselt auf die erste Kachel des Geräts (Objektiv 0), nicht auf Objektiv 1
   await c.run(() => { window.__toasts = []; const k = window.__card, t = k._toast.bind(k); k._toast = (x) => { window.__toasts.push(x.text); t(x); }; window.setState('binary_sensor.hof_person', 'on'); });
   await wait(100);
   let r = await c.run(() => ({ idx: window.__card._idx, toasts: window.__toasts.length }));
-  assert.deepEqual(r, { idx: 1, toasts: 1 });
+  assert.deepEqual(r, { idx: 1, toasts: 0 }); // Sprung zur Kamera: Pill im Bild statt Hinweis
   // Objektiv 1 gewählt: neue Erkennung lässt die Auswahl dort
   await c.run(() => { window.__card._idx = 2; window.__card._rebuildCamera(); window.setState('binary_sensor.hof_person', 'off'); });
   await wait(50);
   await c.run(() => { window.__toasts = []; window.setState('binary_sensor.hof_person', 'on'); });
   await wait(100);
   r = await c.run(() => ({ idx: window.__card._idx, toasts: window.__toasts.length }));
-  assert.deepEqual(r, { idx: 2, toasts: 1 });
+  assert.deepEqual(r, { idx: 2, toasts: 0 });
   assert.deepEqual(c.errors, []);
   await c.close();
 });
@@ -280,5 +280,14 @@ test('TrackMix an Hub: lens 1 nimmt den Tele-Stream und die Tele-Aufnahmen; Obje
   const fields = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema.map((s) => s.name));
   assert.ok(fields.includes('lens'));
   assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Zwei Objektiv-Kacheln ohne Sprung: nur ein Hinweis pro Gerät', async () => {
+  const states = { ...L1HASS.states, 'camera.tor_standardauflosung': img, 'binary_sensor.tor_person': 'off' };
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.tor_standardauflosung' }, { entity: 'camera.hof_standardauflosung_objektiv_0' }, { entity: 'camera.hof_standardauflosung_objektiv_1' }], auto_live: false, show_hub: false, auto_switch: false }, hass: { ...L1HASS, states } });
+  await c.run(() => { window.__toasts = []; const k = window.__card, t = k._toast.bind(k); k._toast = (x) => { window.__toasts.push(x.text); t(x); }; window.setState('binary_sensor.hof_person', 'on'); });
+  await wait(100);
+  assert.deepEqual(await c.run(() => ({ idx: window.__card._idx, toasts: window.__toasts.length })), { idx: 0, toasts: 1 });
   await c.close();
 });

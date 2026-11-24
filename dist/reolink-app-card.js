@@ -394,7 +394,8 @@
       confirm_action: "„{name}“ ausführen?",
       confirm_btn: "Ausführen",
       sd_full: "SD-Karte {name} fast voll ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Verlauf des Ladestands"
     },
     editor: {
       mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -468,7 +469,8 @@
       show_controls: "Bedienpanel unter dem Bild anzeigen",
       show_settings: "Einstellungen anzeigen",
       show_mode: "Modus-Zeile anzeigen",
-      talk_prepare: "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)"
+      talk_prepare: "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)",
+      grid_columns: "Spalten in der Rasteransicht"
     }
   };
 
@@ -625,7 +627,8 @@
       confirm_action: "Run “{name}”?",
       confirm_btn: "Run",
       sd_full: "SD card {name} almost full ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Battery level history"
     },
     editor: {
       mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
@@ -699,7 +702,8 @@
       show_controls: "Show control panel under the image",
       show_settings: "Show settings",
       show_mode: "Show mode row",
-      talk_prepare: "Prepare two-way audio (faster start, talk channel open while live)"
+      talk_prepare: "Prepare two-way audio (faster start, talk channel open while live)",
+      grid_columns: "Columns in grid view"
     }
   };
 
@@ -856,7 +860,8 @@
       confirm_action: "Exécuter « {name} » ?",
       confirm_btn: "Exécuter",
       sd_full: "Carte SD {name} presque pleine ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Historique de la batterie"
     },
     editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -930,7 +935,8 @@
       show_controls: "Afficher le panneau de commande sous l’image",
       show_settings: "Afficher les réglages",
       show_mode: "Afficher la ligne de mode",
-      talk_prepare: "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
+      talk_prepare: "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)",
+      grid_columns: "Colonnes de la vue grille"
     }
   };
 
@@ -1898,8 +1904,11 @@
         const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
         const type = zone ? "smart" : fresh[0];
         const what = zone ? zone.label : this._t(`evt_${type}`);
-        const watching = this._visible && !document.hidden && (this._grid || group.includes(this._idx));
-        if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+        const visible = this._visible && !document.hidden;
+        const jumps = this._config.auto_switch && this._mode === "live" && !this._playing && !this._grid;
+        const single = visible && !this._grid && this._mode === "live" && !this._playing && (group.includes(this._idx) || jumps);
+        const watching = visible && (this._grid || group.includes(this._idx));
+        if (!single && !(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
         if (!this._live) group.forEach((j) => this._loadSnap(j, true));
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
         if (t !== this._idx && !this._grid) {
@@ -1951,6 +1960,11 @@
       el.classList.add("show");
       clearTimeout(this._toastT);
       this._toastT = setTimeout(() => el.classList.remove("show"), (+this._config.alert_seconds || 8) * 1e3);
+    },
+    /* Detailfenster von Home Assistant (mit Verlauf) für eine Entität öffnen */
+    _moreInfo(entityId) {
+      if (!entityId || !this._st(entityId)) return;
+      this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
     },
     /* ---------- Steuerung ---------- */
     _call(domain, service, entity_id, data = {}) {
@@ -2342,7 +2356,8 @@
       const grid = this.$("grid");
       grid.innerHTML = "";
       if (!this._grid) return;
-      grid.style.setProperty("--cols", this._cams.length > 4 ? 3 : 2);
+      const gc = Math.round(+this._config.grid_columns);
+      grid.style.setProperty("--cols", gc >= 1 && gc <= 4 ? gc : this._cams.length > 4 ? 3 : 2);
       this._cams.forEach((c, i) => {
         const cell = document.createElement("div");
         cell.className = "cell";
@@ -3403,6 +3418,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .ov > *, .ov .pillrow > * { pointer-events: auto; }
 .ov.top { top: 8px; justify-content: space-between; }
 .ov.det { top: 42px; flex-wrap: wrap; }
+.pill.btn.bat { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .ov.bottom { bottom: 8px; }
 .stage.gridmode .ov.top, .stage.gridmode .ov.det, .stage.gridmode #fs { display: none; }
 .stage.gridmode .ov.bottom { top: 8px; bottom: auto; }
@@ -3986,9 +4002,14 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           stat += `<span class="pill" title="${this._t("wifi")} ${w < 0 ? w + " dBm" : bars + "/4"}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
         }
         const bat = this._batteryIcon(c);
-        if (bat) stat += `<span class="pill ${bat.v <= this._config.battery_warning && !bat.charging ? "low" : ""}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</span>`;
+        if (bat) stat += `<button class="pill btn bat ${bat.v <= this._config.battery_warning && !bat.charging ? "low" : ""}" title="${this._t("battery_history")}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</button>`;
       }
-      $("stat").innerHTML = stat;
+      if ($("stat").dataset.sig !== stat) {
+        $("stat").dataset.sig = stat;
+        $("stat").innerHTML = stat;
+        const bb = $("stat").querySelector(".bat");
+        if (bb) bb.onclick = () => this._moreInfo(this._e("battery"));
+      }
       const active = this._grid ? [] : this._det(c);
       const zones = this._grid ? [] : this._zones(c);
       $("det").innerHTML = zones.map((z) => `<span class="pill det" style="--c:${EVT.smart.color}"><ha-icon icon="${EVT.smart.icon}"></ha-icon>${esc(z.label)}</span>`).join("") + active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join("");
@@ -4389,6 +4410,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
             { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } }
           ] },
+          { name: "grid_columns", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, ...["1", "2", "3", "4"].map((v) => ({ value: v, label: v }))] } } },
           { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } },
           { type: "grid", name: "", schema: [
             { name: "show_camera_tabs", selector: { boolean: {} } },
@@ -4450,7 +4472,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, grid_columns: "auto", layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
       const lensField = { name: "lens", selector: { select: { mode: "dropdown", options: [{ value: "0", label: L.lens_0 }, { value: "1", label: L.lens_1 }] } } };
       const effLens = (c) => c.lens != null && c.lens !== "" ? +c.lens || 0 : lensOf(c.entity);
       const withLens = (c) => ({ ...c, lens: String(effLens(c)) });
@@ -4608,6 +4630,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         if (this._config.show_scene === void 0) data.show_scene = false;
         if (this._config.show_sd === void 0) data.show_sd = false;
       }
+      if (data.grid_columns !== void 0) data.grid_columns = String(data.grid_columns);
       gen.data = data;
       gen.addEventListener("value-changed", (e) => {
         const v = e.detail.value, cfg = { ...this._config };
@@ -4616,6 +4639,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           if (v[k] === void 0 || v[k] === null || v[k] === defOf(k)) delete cfg[k];
           else cfg[k] = v[k];
         });
+        if (cfg.grid_columns !== void 0) cfg.grid_columns = +cfg.grid_columns;
         gen.data = { ...v };
         this._changed(cfg);
       });

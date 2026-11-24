@@ -334,9 +334,15 @@ export default {
         stat += `<span class="pill" title="${this._t('wifi')} ${w < 0 ? w + ' dBm' : bars + '/4'}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
       }
       const bat = this._batteryIcon(c);
-      if (bat) stat += `<span class="pill ${bat.v <= this._config.battery_warning && !bat.charging ? 'low' : ''}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</span>`;
+      // Antippen öffnet den Verlauf des Ladestands (Detailfenster von Home Assistant)
+      if (bat) stat += `<button class="pill btn bat ${bat.v <= this._config.battery_warning && !bat.charging ? 'low' : ''}" title="${this._t('battery_history')}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</button>`;
     }
-    $('stat').innerHTML = stat;
+    if ($('stat').dataset.sig !== stat) {
+      $('stat').dataset.sig = stat;
+      $('stat').innerHTML = stat;
+      const bb = $('stat').querySelector('.bat');
+      if (bb) bb.onclick = () => this._moreInfo(this._e('battery'));
+    }
 
     const active = this._grid ? [] : this._det(c);
     const zones = this._grid ? [] : this._zones(c);

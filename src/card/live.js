@@ -175,7 +175,9 @@ export default {
     const grid = this.$('grid');
     grid.innerHTML = '';
     if (!this._grid) return;
-    grid.style.setProperty('--cols', this._cams.length > 4 ? 3 : 2);
+    // Spalten: Option grid_columns (1–4), sonst automatisch (bis 4 Kameras 2, darüber 3)
+    const gc = Math.round(+this._config.grid_columns);
+    grid.style.setProperty('--cols', gc >= 1 && gc <= 4 ? gc : this._cams.length > 4 ? 3 : 2);
     this._cams.forEach((c, i) => {
       const cell = document.createElement('div');
       cell.className = 'cell';

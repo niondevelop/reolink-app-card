@@ -417,9 +417,13 @@ export default {
       const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
       const type = zone ? 'smart' : fresh[0];
       const what = zone ? zone.label : this._t(`evt_${type}`);
-      // Optional: Hinweis nur zeigen, wenn die Kamera nicht bereits im Bild ist
-      const watching = this._visible && !document.hidden && (this._grid || group.includes(this._idx));
-      if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+      // Kamera ist (oder wird gleich durch den Sprung) in der Einzelansicht zu sehen: die Erkennungs-Pill im Bild
+      // zeigt es schon, also kein zusätzlicher Hinweis. Mit alert_other_only auch nicht im Raster.
+      const visible = this._visible && !document.hidden;
+      const jumps = this._config.auto_switch && this._mode === 'live' && !this._playing && !this._grid;
+      const single = visible && !this._grid && this._mode === 'live' && !this._playing && (group.includes(this._idx) || jumps);
+      const watching = visible && (this._grid || group.includes(this._idx));
+      if (!single && !(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
       if (!this._live) group.forEach((j) => this._loadSnap(j, true));
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
       // Im Raster nur die rote Markierung, die Auswahl (und damit das Ziel der Tasten) bleibt
@@ -459,6 +463,12 @@ export default {
     el.classList.add('show');
     clearTimeout(this._toastT);
     this._toastT = setTimeout(() => el.classList.remove('show'), (+this._config.alert_seconds || 8) * 1000);
+  },
+
+  /* Detailfenster von Home Assistant (mit Verlauf) für eine Entität öffnen */
+  _moreInfo(entityId) {
+    if (!entityId || !this._st(entityId)) return;
+    this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId }, bubbles: true, composed: true }));
   },
 
   /* ---------- Steuerung ---------- */

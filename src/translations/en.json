@@ -150,7 +150,8 @@
     "confirm_action": "Run “{name}”?",
     "confirm_btn": "Run",
     "sd_full": "SD card {name} almost full ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Battery level history"
   },
   "editor": {
     "mode_entity": "Mode selector on top (e.g. an input_select for notifications)",
@@ -224,6 +225,7 @@
     "show_controls": "Show control panel under the image",
     "show_settings": "Show settings",
     "show_mode": "Show mode row",
-    "talk_prepare": "Prepare two-way audio (faster start, talk channel open while live)"
+    "talk_prepare": "Prepare two-way audio (faster start, talk channel open while live)",
+    "grid_columns": "Columns in grid view"
   }
 }

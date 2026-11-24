@@ -150,7 +150,8 @@
     "confirm_action": "„{name}“ ausführen?",
     "confirm_btn": "Ausführen",
     "sd_full": "SD-Karte {name} fast voll ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Verlauf des Ladestands"
   },
   "editor": {
     "mode_entity": "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -224,6 +225,7 @@
     "show_controls": "Bedienpanel unter dem Bild anzeigen",
     "show_settings": "Einstellungen anzeigen",
     "show_mode": "Modus-Zeile anzeigen",
-    "talk_prepare": "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)"
+    "talk_prepare": "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)",
+    "grid_columns": "Spalten in der Rasteransicht"
   }
 }

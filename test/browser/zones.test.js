@@ -27,8 +27,8 @@ test('Zonen und Linien: gefunden, Hinweis mit Zonennamen, Umschalten, Status', a
   await c.run(() => { window.setState('binary_sensor.hof_person', 'on'); window.setState('binary_sensor.hof_person_crossline_fence', 'on'); });
   await wait(100);
   const i = await c.info();
-  assert.match(i.toast, /Person crossline Fence/);
-  assert.match(i.toast, /Hof/);
+  // Die Karte springt zur Kamera: die Pill im Bild nennt die Zone, kein doppelter Hinweis
+  assert.equal(i.toast, null);
   assert.equal(i.cam, 'Hof');
   const r = await c.run(() => ({ pills: [...window.__card.shadowRoot.querySelectorAll('#det .pill')].map((p) => p.textContent), alert: window.__card._alerting(window.__card._cams[1]) }));
   assert.deepEqual(r.pills, ['Person crossline Fence', 'Person']);
@@ -42,8 +42,9 @@ test('Zone allein (ohne Personen-Sensor) schaltet ebenfalls um', async () => {
   await c.run(() => window.setState('binary_sensor.hof_animal_intrusion_lawn', 'on'));
   await wait(100);
   const i = await c.info();
-  assert.match(i.toast, /Animal intrusion Lawn/);
+  assert.equal(i.toast, null);
   assert.equal(i.cam, 'Hof');
+  assert.match((await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#det .pill')].map((p) => p.textContent).join('|'))), /Animal intrusion Lawn/);
   await c.close();
 });
 
@@ -67,7 +68,19 @@ test('Ohne Register: Präfix „hof“ übernimmt keine Zonen von „hof_ost“;
   await c.run(() => window.setState('binary_sensor.hof_person_grenzlinie_mauer', 'on'));
   await wait(100);
   const i = await c.info();
-  assert.match(i.toast, /Grenzlinie Mauer/);
+  assert.equal(i.toast, null);
   assert.equal(i.cam, 'Hof');
+  assert.match((await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#det .pill')].map((p) => p.textContent).join('|'))), /Grenzlinie Mauer/);
+  await c.close();
+});
+
+test('Ohne Sprung (auto_switch: false): Hinweis nennt die Zone der anderen Kamera', async () => {
+  const c = await openCard(browser, server, { config: { ...CFG, auto_switch: false }, hass: HASS });
+  await c.run(() => window.setState('binary_sensor.hof_person_crossline_fence', 'on'));
+  await wait(100);
+  const i = await c.info();
+  assert.match(i.toast, /Person crossline Fence/);
+  assert.match(i.toast, /Hof/);
+  assert.equal(i.cam, 'Tor');
   await c.close();
 });

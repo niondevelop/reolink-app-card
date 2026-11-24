@@ -49,6 +49,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
           { name: 'layout', selector: { select: { mode: 'dropdown', options: ['auto', 'right', 'left', 'bottom'].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
           { name: 'panel', selector: { select: { mode: 'dropdown', options: ['events', 'settings', 'none'].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } },
         ] },
+        { name: 'grid_columns', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, ...['1', '2', '3', '4'].map((v) => ({ value: v, label: v }))] } } },
         { name: 'language', selector: { select: { mode: 'dropdown', options: [{ value: 'auto', label: L.auto }, { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' }, { value: 'fr', label: 'Français' }] } } },
         { type: 'grid', name: '', schema: [
           { name: 'show_camera_tabs', selector: { boolean: {} } },
@@ -110,7 +111,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         ] },
       ] },
     ];
-    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, grid_columns: 'auto', layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
     // Kameras mit zwei Objektiven: Auswahl, welches Objektiv die Kamera zeigt (lens; ergibt sich sonst aus entity)
     const lensField = { name: 'lens', selector: { select: { mode: 'dropdown', options: [{ value: '0', label: L.lens_0 }, { value: '1', label: L.lens_1 }] } } };
     const effLens = (c) => (c.lens != null && c.lens !== '' ? +c.lens || 0 : lensOf(c.entity));
@@ -242,11 +243,14 @@ export class ReolinkAppCardEditor extends HTMLElement {
     const data = { ...defaults };
     Object.keys(defaults).forEach((k) => { if (this._config[k] !== undefined) data[k] = this._config[k]; });
     if (this._config.show_hub === false) { if (this._config.show_scene === undefined) data.show_scene = false; if (this._config.show_sd === undefined) data.show_sd = false; }
+    if (data.grid_columns !== undefined) data.grid_columns = String(data.grid_columns);
     gen.data = data;
     gen.addEventListener('value-changed', (e) => {
       const v = e.detail.value, cfg = { ...this._config };
       delete cfg.show_hub;
       Object.keys(defaults).forEach((k) => { if (v[k] === undefined || v[k] === null || v[k] === defOf(k)) delete cfg[k]; else cfg[k] = v[k]; });
+      // Spaltenzahl als Zahl speichern
+      if (cfg.grid_columns !== undefined) cfg.grid_columns = +cfg.grid_columns;
       gen.data = { ...v };
       this._changed(cfg);
     });

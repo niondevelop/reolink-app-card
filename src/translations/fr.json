@@ -150,7 +150,8 @@
     "confirm_action": "Exécuter « {name} » ?",
     "confirm_btn": "Exécuter",
     "sd_full": "Carte SD {name} presque pleine ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Historique de la batterie"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -224,6 +225,7 @@
     "show_controls": "Afficher le panneau de commande sous l’image",
     "show_settings": "Afficher les réglages",
     "show_mode": "Afficher la ligne de mode",
-    "talk_prepare": "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
+    "talk_prepare": "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)",
+    "grid_columns": "Colonnes de la vue grille"
   }
 }

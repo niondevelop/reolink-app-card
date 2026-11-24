@@ -54,12 +54,12 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Kameras anderer Hersteller:** jede andere Kamera-Entität (z. B. Tapo, Unifi) lässt sich mit `entity:` hinzufügen. Sie zeigt Livebild, Schnappschuss, Zoom, Gegensprechen (wenn die Kamera es kann) und die eigenen Knöpfe des Bedienpanels; reine Reolink-Funktionen sind ausgeblendet.
 - **Eigenes Bedienpanel:** eingebaute Knöpfe ein- und ausblenden, beliebig anordnen und eigene Knöpfe ergänzen, z. B. einen Türöffner oder das Terrassenlicht. Für die ganze Karte oder pro Kamera, im visuellen Editor (siehe [Bedienpanel](#bedienpanel)).
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte: der gewählten Kamera, wenn sie eine eigene hat, sonst die des Hubs, mit Warnung, wenn sie fast voll ist.
-- **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis. Das gilt auch für Zonen und Linien der smarten Erkennung (Grenzlinie, Eindringen, Herumlungern …); der Hinweis nennt dann die Zone, z. B. „Person-Grenzlinie Garten erkannt“.
+- **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt die Erkennung im Bild an. Ein Hinweis erscheint nur für eine Kamera, die gerade nicht im Bild ist. Das gilt auch für Zonen und Linien der smarten Erkennung (Grenzlinie, Eindringen, Herumlungern …); der Hinweis nennt dann die Zone, z. B. „Person-Grenzlinie Garten erkannt“.
 - **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern. Ein Tipp wählt eine Kamera (blauer Rahmen); die Steuerleiste, Schwenken & Neigen und die Qualität gelten dann für sie. Ein weiterer Tipp öffnet sie gross. Eine Erkennung markiert ihre Kachel rot, ändert die Auswahl aber nicht.
 - **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste. Pro Kamera lässt sich ein Start-Ausschnitt einstellen (`zoom`), z. B. bei einem Fischaugen-Objektiv.
 - **Einstellungen in Gruppen:** Allgemein, Erkennung (PIR- und KI-Empfindlichkeit), Bild (Helligkeit, Kontrast, Sättigung, Schärfe), Flutlicht, Ton & Aufnahme – mit Reglern und Auswahllisten.
 - **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp (Person, Fahrzeug, Tier, Bewegung, dazu Klingeln, Paket, Gesicht und Smart-Ereignisse, wenn sie vorkommen), farbige 24-Stunden-Zeitleiste (Tippen auf eine Lücke springt zum nächsten Clip; am PC: Leertaste = Pause, ←/→ = vorheriger/nächster Clip, Umschalt + ←/→ = 10 s), Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen und ein Umschalter **Niedrig / Hoch** für die Auflösung, der auf jedem Gerät gespeichert wird (unabhängig von der Livebild-Qualität).
-- **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur.
+- **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur. Ein Tipp auf den Ladestand im Bild öffnet seinen Verlauf.
 - **Visueller Editor:** Kameras werden automatisch erkannt und lassen sich per Klick hinzufügen.
 - **Kartenvorschläge:** Bei *Zum Dashboard hinzufügen* an einer Reolink-Kamera (oder am Hub) erscheint die Karte unter den Community-Vorschlägen, fertig eingerichtet.
 - **Englisch, Deutsch und Französisch,** passend zur Sprache von Home Assistant.
@@ -116,7 +116,7 @@ cameras:
 | `auto_live`               | `true`        | Livebild automatisch starten, sobald die Karte sichtbar ist |
 | `auto_switch`             | `true`        | Bei einer Erkennung automatisch zur betroffenen Kamera springen |
 | `alert_seconds`           | `8`           | Wie lange der Erkennungs-Hinweis sichtbar bleibt |
-| `alert_other_only`        | `false`       | Erkennungs-Hinweis nur zeigen, wenn die erkennende Kamera nicht gerade im Bild ist. Die kleinen Erkennungs-Chips bleiben sichtbar |
+| `alert_other_only`        | `false`       | Auch im Raster keinen Erkennungs-Hinweis (dort sind alle Kameras im Bild). In der Einzelansicht gibt es für die Kamera im Bild nie einen Hinweis, das zeigen schon ihre Erkennungs-Chips |
 | `playback_preload`        | automatisch   | Aufnahmen vor dem Abspielen ganz laden. Standard: nur auf iPhone/iPad, weil iOS die Wiedergabe-URL der Reolink-Integration sonst nicht abspielt (sie unterstützt keine Range-Anfragen). `true`/`false` erzwingt es |
 | `autoplay_next`           | `true`        | Nach dem Ende eines Clips den nächsten abspielen |
 | `battery_warning`         | `20`          | Akku-Warnung ab diesem Ladestand (%). `0` = aus |
@@ -131,6 +131,7 @@ cameras:
 | `show_live_playback`      | `true`        | Umschalter Live / Wiedergabe anzeigen |
 | `show_controls`           | `true`        | Bedienpanel und Steuerkreuz unter dem Bild anzeigen |
 | `show_settings`           | `true`        | Einstellungen der Kamera anzeigen |
+| `grid_columns`            | automatisch   | Spalten in der Rasteransicht (`1`–`4`). Automatisch: 2, bei mehr als vier Kameras 3 |
 | `show_mode`               | `true`        | Modus-Zeile anzeigen (eigene `mode_entity` oder Reolink-Szenenmodus). Die SD-Belegung bleibt |
 | `talk_prepare`            | `false`       | Gegensprechen vorbereiten: Das Livebild öffnet mit einem stummen Sprechkanal, Sprechen startet dann sofort statt nach einem Neuaufbau der Verbindung. Der Kanal ist nur offen, solange das Livebild läuft; das Mikrofon wird erst beim Sprechen benutzt. Auch pro Kamera möglich |
 | `buttons`                 | alle          | Knöpfe des Bedienpanels und ihre Reihenfolge, siehe [Bedienpanel](#bedienpanel). Auch pro Kamera möglich |

@@ -76,6 +76,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .ov > *, .ov .pillrow > * { pointer-events: auto; }
 .ov.top { top: 8px; justify-content: space-between; }
 .ov.det { top: 42px; flex-wrap: wrap; }
+.pill.btn.bat { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .ov.bottom { bottom: 8px; }
 .stage.gridmode .ov.top, .stage.gridmode .ov.det, .stage.gridmode #fs { display: none; }
 .stage.gridmode .ov.bottom { top: 8px; bottom: auto; }

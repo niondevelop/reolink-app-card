@@ -56,12 +56,12 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Cameras from other makers:** any other camera entity (e.g. Tapo, Unifi) can be added with `entity:`. It shows the live view, snapshot, zoom, two-way audio if the camera supports it, and your own control panel buttons; Reolink-only features are hidden.
 - **Your own control panel:** show or hide the built-in buttons, put them in any order, and add your own buttons, e.g. a door opener or the patio light. For the whole card or per camera, in the visual editor (see [Control panel](#control-panel)).
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage: of the selected camera if it has its own SD card, otherwise of the hub, with a warning when it is almost full.
-- **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice. This includes the zones and lines of smart detection (line crossing, intrusion, loitering …); the notice then names the zone, e.g. “Person crossline Garden detected”.
+- **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows the detection in the image. A notice appears only for a camera that is not on screen. This includes the zones and lines of smart detection (line crossing, intrusion, loitering …); the notice then names the zone, e.g. “Person crossline Garden detected”.
 - **All cameras at once:** grid view with every live stream. Tap a camera to select it (blue frame); the control bar, pan & tilt and the quality then apply to it. Tap it again to open it. A detection marks its tile red but doesn’t change the selection.
 - **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel. Per camera you can also set a starting crop (`zoom`), e.g. for a fisheye lens.
 - **Grouped settings:** general, detection (PIR and AI sensitivity), image (brightness, contrast, saturation, sharpness), floodlight, audio & recording – with sliders and dropdowns.
 - **Playback:** day picker, event type filter (person, vehicle, animal, motion, plus doorbell, package, face and smart events when they occur), coloured 24-hour timeline (tap an empty spot to jump to the next clip; on a PC: space = pause, ←/→ = previous/next clip, shift + ←/→ = 10 s), speed (0.5× to 4×), autoplay next clip, clip download, and a **Low / High** resolution switch that is remembered on each device (independent of the live view quality).
-- **Battery warnings** for low charge and for battery temperature that is too high or too low.
+- **Battery warnings** for low charge and for battery temperature that is too high or too low. Tap the battery level in the image to open its history.
 - **Visual editor:** cameras are detected automatically and can be added with one click.
 - **Card suggestions:** under *Add to dashboard* on a Reolink camera (or the hub), the card shows up under the community suggestions, ready configured.
 - **English, German and French,** following the Home Assistant language.
@@ -118,7 +118,7 @@ cameras:
 | `auto_live`               | `true`        | Start the live view automatically when the card becomes visible |
 | `auto_switch`             | `true`        | Jump to the camera that detected something |
 | `alert_seconds`           | `8`           | How long the detection notice stays visible |
-| `alert_other_only`        | `false`       | Show the detection notice only when the camera that detected something is not the one currently on screen. The small detection chips stay visible |
+| `alert_other_only`        | `false`       | Also no detection notice in the grid view (all cameras are on screen there). In the single view the card never shows a notice for the camera on screen, its detection chips already show it |
 | `playback_preload`        | automatic     | Download recordings completely before playing. Default: only on iPhone/iPad, because iOS can't play the Reolink integration's playback URL otherwise (it doesn't support range requests). `true`/`false` forces it |
 | `autoplay_next`           | `true`        | Play the next clip when a clip ends |
 | `battery_warning`         | `20`          | Battery warning at or below this charge (%). `0` = off |
@@ -133,6 +133,7 @@ cameras:
 | `show_live_playback`      | `true`        | Show the Live / Playback switch |
 | `show_controls`           | `true`        | Show the control panel and PTZ pad under the image |
 | `show_settings`           | `true`        | Show the camera settings |
+| `grid_columns`            | auto          | Columns in the grid view (`1`–`4`). Automatic: 2, or 3 with more than four cameras |
 | `show_mode`               | `true`        | Show the mode row (your own `mode_entity` or the Reolink scene mode). The SD card usage stays |
 | `talk_prepare`            | `false`       | Prepare two-way audio: the live view opens with a silent talk channel, so talking starts at once instead of after a new connection. The channel is only open while the live view runs; the microphone is not used until you talk. Can also be set per camera |
 | `buttons`                 | all           | Buttons of the control panel and their order, see [Control panel](#control-panel). Can also be set per camera |
