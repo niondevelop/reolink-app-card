@@ -69,3 +69,42 @@ test('Download-Knopf bleibt nach Beenden und erneutem Abspielen nutzbar', async 
   assert.deepEqual(r, { hidden: false, shown: true });
   await c.close();
 });
+
+test('Denselben Clip beim Vorladen nochmal antippen: lädt weiter und spielt', async () => {
+  const c = await open({ playback_preload: true });
+  await c.click('#m-play');
+  await wait(400);
+  await c.run(() => { const it = window.__card.shadowRoot.querySelector('#list .item'); it.click(); setTimeout(() => it.click(), 60); });
+  await wait(700);
+  const r = await c.run(() => ({ src: window.__card.$('video').src, playing: !!window.__card._playing, toast: window.__card.$('toast').classList.contains('show') }));
+  assert.match(r.src, /^blob:/);
+  assert.equal(r.playing, true);
+  assert.equal(r.toast, false);
+  await c.close();
+});
+
+test('Zu großer Clip: Abbruch mit Hinweis; Abhängen der Karte bricht das Vorladen still ab', async () => {
+  let c = await open({ playback_preload: true });
+  await c.click('#m-play');
+  await wait(400);
+  await c.run(() => { window.__card._preloadMax = 1000; });
+  await playFirst(c);
+  await wait(500);
+  let r = await c.run(() => ({ playing: !!window.__card._playing, toast: window.__card.$('toast').textContent }));
+  assert.equal(r.playing, false);
+  assert.match(r.toast, /zu groß|too large/);
+  await c.close();
+  c = await open({ playback_preload: true });
+  await c.page.unroute('**/clip.mp4');
+  await c.page.route('**/clip.mp4', async (rt) => { await new Promise((res) => setTimeout(res, 1500)); rt.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(4096) }).catch(() => {}); });
+  await c.click('#m-play');
+  await wait(400);
+  await playFirst(c);
+  await wait(200);
+  await c.run(() => { const k = window.__card; window.__p = k.parentNode; k.remove(); });
+  await wait(300);
+  r = await c.run(() => ({ playing: !!window.__card._playing, loading: !!window.__card._dlAbort, toast: window.__card.$('toast').classList.contains('show') }));
+  assert.deepEqual(r, { playing: false, loading: false, toast: false });
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});

@@ -240,6 +240,8 @@ export default {
     if (this._onVis) { document.removeEventListener('visibilitychange', this._onVis); this._onVis = null; }
     this._visible = false;
     this._stopLive(true);
+    // Laufendes Vorladen abbrechen (der fertig geladene Clip bleibt, falls die Karte wieder eingehängt wird)
+    if (this._dlAbort) { this._dlAbort.abort(); this._dlAbort = null; }
   },
 
   /* ---------- Sichtbarkeit & Auto-Live ---------- */

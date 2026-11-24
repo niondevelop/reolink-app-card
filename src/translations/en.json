@@ -69,6 +69,7 @@
     "cam_not_found": "Camera not found in the media source",
     "play_error": "Recording could not be loaded",
     "loading_clip": "Loading clip …",
+    "clip_too_big": "Clip too large to preload – please choose low resolution",
     "speed": "Speed",
     "next": "Next clip",
     "download": "Download",

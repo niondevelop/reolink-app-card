@@ -3,6 +3,9 @@ import { DET, EVT, EVT_ORDER, PANEL_STORE, PLAY_Q_STORE, SPEEDS } from '../const
 import { LOCALES } from '../i18n.js';
 import { esc } from '../util.js';
 
+/* Höchstgröße beim Vorladen (iPhone/iPad), der ganze Clip liegt im Speicher */
+const PRELOAD_MAX = 150 * 1024 * 1024;
+
 export default {
   /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
   _pickEvent() {
@@ -280,13 +283,17 @@ export default {
   },
 
   async _play(file) {
+    // Derselbe Clip lädt gerade: erneutes Antippen nicht als neuen Start werten
+    if (this._playing === file && this._dlAbort) return;
+    // Jeder Aufruf hat ein eigenes Kennzeichen: ein späterer Aufruf (auch für denselben Clip) oder Beenden macht ihn ungültig
+    const seq = (this._playSeq = Symbol('play'));
     this._stopLive(true);
     this._resetZoom();
     this._playing = file;
     this._update();
     try {
       const r = await this._hass.callWS({ type: 'media_source/resolve_media', media_content_id: file.node.media_content_id, expires: 3600 });
-      if (this._playing !== file) return;
+      if (seq !== this._playSeq) return;
       this._playUrl = this._hass.hassUrl(r.url);
       if (this._needsHlsPlayer(r)) {
         await this._playHls(this._playUrl, file);
@@ -295,16 +302,17 @@ export default {
         const v = this.$('video');
         // iPhone/iPad: Die Wiedergabe-URL der Reolink-Integration beantwortet keine Range-Anfragen, ohne die iOS
         // kein MP4 abspielt. Dann den Clip erst ganz laden und aus dem Speicher abspielen (Option playback_preload).
-        const src = this._preloadClips() ? await this._preload(this._playUrl, file) : this._playUrl;
-        if (this._playing !== file) return;
+        const src = this._preloadClips() ? await this._preload(this._playUrl, seq) : this._playUrl;
+        if (seq !== this._playSeq) return;
         v.src = src;
         v.playbackRate = this._speed;
         const p = v.play();
         if (p && p.catch) p.catch(() => {});
       }
     } catch (e) {
-      if (this._playing !== file) return; // inzwischen anderer Clip oder beendet (Laden abgebrochen)
+      if (seq !== this._playSeq) return; // inzwischen anderer Clip oder beendet (Laden abgebrochen)
       this._playing = null;
+      if (e && e.name === 'AbortError') { this._update(); return; }
       this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
     this._update();
@@ -373,7 +381,7 @@ export default {
   },
 
   /* Clip ganz herunterladen (mit Fortschritt) und als Blob-URL zurückgeben; ein Wechsel des Clips bricht ab */
-  async _preload(url, file) {
+  async _preload(url, seq) {
     this._dropBlob();
     const ac = new AbortController();
     this._dlAbort = ac;
@@ -396,9 +404,11 @@ export default {
           const { value, done: end } = await rd.read();
           if (end) break;
           parts.push(value); done += value.length; show(done, total);
+          // Ganzer Clip liegt im Speicher: sehr lange Clips in hoher Auflösung könnten iOS den Tab beenden lassen
+          if (done > (this._preloadMax || PRELOAD_MAX)) throw new Error(this._t('clip_too_big'));
         }
       } else parts.push(new Uint8Array(await resp.arrayBuffer()));
-      if (this._playing !== file) return '';
+      if (seq !== this._playSeq) return '';
       this._blobUrl = URL.createObjectURL(new Blob(parts, { type: resp.headers.get('content-type') || 'video/mp4' }));
       return this._blobUrl;
     } finally {
@@ -414,6 +424,7 @@ export default {
   _stopPlayback(silent) {
     const v = this.$ && this._vid();
     if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) { /* ignorieren */ } }
+    this._playSeq = null;
     this._dropBlob();
     if (this.$) this.$('preload').hidden = true;
     this._removeHls();

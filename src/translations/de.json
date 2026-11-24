@@ -69,6 +69,7 @@
     "cam_not_found": "Kamera in der Medienquelle nicht gefunden",
     "play_error": "Aufnahme kann nicht geladen werden",
     "loading_clip": "Clip wird geladen …",
+    "clip_too_big": "Clip zu groß zum Vorladen – bitte niedrige Auflösung wählen",
     "speed": "Geschwindigkeit",
     "next": "Nächster Clip",
     "download": "Herunterladen",
