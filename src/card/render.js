@@ -234,7 +234,7 @@ export default {
 
   _camDot(cam) {
     const camSt = this._st(this._e('cam_sd', cam));
-    return !camSt || camSt.state === 'unavailable' ? 'off' : this._det(cam).length ? 'alert' : this._on(this._e('sleep', cam)) ? 'sleep' : 'on';
+    return !camSt || camSt.state === 'unavailable' ? 'off' : this._alerting(cam) ? 'alert' : this._on(this._e('sleep', cam)) ? 'sleep' : 'on';
   },
 
   _updateTimer() {
@@ -337,7 +337,9 @@ export default {
     $('stat').innerHTML = stat;
 
     const active = this._grid ? [] : this._det(c);
-    $('det').innerHTML = active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join('');
+    const zones = this._grid ? [] : this._zones(c);
+    $('det').innerHTML = zones.map((z) => `<span class="pill det" style="--c:${EVT.smart.color}"><ha-icon icon="${EVT.smart.icon}"></ha-icon>${esc(z.label)}</span>`).join('')
+      + active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join('');
 
     // Raster-Zellen
     root.querySelectorAll('.cell').forEach((cell) => {
@@ -345,7 +347,7 @@ export default {
       const bat = this._batteryIcon(cam);
       cell.querySelector('.cb').textContent = bat ? ` · ${bat.v}%` : '';
       cell.querySelector('.dot').className = `dot ${this._camDot(cam)}`;
-      cell.classList.toggle('alert', this._det(cam).length > 0);
+      cell.classList.toggle('alert', this._alerting(cam));
       cell.classList.toggle('sel', this._cams.length > 1 && +cell.dataset.i === this._idx);
     });
 

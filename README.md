@@ -56,7 +56,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Cameras from other makers:** any other camera entity (e.g. Tapo, Unifi) can be added with `entity:`. It shows the live view, snapshot, zoom, two-way audio if the camera supports it, and your own control panel buttons; Reolink-only features are hidden.
 - **Your own control panel:** show or hide the built-in buttons, put them in any order, and add your own buttons, e.g. a door opener or the patio light. For the whole card or per camera, in the visual editor (see [Control panel](#control-panel)).
 - **Mode selector on top:** either the Reolink scene mode of the hub (disarmed / home / away) or your own mode from Home Assistant (`mode_entity`), e.g. for push notifications. Plus the SD card usage: of the selected camera if it has its own SD card, otherwise of the hub, with a warning when it is almost full.
-- **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice.
+- **Jump on detection:** when a camera detects a person, vehicle or animal, the card switches to it and shows a notice. This includes the zones and lines of smart detection (line crossing, intrusion, loitering …); the notice then names the zone, e.g. “Person crossline Garden detected”.
 - **All cameras at once:** grid view with every live stream; tap one to open it.
 - **Digital zoom:** pinch with two fingers, double-tap to zoom in, or ctrl + mouse wheel. Per camera you can also set a starting crop (`zoom`), e.g. for a fisheye lens.
 - **Grouped settings:** general, detection (PIR and AI sensitivity), image (brightness, contrast, saturation, sharpness), floodlight, audio & recording – with sliders and dropdowns.

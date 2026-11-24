@@ -6,6 +6,9 @@ import { esc } from '../util.js';
 
 /* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
 const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
+/* Interne Schlüssel bzw. Namensendungen der Sensoren für Zonen und Linien (Reolink „Smarte Erkennung“) */
+const ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
+const ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
 
 export default {
   setConfig(config) {
@@ -118,7 +121,7 @@ export default {
     const reg = this._hass && this._hass.entities;
     if (!reg) return null;
     if (cam._reg === reg) return cam._dev;
-    cam._reg = reg; cam._dev = null; cam._devId = null;
+    cam._reg = reg; cam._dev = null; cam._devId = null; cam._zones = null;
     // Namensendungen, bei Kameras mit zwei Objektiven auch mit Zusatz für das erste Objektiv
     const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).flatMap((x) => ['', '_lens_0', '_objektiv_0', '_linse_0'].map((l) => `camera.${cam.prefix}_${x}${l}`)))];
     const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
@@ -219,6 +222,33 @@ export default {
   },
 
   _det(cam) { return DET.filter((k) => this._on(this._e(`det_${k}`, cam))); },
+
+  /* Smarte Erkennung mit Zonen und Linien (Grenzlinie, Eindringen, Herumlungern, vergessene/entfernte Gegenstände):
+     alle Sensoren des Geräts, mit Namen ohne Gerätenamen, z. B. „Person-Grenzlinie Garten“ */
+  _zoneSensors(cam) {
+    const dev = this._devIndex(cam);
+    if (dev && cam._zones) return cam._zones;
+    const states = (this._hass && this._hass.states) || {}, reg = (this._hass && this._hass.entities) || {};
+    const ids = dev
+      ? Object.keys(reg).filter((id) => reg[id].device_id === cam._devId && id.startsWith('binary_sensor.') && ZONE_TK.test(reg[id].translation_key || ''))
+      : Object.keys(states).filter((id) => id.startsWith(`binary_sensor.${cam.prefix}_`) && ZONE_ID.test(id.slice(`binary_sensor.${cam.prefix}_`.length)));
+    const devObj = dev && this._hass.devices && this._hass.devices[cam._devId];
+    const names = [devObj && devObj.name_by_user, devObj && devObj.name, cam.name].filter(Boolean);
+    const list = ids.map((id) => {
+      let label = String((states[id] && states[id].attributes.friendly_name) || id.split('.')[1]);
+      const pre = names.find((n) => label.toLowerCase().startsWith(`${n.toLowerCase()} `));
+      if (pre) label = label.slice(pre.length).trim();
+      return { id, label };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+    if (dev) cam._zones = list;
+    return list;
+  },
+
+  /* Gerade ausgelöste Zonen bzw. Linien */
+  _zones(cam) { return this._zoneSensors(cam).filter((z) => this._on(z.id)); },
+
+  /* Irgendeine Erkennung aktiv (Person, Fahrzeug, Tier, Bewegung oder Zone/Linie) */
+  _alerting(cam) { return this._det(cam).length > 0 || this._zones(cam).length > 0; },
 
   getCardSize() { return 10; },
 
@@ -341,15 +371,18 @@ export default {
 
   /* ---------- Erkennung: automatisch zur Kamera springen ---------- */
   _checkDetections() {
-    const now = this._cams.map((c) => this._det(c));
+    // Zonen/Linien als Entitäts-ID neben den Erkennungsarten; sie sind genauer und haben beim Hinweis Vorrang
+    const now = this._cams.map((c) => [...this._det(c), ...this._zones(c).map((z) => z.id)]);
     const prev = this._prevDet;
     this._prevDet = now;
     if (!prev) return;
     now.forEach((list, i) => {
       const fresh = list.filter((k) => !prev[i].includes(k));
       if (!fresh.length) return;
-      const type = fresh[0];
-      this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
+      const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
+      const type = zone ? 'smart' : fresh[0];
+      const what = zone ? zone.label : this._t(`evt_${type}`);
+      this._toast({ text: this._t('detected', { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
       if (!this._live) this._loadSnap(i, true);
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
       if (i !== this._idx && this._grid) this._gridSelect(i);
