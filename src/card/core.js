@@ -1,6 +1,6 @@
 /* Grundlagen: Konfiguration, Entitäten, hass, Sichtbarkeit, Kamera- und Moduswechsel, Dialoge – Methoden der Klasse ReolinkAppCard */
 import { DET, EVT, PANEL_STORE, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
-import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, prefixOf } from '../entities.js';
+import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, lensOf, prefixOf } from '../entities.js';
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
 
@@ -26,8 +26,7 @@ export default {
       // und bei neuen deutschen Entitäts-IDs („…_fliessend“) die ganze ID ohne „camera.“
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, '');
       // Kameras mit zwei Objektiven: welches diese Kachel zeigt (lens: 1 oder Entität „… objektiv 1“ / „… lens 1“)
-      const lensM = String(entity || '').match(/_(lens|objektiv|linse)_(\d)$/);
-      const lens = c.lens != null && c.lens !== '' && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : (lensM ? +lensM[2] : 0);
+      const lens = c.lens != null && c.lens !== '' && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensOf(entity);
       return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;

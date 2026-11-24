@@ -140,3 +140,53 @@ test('Zweites Objektiv als eigene Kachel: Aufnahmen vom zweiten Objektiv, ohne O
   assert.deepEqual(c.errors, []);
   await c.close();
 });
+
+/* Editor: Auswahl des Objektivs, „+ Kamera“ bietet das zweite Objektiv an */
+const openEditor = (c, config) => c.run(async (cfg) => {
+  const ed = document.createElement('reolink-app-card-editor');
+  document.body.appendChild(ed);
+  ed.hass = window.__hass;
+  ed.addEventListener('config-changed', (e) => { window.__edCfg = e.detail.config; });
+  ed.setConfig(cfg);
+  await new Promise((r) => setTimeout(r, 100));
+  window.__ed = ed;
+}, config);
+
+test('Editor: Objektiv wählen und zweites Objektiv hinzufügen', async () => {
+  const cfg = { cameras: [{ prefix: 'hof', name: 'Hof', entity: 'camera.hof_standardauflosung_objektiv_0' }], auto_live: false, show_hub: false };
+  const c = await openCard(browser, server, { config: cfg, hass: L1HASS });
+  await openEditor(c, cfg);
+  const r = await c.run(async () => {
+    const ed = window.__ed, f = ed.shadowRoot.querySelector('#cams ha-form');
+    const fields = f.schema.map((s) => s.name), lens0 = f.data.lens;
+    f.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...f.data, lens: '1' } } }));
+    const set1 = window.__edCfg.cameras[0];
+    f.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...f.data, lens: '0' } } }));
+    const set0 = window.__edCfg.cameras[0];
+    ed.setConfig(window.__edCfg);
+    ed.shadowRoot.getElementById('add').click();
+    const added = window.__edCfg.cameras[1];
+    ed.setConfig(window.__edCfg);
+    await new Promise((res) => setTimeout(res, 50));
+    const title = ed.shadowRoot.querySelectorAll('#cams .ch b')[1].textContent;
+    return { fields, lens0, set1, set0, added, title };
+  });
+  assert.deepEqual(r.fields.slice(0, 3), ['prefix', '', 'lens']);
+  assert.equal(r.lens0, '0');
+  assert.deepEqual(r.set1, { prefix: 'hof', name: 'Hof', entity: 'camera.hof_standardauflosung_objektiv_0', lens: 1 });
+  assert.deepEqual(r.set0, { prefix: 'hof', name: 'Hof', entity: 'camera.hof_standardauflosung_objektiv_0' });
+  assert.deepEqual(r.added, { prefix: 'hof', media_name: 'Hof', entity: 'camera.hof_standardauflosung_objektiv_0', lens: 1 });
+  assert.equal(r.title, 'Hof – 2. Objektiv (Tele)');
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Editor: Kamera mit einem Objektiv hat kein Feld „Objektiv“', async () => {
+  const st = { 'camera.tor_standardauflosung': img }, en = { 'camera.tor_standardauflosung': { entity_id: 'camera.tor_standardauflosung', device_id: 'dX', platform: 'reolink', translation_key: 'sub' } };
+  const cfg = { cameras: [{ prefix: 'tor' }], auto_live: false, show_hub: false };
+  const c = await openCard(browser, server, { config: cfg, hass: { states: st, entities: en, devices: { dX: { name: 'Tor' } } } });
+  await openEditor(c, cfg);
+  const fields = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema.map((s) => s.name));
+  assert.ok(!fields.includes('lens'));
+  await c.close();
+});

@@ -148,6 +148,19 @@
   }
   var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|fliessend|schnappschusse_in_(standard|hoch)auflosung|schnappschusse_fliessend|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
   var baseKey = (tk) => String(tk || "").replace(/_lens_\d$/, "");
+  var lensOf = (entityId) => {
+    const m = String(entityId || "").match(/_(lens|objektiv|linse)_(\d)$/);
+    return m ? +m[2] : 0;
+  };
+  function hasSecondLens(hass, cam) {
+    if (!hass || !cam) return false;
+    const reg = hass.entities || {}, states = hass.states || {};
+    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1);
+    const start = cam.entity && reg[cam.entity] && cam.entity || Object.keys(states).find((id) => id.startsWith("camera.") && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
+    const dev = start && reg[start].device_id;
+    if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
+    return !!cam.prefix && Object.keys(states).some((id) => lens1(id) && prefixOf(id) === cam.prefix);
+  }
   function prefixOf(entityId) {
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
@@ -382,6 +395,9 @@
       doorbell_sound: "Klingelton abspielen",
       name: "Anzeigename",
       media_name: "Name in der Medienquelle (für Wiedergabe)",
+      lens: "Objektiv",
+      lens_0: "1. Objektiv",
+      lens_1: "2. Objektiv (Tele)",
       cameras: "Kameras",
       add: "Kamera hinzufügen",
       remove: "Entfernen",
@@ -600,6 +616,9 @@
       doorbell_sound: "Play ring tone",
       name: "Display name",
       media_name: "Name in the media source (for playback)",
+      lens: "Lens",
+      lens_0: "First lens",
+      lens_1: "Second lens (telephoto)",
       cameras: "Cameras",
       add: "Add camera",
       remove: "Remove",
@@ -818,6 +837,9 @@
       doorbell_sound: "Jouer une sonnerie",
       name: "Nom affiché",
       media_name: "Nom dans la source multimédia (pour la lecture)",
+      lens: "Objectif",
+      lens_0: "1er objectif",
+      lens_1: "2e objectif (télé)",
       cameras: "Caméras",
       add: "Ajouter une caméra",
       remove: "Supprimer",
@@ -1401,8 +1423,7 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, "");
-        const lensM = String(entity || "").match(/_(lens|objektiv|linse)_(\d)$/);
-        const lens = c.lens != null && c.lens !== "" && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensM ? +lensM[2] : 0;
+        const lens = c.lens != null && c.lens !== "" && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensOf(entity);
         return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
@@ -4058,6 +4079,9 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         ] }
       ];
       const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const lensField = { name: "lens", selector: { select: { mode: "dropdown", options: [{ value: "0", label: L.lens_0 }, { value: "1", label: L.lens_1 }] } } };
+      const effLens = (c) => c.lens != null && c.lens !== "" ? +c.lens || 0 : lensOf(c.entity);
+      const withLens = (c) => ({ ...c, lens: String(effLens(c)) });
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
@@ -4096,11 +4120,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const box = document.createElement("div");
         box.className = `cam${this._openCams.has(i) ? " open" : ""}`;
         const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
-        box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || hit0 && hit0.name || cam.prefix || "—")}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
+        const two = hasSecondLens(this._hass, cam);
+        const title = cam.name || `${hit0 && hit0.name || cam.prefix || "—"}${two && effLens(cam) ? ` – ${L.lens_1}` : ""}`;
+        box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(title)}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
         const form = document.createElement("ha-form");
         form.hass = this._hass;
-        form.schema = camSchema;
-        form.data = cam;
+        form.schema = two ? [camSchema[0], camSchema[1], lensField, ...camSchema.slice(2)] : camSchema;
+        form.data = two ? withLens(cam) : cam;
         form.computeLabel = label;
         form.addEventListener("value-changed", (e) => {
           const v = { ...e.detail.value };
@@ -4117,6 +4143,11 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             delete v.media_name;
             delete v.entity;
           }
+          if (v.lens !== void 0 && v.lens !== "") {
+            const want = +v.lens || 0;
+            if (want === lensOf(v.entity)) delete v.lens;
+            else v.lens = want;
+          }
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
           });
@@ -4132,7 +4163,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           list[i] = v;
           this._changed({ ...this._config, cameras: list });
           if ((hit || other) && v.prefix !== cam.prefix) this._render();
-          else form.data = v;
+          else form.data = two ? withLens(v) : v;
         });
         const body = box.querySelector(".cb");
         body.appendChild(form);
@@ -4184,7 +4215,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       this.shadowRoot.getElementById("add").onclick = () => {
         const used = this._config.cameras.map((c) => c.prefix);
         const next = detected.find((d) => !used.includes(d.prefix));
-        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : { prefix: "" };
+        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => c.prefix === d.prefix && effLens(c) === 1));
+        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...needsEntity(lens2.entity) ? { entity: lens2.entity } : {}, ...lensOf(lens2.entity) === 1 ? {} : { lens: 1 } } : { prefix: "" };
         this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
         this._render();

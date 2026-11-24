@@ -112,6 +112,21 @@ export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|b
 /* Interner Schlüssel einer Kamera-Entität ohne Objektiv-Zusatz: sub_lens_0 → sub */
 export const baseKey = (tk) => String(tk || '').replace(/_lens_\d$/, '');
 
+/* Objektiv, zu dem ein Stream gehört: „… objektiv 1“ / „… lens 1“ → 1, sonst 0 */
+export const lensOf = (entityId) => { const m = String(entityId || '').match(/_(lens|objektiv|linse)_(\d)$/); return m ? +m[2] : 0; };
+
+/* Hat die Kamera (Präfix oder Entität) ein zweites Objektiv? Über das Geräteregister, sonst über die Namensendungen */
+export function hasSecondLens(hass, cam) {
+  if (!hass || !cam) return false;
+  const reg = hass.entities || {}, states = hass.states || {};
+  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1);
+  const start = (cam.entity && reg[cam.entity] && cam.entity)
+    || Object.keys(states).find((id) => id.startsWith('camera.') && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
+  const dev = start && reg[start].device_id;
+  if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
+  return !!cam.prefix && Object.keys(states).some((id) => lens1(id) && prefixOf(id) === cam.prefix);
+}
+
 export function prefixOf(entityId) {
   const m = String(entityId || '').match(/^camera\.(.+)$/);
   return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, '') : null;

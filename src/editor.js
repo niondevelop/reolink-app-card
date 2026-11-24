@@ -1,6 +1,6 @@
 /* Visueller Editor der Karte */
 import { BTN_DEFAULT, BTN_LABEL, Q, Q_BASE } from './constants.js';
-import { detectCameras, needsEntity, otherCameras } from './entities.js';
+import { detectCameras, hasSecondLens, lensOf, needsEntity, otherCameras } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
@@ -110,6 +110,10 @@ export class ReolinkAppCardEditor extends HTMLElement {
       ] },
     ];
     const defaults = { mode_entity: '', audio: 'manual', doorbell_timeout: 30, doorbell_sound: true, default_quality: 'fluent', live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: 'auto', panel: 'events', playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: 'reolink_hub', language: 'auto' };
+    // Kameras mit zwei Objektiven: Auswahl, welches Objektiv die Kamera zeigt (lens; ergibt sich sonst aus entity)
+    const lensField = { name: 'lens', selector: { select: { mode: 'dropdown', options: [{ value: '0', label: L.lens_0 }, { value: '1', label: L.lens_1 }] } } };
+    const effLens = (c) => (c.lens != null && c.lens !== '' ? +c.lens || 0 : lensOf(c.entity));
+    const withLens = (c) => ({ ...c, lens: String(effLens(c)) });
     if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
     this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
@@ -149,15 +153,20 @@ export class ReolinkAppCardEditor extends HTMLElement {
       const box = document.createElement('div');
       box.className = `cam${this._openCams.has(i) ? ' open' : ''}`;
       const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
-      box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || (hit0 && hit0.name) || cam.prefix || '—')}</b><small>${esc(cam.entity || cam.prefix || '')}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ''}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
+      const two = hasSecondLens(this._hass, cam);
+      const title = cam.name || `${(hit0 && hit0.name) || cam.prefix || '—'}${two && effLens(cam) ? ` – ${L.lens_1}` : ''}`;
+      box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(title)}</b><small>${esc(cam.entity || cam.prefix || '')}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ''}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
       const form = document.createElement('ha-form');
-      form.hass = this._hass; form.schema = camSchema; form.data = cam; form.computeLabel = label;
+      form.hass = this._hass; form.schema = two ? [camSchema[0], camSchema[1], lensField, ...camSchema.slice(2)] : camSchema;
+      form.data = two ? withLens(cam) : cam; form.computeLabel = label;
       form.addEventListener('value-changed', (e) => {
         const v = { ...e.detail.value };
         const hit = detected.find((d) => d.prefix === v.prefix);
         if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; else delete v.entity; }
         const other = others.find((o) => o.entity === v.prefix);
         if (other && v.prefix !== cam.prefix) { if (!v.name) v.name = other.name; delete v.media_name; delete v.entity; }
+        // Objektiv nur speichern, wenn es nicht schon aus der Entität folgt
+        if (v.lens !== undefined && v.lens !== '') { const want = +v.lens || 0; if (want === lensOf(v.entity)) delete v.lens; else v.lens = want; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
         // Zoom 1× = ganzes Bild: Mittelpunkt nicht speichern; Mitte (50 %) ist Standard
         if (!(+v.zoom > 1)) { delete v.zoom; delete v.zoom_x; delete v.zoom_y; }
@@ -165,7 +174,7 @@ export class ReolinkAppCardEditor extends HTMLElement {
         const list = [...this._config.cameras]; list[i] = v;
         this._changed({ ...this._config, cameras: list });
         if ((hit || other) && v.prefix !== cam.prefix) this._render();
-        else form.data = v;
+        else form.data = two ? withLens(v) : v;
       });
       const body = box.querySelector('.cb');
       body.appendChild(form);
@@ -212,7 +221,11 @@ export class ReolinkAppCardEditor extends HTMLElement {
     this.shadowRoot.getElementById('add').onclick = () => {
       const used = this._config.cameras.map((c) => c.prefix);
       const next = detected.find((d) => !used.includes(d.prefix));
-      const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...(needsEntity(next.entity) ? { entity: next.entity } : {}) } : { prefix: '' };
+      // Alle Kameras schon eingetragen: zweites Objektiv einer Kamera anbieten, das noch fehlt
+      const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => c.prefix === d.prefix && effLens(c) === 1));
+      const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...(needsEntity(next.entity) ? { entity: next.entity } : {}) }
+        : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...(needsEntity(lens2.entity) ? { entity: lens2.entity } : {}), ...(lensOf(lens2.entity) === 1 ? {} : { lens: 1 }) }
+          : { prefix: '' };
       this._openCams.add(this._config.cameras.length);
       this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
       this._render();
