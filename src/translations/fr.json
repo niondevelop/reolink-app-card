@@ -70,6 +70,7 @@
     "play_error": "Impossible de charger l’enregistrement",
     "loading_clip": "Chargement du clip …",
     "clip_too_big": "Clip trop volumineux pour le préchargement – choisissez la basse résolution",
+    "hq_unsupported": "Ce navigateur ne lit pas la haute résolution (H.265) – basse résolution",
     "speed": "Vitesse",
     "next": "Clip suivant",
     "download": "Télécharger",

@@ -117,9 +117,9 @@ export default {
 
   /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
      Tag und laufender Clip (samt Stelle) bleiben erhalten. */
-  async _setPlayQ(q) {
+  async _setPlayQ(q, keep = true) {
     if (!['low', 'high', 'tele'].includes(q)) return;
-    try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
+    if (keep) try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     if (q === this._playQ) return;
     this._playQ = q;
     const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
@@ -184,6 +184,20 @@ export default {
       this._days = { error: e.message || String(e) };
       this._update();
     }
+  },
+
+  /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft):
+     auf die niedrige Auflösung ausweichen, an derselben Stelle weiter. Die gespeicherte Wahl bleibt. */
+  _checkVideo(err) {
+    const v = this.$ && this.$('video');
+    if (!v || !this._playing || this._hls || !this._res || this._res.used !== 'high' || !this._res.low) return;
+    if (err) {
+      // Nur Codec-Fehler (Clip ohne Tonspur, Video nicht dekodierbar), keine Netzwerk- oder Ladefehler
+      const e = v.error;
+      if (!e || !(e.code === 3 || /NO_SUPPORTED_STREAMS|DECODE|codec/i.test(e.message || ''))) return;
+    } else if (v.videoWidth > 0) return;
+    this._toast({ text: this._t('hq_unsupported'), color: '#636366', icon: 'mdi:video-off-outline', wrap: true });
+    this._setPlayQ('low', false);
   },
 
   /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */

@@ -70,6 +70,7 @@
     "play_error": "Recording could not be loaded",
     "loading_clip": "Loading clip …",
     "clip_too_big": "Clip too large to preload – please choose low resolution",
+    "hq_unsupported": "This browser can’t play the high resolution (H.265) – using low resolution",
     "speed": "Speed",
     "next": "Next clip",
     "download": "Download",

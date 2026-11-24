@@ -70,6 +70,7 @@
     "play_error": "Aufnahme kann nicht geladen werden",
     "loading_clip": "Clip wird geladen …",
     "clip_too_big": "Clip zu groß zum Vorladen – bitte niedrige Auflösung wählen",
+    "hq_unsupported": "Hohe Auflösung (H.265) kann dieser Browser nicht abspielen – niedrige Auflösung",
     "speed": "Geschwindigkeit",
     "next": "Nächster Clip",
     "download": "Herunterladen",
