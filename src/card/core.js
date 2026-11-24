@@ -40,7 +40,7 @@ export default {
     this._live = false;
     this._filter = 'all';
     this._days = null; this._dayIdx = 0; this._files = null; this._playing = null;
-    this._settingsOpen = false; this._group = null;
+    this._settingsOpen = false; this._groupsOpen = null;
     // Seitenleiste bei breiter Karte: Ereignisse, Einstellungen oder zugeklappt (zuletzt auf diesem Gerät gewählt)
     let panel = null;
     try { panel = localStorage.getItem(PANEL_STORE); } catch (_) { /* privater Modus o. ä. */ }
