@@ -116,10 +116,10 @@ for (const [label, cam] of [['Entität des zweiten Objektivs', { entity: 'camera
     const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }, cam], auto_live: false, show_hub: false }, hass: L1HASS });
     const r = await c.run(() => {
       const k = window.__card, [a, b] = k._cams;
-      return { a: [k._e('cam_sd', a), k._e('cam_hd', a), k._e('cam_tele', a)], b: [k._e('cam_sd', b), k._e('cam_hd', b)], bTele: !!k._st(k._e('cam_tele', b)), names: [a.name, b.name], ptz: k._hasPtz(b) };
+      return { a: [k._e('cam_sd', a), k._e('cam_hd', a), k._e('cam_tele', a).replace('camera.rac_none', 'camera.hof_rac_none')], b: [k._e('cam_sd', b), k._e('cam_hd', b)], bTele: !!k._st(k._e('cam_tele', b)), names: [a.name, b.name], ptz: k._hasPtz(b) };
     });
     assert.deepEqual(r, {
-      a: ['camera.hof_standardauflosung_objektiv_0', 'camera.hof_ost_hochauflosung_objektiv_0', 'camera.hof_standardauflosung_objektiv_1'],
+      a: ['camera.hof_standardauflosung_objektiv_0', 'camera.hof_ost_hochauflosung_objektiv_0', 'camera.hof_rac_none_cam_tele'],
       b: ['camera.hof_standardauflosung_objektiv_1', 'camera.hof_ost_hochauflosung_objektiv_1'],
       bTele: false, names: ['Hof', 'Hof – 2. Objektiv'], ptz: true,
     });
@@ -188,5 +188,25 @@ test('Editor: Kamera mit einem Objektiv hat kein Feld „Objektiv“', async () 
   await openEditor(c, cfg);
   const fields = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema.map((s) => s.name));
   assert.ok(!fields.includes('lens'));
+  await c.close();
+});
+
+test('Beide Objektive als eigene Kameras: Objektiv 0 bietet „2. Objektiv“ weder live noch in der Wiedergabe an', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }, { entity: 'camera.hof_standardauflosung_objektiv_1' }], auto_live: false, show_hub: false }, hass: L1HASS });
+  assert.deepEqual(await c.run(() => window.__card._qAvail()), ['fluent', 'clear']);
+  await c.click('#m-play');
+  await wait(400);
+  const btns = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#pq button')].filter((b) => b.style.display !== 'none').map((b) => b.textContent));
+  assert.deepEqual(btns, ['Niedrig', 'Hoch']);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /^R\|0\|/); // „Hof lens 0“
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Nur Objektiv 0 eingetragen: „2. Objektiv“ bleibt wie bisher', async () => {
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }], auto_live: false, show_hub: false }, hass: L1HASS });
+  assert.deepEqual(await c.run(() => window.__card._qAvail()), ['fluent', 'clear', 'tele']);
   await c.close();
 });

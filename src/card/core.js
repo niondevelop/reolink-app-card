@@ -82,7 +82,7 @@ export default {
     const dev = this._devIndex(cam);
     // Kachel für ein weiteres Objektiv: dessen Streams; „2. Objektiv“ als eigene Stufe gibt es dort nicht
     const lens = domain === 'camera' && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
-    if (cam.lens && key === 'cam_tele') return `${domain}.rac_none_${key}`;
+    if (key === 'cam_tele' && (cam.lens || this._lensSplit(cam))) return `${domain}.rac_none_${key}`;
     if (dev) {
       for (const tk of [].concat(TK[key] || [])) {
         const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
@@ -103,6 +103,14 @@ export default {
     // Zuletzt nach Geräteklasse (z. B. Bewegung, die bei Reolink keinen internen Schlüssel hat)
     if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
     return `${domain}.${cam.prefix}_${suf[0]}`;
+  },
+
+  /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
+     für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+  _lensSplit(cam) {
+    if (!cam || cam.lens || !this._cams) return false;
+    this._devIndex(cam);
+    return this._cams.some((c) => c !== cam && c.lens > 0 && (this._devIndex(c), c._devId && cam._devId ? c._devId === cam._devId : c.prefix === cam.prefix));
   },
 
   /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */

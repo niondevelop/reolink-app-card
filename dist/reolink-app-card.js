@@ -1503,7 +1503,7 @@
       if (this._foreign(cam)) return key === "cam_sd" ? cam.entity : `${domain}.rac_none_${key}`;
       const dev = this._devIndex(cam);
       const lens = domain === "camera" && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
-      if (cam.lens && key === "cam_tele") return `${domain}.rac_none_${key}`;
+      if (key === "cam_tele" && (cam.lens || this._lensSplit(cam))) return `${domain}.rac_none_${key}`;
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
           const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
@@ -1528,6 +1528,13 @@
       }
       if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
       return `${domain}.${cam.prefix}_${suf[0]}`;
+    },
+    /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
+       für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+    _lensSplit(cam) {
+      if (!cam || cam.lens || !this._cams) return false;
+      this._devIndex(cam);
+      return this._cams.some((c) => c !== cam && c.lens > 0 && (this._devIndex(c), c._devId && cam._devId ? c._devId === cam._devId : c.prefix === cam.prefix));
     },
     /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
     _devIndex(cam) {
@@ -2524,14 +2531,16 @@
         if (!camNode) throw new Error(this._t("cam_not_found"));
         const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
         const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
-        const useLens1 = !own && this._playQ === "tele" && lens1;
+        const useLens1 = !own && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
         let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
         let kids = node.children || [];
         let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
           res = this._resNodes(kids);
-          if (own) res.tele = null;
-          else if (lens1) res.tele = lens1;
+          if (own || this._lensSplit(this._cam)) {
+            res.tele = null;
+            res.teleFolder = false;
+          } else if (lens1) res.tele = lens1;
           else if (res.tele) res.teleFolder = true;
           const pick = useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
           res.used = useLens1 || pick === res.tele ? "tele" : pick === res.high ? "high" : "low";
