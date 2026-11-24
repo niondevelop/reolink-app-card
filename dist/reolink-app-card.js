@@ -1531,6 +1531,10 @@
     },
     /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
        für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+    _devKey(cam) {
+      this._devIndex(cam);
+      return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`;
+    },
     _lensSplit(cam) {
       if (!cam || cam.lens || !this._cams) return false;
       this._devIndex(cam);
@@ -1777,15 +1781,21 @@
       const prev = this._prevDet;
       this._prevDet = now;
       if (!prev) return;
+      const seen = /* @__PURE__ */ new Set();
       now.forEach((list, i) => {
-        const fresh = list.filter((k) => !prev[i].includes(k));
+        const fresh = list.filter((k) => !(prev[i] || []).includes(k));
         if (!fresh.length) return;
+        const key = this._devKey(this._cams[i]);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+        const t = group.includes(this._idx) ? this._idx : group[0];
         const type = fresh[0];
-        this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-        if (!this._live) this._loadSnap(i, true);
+        this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+        if (!this._live) group.forEach((j) => this._loadSnap(j, true));
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
-        if (i !== this._idx && !this._grid) {
-          this._idx = i;
+        if (t !== this._idx && !this._grid) {
+          this._idx = t;
           this._expired = false;
           this._rebuildCamera();
         } else if (!this._live && this._visible && !document.hidden) {
@@ -4152,6 +4162,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             delete v.media_name;
             delete v.entity;
           }
+          if ((hit || other) && v.prefix !== cam.prefix) delete v.lens;
           if (v.lens !== void 0 && v.lens !== "") {
             const want = +v.lens || 0;
             if (want === lensOf(v.entity)) delete v.lens;
@@ -4222,9 +4233,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         cams.appendChild(box);
       });
       this.shadowRoot.getElementById("add").onclick = () => {
-        const used = this._config.cameras.map((c) => c.prefix);
+        const pre = (c) => c.prefix || (c.entity ? prefixOf(c.entity) : "");
+        const used = this._config.cameras.map(pre);
         const next = detected.find((d) => !used.includes(d.prefix));
-        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => c.prefix === d.prefix && effLens(c) === 1));
+        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => pre(c) === d.prefix && effLens(c) === 1));
         const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...needsEntity(lens2.entity) ? { entity: lens2.entity } : {}, ...lensOf(lens2.entity) === 1 ? {} : { lens: 1 } } : { prefix: "" };
         this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });

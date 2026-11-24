@@ -1,6 +1,6 @@
 /* Visueller Editor der Karte */
 import { BTN_DEFAULT, BTN_LABEL, Q, Q_BASE } from './constants.js';
-import { detectCameras, hasSecondLens, lensOf, needsEntity, otherCameras } from './entities.js';
+import { detectCameras, hasSecondLens, lensOf, needsEntity, otherCameras, prefixOf } from './entities.js';
 import { ED_LABELS, STR, pickLang } from './i18n.js';
 import { esc } from './util.js';
 
@@ -165,6 +165,8 @@ export class ReolinkAppCardEditor extends HTMLElement {
         if (hit && v.prefix !== cam.prefix) { if (!v.name) v.name = hit.name; if (!v.media_name) v.media_name = hit.name; if (needsEntity(hit.entity)) v.entity = hit.entity; else delete v.entity; }
         const other = others.find((o) => o.entity === v.prefix);
         if (other && v.prefix !== cam.prefix) { if (!v.name) v.name = other.name; delete v.media_name; delete v.entity; }
+        // Andere Kamera gewählt: Objektiv der vorherigen nicht übernehmen
+        if ((hit || other) && v.prefix !== cam.prefix) delete v.lens;
         // Objektiv nur speichern, wenn es nicht schon aus der Entität folgt
         if (v.lens !== undefined && v.lens !== '') { const want = +v.lens || 0; if (want === lensOf(v.entity)) delete v.lens; else v.lens = want; }
         Object.keys(v).forEach((k) => { if (v[k] === '' || v[k] === undefined) delete v[k]; });
@@ -219,10 +221,11 @@ export class ReolinkAppCardEditor extends HTMLElement {
       cams.appendChild(box);
     });
     this.shadowRoot.getElementById('add').onclick = () => {
-      const used = this._config.cameras.map((c) => c.prefix);
+      const pre = (c) => c.prefix || (c.entity ? prefixOf(c.entity) : '');
+      const used = this._config.cameras.map(pre);
       const next = detected.find((d) => !used.includes(d.prefix));
       // Alle Kameras schon eingetragen: zweites Objektiv einer Kamera anbieten, das noch fehlt
-      const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => c.prefix === d.prefix && effLens(c) === 1));
+      const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => pre(c) === d.prefix && effLens(c) === 1));
       const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...(needsEntity(next.entity) ? { entity: next.entity } : {}) }
         : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...(needsEntity(lens2.entity) ? { entity: lens2.entity } : {}), ...(lensOf(lens2.entity) === 1 ? {} : { lens: 1 }) }
           : { prefix: '' };

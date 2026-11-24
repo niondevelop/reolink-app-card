@@ -107,6 +107,8 @@ export default {
 
   /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
      für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+  _devKey(cam) { this._devIndex(cam); return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`; },
+
   _lensSplit(cam) {
     if (!cam || cam.lens || !this._cams) return false;
     this._devIndex(cam);
@@ -345,14 +347,22 @@ export default {
     const prev = this._prevDet;
     this._prevDet = now;
     if (!prev) return;
+    // Mehrere Kacheln desselben Geräts (je Objektiv eine) melden dieselbe Erkennung: pro Gerät nur einmal,
+    // und ist schon eine Kachel des Geräts gewählt, bleibt sie gewählt
+    const seen = new Set();
     now.forEach((list, i) => {
-      const fresh = list.filter((k) => !prev[i].includes(k));
+      const fresh = list.filter((k) => !(prev[i] || []).includes(k));
       if (!fresh.length) return;
+      const key = this._devKey(this._cams[i]);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+      const t = group.includes(this._idx) ? this._idx : group[0];
       const type = fresh[0];
-      this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-      if (!this._live) this._loadSnap(i, true);
+      this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+      if (!this._live) group.forEach((j) => this._loadSnap(j, true));
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
-      if (i !== this._idx && !this._grid) { this._idx = i; this._expired = false; this._rebuildCamera(); }
+      if (t !== this._idx && !this._grid) { this._idx = t; this._expired = false; this._rebuildCamera(); }
       else if (!this._live && this._visible && !document.hidden) { this._expired = false; this._startLive(); }
     });
   },
