@@ -95,6 +95,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .toast ha-icon { --mdc-icon-size: 18px; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
+.preload { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); z-index: 3; pointer-events: none; }
+.preload[hidden] { display: none; }
+.preload i { display: block; width: 140px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); overflow: hidden; }
+.preload b { display: block; height: 100%; width: 0; background: #fff; transition: width .2s; }
 .bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
 .bigplay ha-icon { --mdc-icon-size: 38px; }
 .seg { display: flex; margin: 10px 10px 4px; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); }

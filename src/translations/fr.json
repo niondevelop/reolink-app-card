@@ -68,6 +68,8 @@
     "error": "Erreur",
     "cam_not_found": "Caméra introuvable dans la source multimédia",
     "play_error": "Impossible de charger l’enregistrement",
+    "loading_clip": "Chargement du clip …",
+    "clip_too_big": "Clip trop volumineux pour le préchargement – choisissez la basse résolution",
     "speed": "Vitesse",
     "next": "Clip suivant",
     "download": "Télécharger",

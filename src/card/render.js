@@ -25,6 +25,7 @@ export default {
             <div class="pic" id="pic"></div>
             <video id="video" playsinline controls></video>
           </div>
+          <div class="preload" id="preload" role="status" aria-live="polite" hidden><ha-icon icon="mdi:download"></ha-icon><span id="preload-t"></span><i><b id="preload-b"></b></i></div>
           <div class="grid" id="grid"></div>
           <div class="ov top">
             <div class="pillrow"><span class="pill" id="badge"></span><span class="pill" id="zoompill"></span></div>

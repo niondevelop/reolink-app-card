@@ -318,6 +318,8 @@ export default {
     this._visible = false;
     this._stopLive(true);
     this._fsCleanup();
+    // Laufendes Vorladen abbrechen (der fertig geladene Clip bleibt, falls die Karte wieder eingehängt wird)
+    if (this._dlAbort) { this._dlAbort.abort(); this._dlAbort = null; if (this.$) this.$('preload').hidden = true; }
   },
 
   /* ---------- Sichtbarkeit & Auto-Live ---------- */

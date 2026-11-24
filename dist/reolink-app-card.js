@@ -312,6 +312,8 @@
       error: "Fehler",
       cam_not_found: "Kamera in der Medienquelle nicht gefunden",
       play_error: "Aufnahme kann nicht geladen werden",
+      loading_clip: "Clip wird geladen …",
+      clip_too_big: "Clip zu groß zum Vorladen – bitte niedrige Auflösung wählen",
       speed: "Geschwindigkeit",
       next: "Nächster Clip",
       download: "Herunterladen",
@@ -540,6 +542,8 @@
       error: "Error",
       cam_not_found: "Camera not found in the media source",
       play_error: "Recording could not be loaded",
+      loading_clip: "Loading clip …",
+      clip_too_big: "Clip too large to preload – please choose low resolution",
       speed: "Speed",
       next: "Next clip",
       download: "Download",
@@ -768,6 +772,8 @@
       error: "Erreur",
       cam_not_found: "Caméra introuvable dans la source multimédia",
       play_error: "Impossible de charger l’enregistrement",
+      loading_clip: "Chargement du clip …",
+      clip_too_big: "Clip trop volumineux pour le préchargement – choisissez la basse résolution",
       speed: "Vitesse",
       next: "Clip suivant",
       download: "Télécharger",
@@ -1792,6 +1798,11 @@
       this._visible = false;
       this._stopLive(true);
       this._fsCleanup();
+      if (this._dlAbort) {
+        this._dlAbort.abort();
+        this._dlAbort = null;
+        if (this.$) this.$("preload").hidden = true;
+      }
     },
     /* ---------- Sichtbarkeit & Auto-Live ---------- */
     _observe() {
@@ -2630,6 +2641,7 @@
   };
 
   // src/card/playback.js
+  var PRELOAD_MAX = 150 * 1024 * 1024;
   var playback_default = {
     /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
     _pickEvent() {
@@ -2937,27 +2949,37 @@
       if (this.$) this.$("stage").classList.remove("hls");
     },
     async _play(file) {
+      if (this._playing === file && this._dlAbort) return;
+      const seq = this._playSeq = Symbol("play");
       this._stopLive(true);
       this._resetZoom();
       this._playing = file;
       this._update();
       try {
         const r = await this._hass.callWS({ type: "media_source/resolve_media", media_content_id: file.node.media_content_id, expires: 3600 });
-        if (this._playing !== file) return;
+        if (seq !== this._playSeq) return;
         this._playUrl = this._hass.hassUrl(r.url);
         if (this._needsHlsPlayer(r)) {
           await this._playHls(this._playUrl, file);
         } else {
           this._removeHls();
           const v = this.$("video");
-          v.src = this._playUrl;
+          const src = this._preloadClips() ? await this._preload(this._playUrl, seq) : this._playUrl;
+          if (seq !== this._playSeq) return;
+          v.src = src;
           v.playbackRate = this._speed;
           const p = v.play();
           if (p && p.catch) p.catch(() => {
           });
         }
       } catch (e) {
+        if (seq !== this._playSeq) return;
         this._playing = null;
+        if (e && e.name === "AbortError") {
+          if (this.$) this.$("preload").hidden = true;
+          this._update();
+          return;
+        }
         this._toast({ text: `${this._t("play_error")}: ${e.message || e}`, color: "#636366", icon: "mdi:alert-circle-outline", wrap: true });
       }
       this._update();
@@ -3019,6 +3041,62 @@
       const d = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : "";
       this._openLink(this._playUrl, `${this._cam.name}_${d}_${this._playing.time.replace(/:/g, "-")}.mp4`);
     },
+    /* Clips vorab ganz laden? Option playback_preload: true/false, sonst automatisch auf iPhone/iPad */
+    _preloadClips() {
+      const o = this._config.playback_preload;
+      if (o === true || o === false) return o;
+      const ua = navigator.userAgent || "";
+      return /iPad|iPhone|iPod/.test(ua) || /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+    },
+    /* Clip ganz herunterladen (mit Fortschritt) und als Blob-URL zurückgeben; ein Wechsel des Clips bricht ab */
+    async _preload(url, seq) {
+      this._dropBlob();
+      const ac = new AbortController();
+      this._dlAbort = ac;
+      const box = this.$("preload"), bar = this.$("preload-b"), txt = this.$("preload-t");
+      const show = (done, total) => {
+        box.hidden = false;
+        txt.textContent = total ? `${this._t("loading_clip")} ${Math.round(done / total * 100)} %` : `${this._t("loading_clip")} ${(done / 1048576).toFixed(1)} MB`;
+        bar.style.width = total ? `${Math.min(100, done / total * 100)}%` : "30%";
+      };
+      try {
+        show(0, 0);
+        const resp = await fetch(url, { signal: ac.signal, credentials: "same-origin" });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const total = +resp.headers.get("content-length") || 0;
+        const parts = [];
+        let done = 0;
+        if (resp.body && resp.body.getReader) {
+          const rd = resp.body.getReader();
+          for (; ; ) {
+            const { value, done: end } = await rd.read();
+            if (end) break;
+            parts.push(value);
+            done += value.length;
+            show(done, total);
+            if (done > (this._preloadMax || PRELOAD_MAX)) throw new Error(this._t("clip_too_big"));
+          }
+        } else parts.push(new Uint8Array(await resp.arrayBuffer()));
+        if (seq !== this._playSeq) return "";
+        this._blobUrl = URL.createObjectURL(new Blob(parts, { type: resp.headers.get("content-type") || "video/mp4" }));
+        return this._blobUrl;
+      } finally {
+        if (this._dlAbort === ac) {
+          this._dlAbort = null;
+          box.hidden = true;
+        }
+      }
+    },
+    _dropBlob() {
+      if (this._dlAbort) {
+        this._dlAbort.abort();
+        this._dlAbort = null;
+      }
+      if (this._blobUrl) {
+        URL.revokeObjectURL(this._blobUrl);
+        this._blobUrl = null;
+      }
+    },
     _stopPlayback(silent) {
       const v = this.$ && this._vid();
       if (v) {
@@ -3029,6 +3107,9 @@
         } catch (_) {
         }
       }
+      this._playSeq = null;
+      this._dropBlob();
+      if (this.$) this.$("preload").hidden = true;
       this._removeHls();
       if (!this._playing) return;
       this._playing = null;
@@ -3326,6 +3407,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .toast ha-icon { --mdc-icon-size: 18px; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
+.preload { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); z-index: 3; pointer-events: none; }
+.preload[hidden] { display: none; }
+.preload i { display: block; width: 140px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); overflow: hidden; }
+.preload b { display: block; height: 100%; width: 0; background: #fff; transition: width .2s; }
 .bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
 .bigplay ha-icon { --mdc-icon-size: 38px; }
 .seg { display: flex; margin: 10px 10px 4px; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); }
@@ -3528,6 +3613,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             <div class="pic" id="pic"></div>
             <video id="video" playsinline controls></video>
           </div>
+          <div class="preload" id="preload" role="status" aria-live="polite" hidden><ha-icon icon="mdi:download"></ha-icon><span id="preload-t"></span><i><b id="preload-b"></b></i></div>
           <div class="grid" id="grid"></div>
           <div class="ov top">
             <div class="pillrow"><span class="pill" id="badge"></span><span class="pill" id="zoompill"></span></div>
