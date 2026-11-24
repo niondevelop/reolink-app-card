@@ -68,6 +68,7 @@
     "error": "Erreur",
     "cam_not_found": "Caméra introuvable dans la source multimédia",
     "play_error": "Impossible de charger l’enregistrement",
+    "hq_unsupported": "Ce navigateur ne lit pas la haute résolution (H.265) – basse résolution",
     "speed": "Vitesse",
     "next": "Clip suivant",
     "download": "Télécharger",

@@ -68,6 +68,7 @@
     "error": "Error",
     "cam_not_found": "Camera not found in the media source",
     "play_error": "Recording could not be loaded",
+    "hq_unsupported": "This browser can’t play the high resolution (H.265) – using low resolution",
     "speed": "Speed",
     "next": "Next clip",
     "download": "Download",

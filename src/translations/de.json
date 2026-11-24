@@ -68,6 +68,7 @@
     "error": "Fehler",
     "cam_not_found": "Kamera in der Medienquelle nicht gefunden",
     "play_error": "Aufnahme kann nicht geladen werden",
+    "hq_unsupported": "Hohe Auflösung (H.265) kann dieser Browser nicht abspielen – niedrige Auflösung",
     "speed": "Geschwindigkeit",
     "next": "Nächster Clip",
     "download": "Herunterladen",

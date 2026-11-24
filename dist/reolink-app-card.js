@@ -289,6 +289,7 @@
       error: "Fehler",
       cam_not_found: "Kamera in der Medienquelle nicht gefunden",
       play_error: "Aufnahme kann nicht geladen werden",
+      hq_unsupported: "Hohe Auflösung (H.265) kann dieser Browser nicht abspielen – niedrige Auflösung",
       speed: "Geschwindigkeit",
       next: "Nächster Clip",
       download: "Herunterladen",
@@ -507,6 +508,7 @@
       error: "Error",
       cam_not_found: "Camera not found in the media source",
       play_error: "Recording could not be loaded",
+      hq_unsupported: "This browser can’t play the high resolution (H.265) – using low resolution",
       speed: "Speed",
       next: "Next clip",
       download: "Download",
@@ -725,6 +727,7 @@
       error: "Erreur",
       cam_not_found: "Caméra introuvable dans la source multimédia",
       play_error: "Impossible de charger l’enregistrement",
+      hq_unsupported: "Ce navigateur ne lit pas la haute résolution (H.265) – basse résolution",
       speed: "Vitesse",
       next: "Clip suivant",
       download: "Télécharger",
@@ -2463,9 +2466,9 @@
     },
     /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
        Tag und laufender Clip (samt Stelle) bleiben erhalten. */
-    async _setPlayQ(q) {
+    async _setPlayQ(q, keep = true) {
       if (!["low", "high", "tele"].includes(q)) return;
-      try {
+      if (keep) try {
         localStorage.setItem(PLAY_Q_STORE, q);
       } catch (_) {
       }
@@ -2528,6 +2531,15 @@
         this._days = { error: e.message || String(e) };
         this._update();
       }
+    },
+    /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft) oder nicht abspielbar:
+       auf die niedrige Auflösung ausweichen, an derselben Stelle weiter. Die gespeicherte Wahl bleibt. */
+    _checkVideo(err) {
+      const v = this.$ && this.$("video");
+      if (!v || !this._playing || this._hls || !this._res || this._res.used !== "high" || !this._res.low) return;
+      if (!err && v.videoWidth > 0) return;
+      this._toast({ text: this._t("hq_unsupported"), color: "#636366", icon: "mdi:video-off-outline", wrap: true });
+      this._setPlayQ("low", false);
     },
     /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */
     _resumeClip({ start, at }) {
@@ -3372,6 +3384,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       });
       v.addEventListener("loadedmetadata", () => {
         v.playbackRate = this._speed;
+        this._checkVideo(false);
+      });
+      v.addEventListener("error", () => {
+        if (v.getAttribute("src")) this._checkVideo(true);
       });
       v.addEventListener("timeupdate", () => this._updatePlayhead());
       this.addEventListener("keydown", (e) => this._playbackKey(e));
