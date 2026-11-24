@@ -156,7 +156,7 @@ export default {
     const c = this._cam, siren = this._e('siren'), light = this._e('light'), mrec = this._e('manual_rec');
     const build = {
       talk: () => {
-        if (this._grid) return null;
+        if (this._grid) return null; // Gegensprechen nur in der Einzelansicht (Ton kommt aus dem einen Player)
         const active = this._mic !== 'off', why = active ? null : this._talkReason();
         const legacy = why === 'feature' && this._talkLegacy();
         return { icon: active ? 'mdi:phone-hangup' : 'mdi:phone', on: active, warn: active,
@@ -170,9 +170,9 @@ export default {
       light: () => this._st(light) && { icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light), run: () => this._call('light', 'toggle', light) },
       rec: () => this._st(mrec) && { icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec), run: () => this._call('switch', 'toggle', mrec) },
       snap: () => ({ icon: 'mdi:camera-outline', label: this._t('snapshot'), run: () => this._snapshot() }),
-      ptz: () => !this._grid && this._hasPtz() && { icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
+      ptz: () => this._hasPtz() && { icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
         run: () => { this._ptzOpen = !this._ptzOpen; this._qOpen = false; this._update(); } },
-      q: () => this._qAvail().length && !this._grid && { icon: Q[this._quality].icon,
+      q: () => this._qAvail().length && { icon: Q[this._quality].icon,
         label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
         run: () => { this._qOpen = !this._qOpen; this._ptzOpen = false; this._update(); } },
     };
@@ -346,6 +346,7 @@ export default {
       cell.querySelector('.cb').textContent = bat ? ` · ${bat.v}%` : '';
       cell.querySelector('.dot').className = `dot ${this._camDot(cam)}`;
       cell.classList.toggle('alert', this._det(cam).length > 0);
+      cell.classList.toggle('sel', this._cams.length > 1 && +cell.dataset.i === this._idx);
     });
 
     this._updateTimer();

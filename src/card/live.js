@@ -129,6 +129,17 @@ export default {
     }
   },
 
+  /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
+  _gridSelect(i) {
+    if (i === this._idx) return;
+    this._idx = i;
+    this._ptzOpen = false; this._qOpen = false;
+    this._ensureQ();
+    this._loadSnap(i);
+    // Die gewählte Kamera läuft in der gewählten Qualität, die übrigen flüssig
+    if (this._live && this._quality !== 'fluent') this._makePic(); else this._update();
+  },
+
   _renderGrid(liveEls) {
     const grid = this.$('grid');
     grid.innerHTML = '';
@@ -142,7 +153,8 @@ export default {
       cell.innerHTML = `<img class="prev${snap ? ' ok' : ''}" alt="" ${snap ? `src="${esc(snap.url)}"` : ''}><div class="pic"></div>
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
       if (liveEls[i]) cell.querySelector('.pic').appendChild(liveEls[i]);
-      cell.onclick = () => { this._idx = i; this._setGrid(false); this._rebuildCamera(); };
+      // Erster Tipp wählt die Kachel (Tasten wirken auf sie), ein weiterer Tipp auf die gewählte öffnet sie gross
+      cell.onclick = () => { if (i === this._idx) { this._setGrid(false); this._rebuildCamera(); } else this._gridSelect(i); };
       grid.appendChild(cell);
     });
     this._update();

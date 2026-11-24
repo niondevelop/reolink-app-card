@@ -328,7 +328,8 @@ export default {
       this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
       if (!this._live) this._loadSnap(i, true);
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
-      if (i !== this._idx && !this._grid) { this._idx = i; this._expired = false; this._rebuildCamera(); }
+      if (i !== this._idx && this._grid) this._gridSelect(i);
+      else if (i !== this._idx) { this._idx = i; this._expired = false; this._rebuildCamera(); }
       else if (!this._live && this._visible && !document.hidden) { this._expired = false; this._startLive(); }
     });
   },

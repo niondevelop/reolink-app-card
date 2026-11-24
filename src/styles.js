@@ -66,7 +66,9 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }
 .cell { position: relative; aspect-ratio: 16/9; background: #111; overflow: hidden; cursor: pointer; }
 .cell::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: box-shadow .2s; }
+.cell.sel::after { box-shadow: inset 0 0 0 3px var(--primary-color, #1e8bff); }
 .cell.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b; }
+.cell.sel.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b, inset 0 0 0 6px var(--primary-color, #1e8bff); }
 .cell .cl { z-index: 3; }
 .cell .cl { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; font-weight: 600; }
 .ov { position: absolute; left: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
