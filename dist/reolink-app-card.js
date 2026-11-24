@@ -1460,7 +1460,7 @@
       this._files = null;
       this._playing = null;
       this._settingsOpen = false;
-      this._group = null;
+      this._groupsOpen = null;
       let panel = null;
       try {
         panel = localStorage.getItem(PANEL_STORE);
@@ -3369,7 +3369,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .more span { flex: 1; text-align: left; }
 .more ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); }
 .settings { padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
-.grp { border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
+.grp { flex: none; border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
 .gh { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600; text-align: left; }
 .gh span { flex: 1; }
 .gh ha-icon { --mdc-icon-size: 20px; }
@@ -4095,16 +4095,20 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     },
     _updateSettings(box) {
       const groups = this._settingGroups();
-      if (!this._group || !groups.some((g) => g.g === this._group)) this._group = groups.length ? groups[0].g : null;
-      const sig = `${this._idx}|${this._lang}|${this._group}|${groups.map((g) => g.g + ":" + g.items.map((i) => i.key).join(",")).join(";")}`;
+      if (!this._groupsOpen && groups.length) this._groupsOpen = /* @__PURE__ */ new Set([groups[0].g]);
+      if (!this._groupsOpen) return;
+      const open = (g) => this._groupsOpen.has(g);
+      const sig = `${this._idx}|${this._lang}|${[...this._groupsOpen].join(",")}|${groups.map((g) => g.g + ":" + g.items.map((i) => i.key).join(",")).join(";")}`;
       if (box.dataset.sig !== sig) {
         box.dataset.sig = sig;
-        box.innerHTML = groups.map((g) => `<div class="grp${g.g === this._group ? " open" : ""}">
-        <button class="gh" data-g="${g.g}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${g.g === this._group ? "up" : "down"}"></ha-icon></button>
-        ${g.g === this._group ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join("")}</div>` : ""}</div>`).join("");
+        box.innerHTML = groups.map((g) => `<div class="grp${open(g.g) ? " open" : ""}">
+        <button class="gh" data-g="${g.g}" aria-expanded="${open(g.g)}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${open(g.g) ? "up" : "down"}"></ha-icon></button>
+        ${open(g.g) ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join("")}</div>` : ""}</div>`).join("");
         box.querySelectorAll(".gh").forEach((b) => {
           b.onclick = () => {
-            this._group = this._group === b.dataset.g ? "" : b.dataset.g;
+            const g = b.dataset.g;
+            if (this._groupsOpen.has(g)) this._groupsOpen.delete(g);
+            else this._groupsOpen.add(g);
             this._update();
           };
         });
