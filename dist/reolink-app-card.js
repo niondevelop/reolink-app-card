@@ -2532,12 +2532,12 @@
         this._update();
       }
     },
-    /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft) oder nicht abspielbar:
+    /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft):
        auf die niedrige Auflösung ausweichen, an derselben Stelle weiter. Die gespeicherte Wahl bleibt. */
-    _checkVideo(err) {
+    _checkVideo() {
       const v = this.$ && this.$("video");
       if (!v || !this._playing || this._hls || !this._res || this._res.used !== "high" || !this._res.low) return;
-      if (!err && v.videoWidth > 0) return;
+      if (v.videoWidth > 0) return;
       this._toast({ text: this._t("hq_unsupported"), color: "#636366", icon: "mdi:video-off-outline", wrap: true });
       this._setPlayQ("low", false);
     },
@@ -3384,10 +3384,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       });
       v.addEventListener("loadedmetadata", () => {
         v.playbackRate = this._speed;
-        this._checkVideo(false);
-      });
-      v.addEventListener("error", () => {
-        if (v.getAttribute("src")) this._checkVideo(true);
+        this._checkVideo();
       });
       v.addEventListener("timeupdate", () => this._updatePlayhead());
       this.addEventListener("keydown", (e) => this._playbackKey(e));

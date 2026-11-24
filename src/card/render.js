@@ -135,8 +135,7 @@ export default {
     $('prev').onerror = () => { $('prev').classList.remove('ok'); };
     const v = $('video');
     v.addEventListener('ended', () => { if (this._config.autoplay_next) this._playNext(true); });
-    v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; this._checkVideo(false); });
-    v.addEventListener('error', () => { if (v.getAttribute('src')) this._checkVideo(true); });
+    v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; this._checkVideo(); });
     v.addEventListener('timeupdate', () => this._updatePlayhead());
     this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();

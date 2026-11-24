@@ -1,6 +1,9 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { launch, openCard, startServer, wait } from './helpers.js';
+
+const AUDIO_ONLY = readFileSync(new URL('./fixtures/audio-only.mp4', import.meta.url));
 
 let browser, server;
 before(async () => { server = await startServer(); browser = await launch(); });
@@ -13,8 +16,8 @@ const HASS = { states: { 'camera.hof_standardauflosung': img }, mediaCameras: ['
 const STORE = 'reolink-app-card:playback_quality';
 const run = async (q, body) => {
   const c = await openCard(browser, server, { config: { cameras: [{ prefix: 'hof' }], auto_live: false, show_hub: false, language: 'de' }, hass: HASS, storage: { [STORE]: q } });
-  // Clip nicht abspielbar: leere Antwort löst am <video> „error“ aus
-  await c.page.route('**/clip.mp4', (r) => r.fulfill({ status: 200, contentType: 'video/mp4', body: body || Buffer.alloc(16) }));
+  // Wie H.265 ohne Dekoder: Datei lädt, aber nur mit Ton (videoWidth 0)
+  await c.page.route('**/clip.mp4', (r) => r.fulfill({ status: 200, contentType: 'video/mp4', body: AUDIO_ONLY }));
   await c.click('#m-play');
   await wait(400);
   await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
@@ -22,7 +25,7 @@ const run = async (q, body) => {
   return c;
 };
 
-test('Hoch nicht abspielbar: Hinweis, Wechsel auf Niedrig, gespeicherte Wahl bleibt', async () => {
+test('Hoch ohne Bild (H.265 ohne Dekoder): Hinweis, Wechsel auf Niedrig, gespeicherte Wahl bleibt', async () => {
   const c = await run('high');
   const r = await c.run((k) => ({ q: window.__card._playQ, used: window.__card._res && window.__card._res.used, toast: window.__card.$('toast').textContent, stored: localStorage.getItem(k) }), STORE);
   assert.equal(r.q, 'low');
@@ -32,7 +35,7 @@ test('Hoch nicht abspielbar: Hinweis, Wechsel auf Niedrig, gespeicherte Wahl ble
   await c.close();
 });
 
-test('Niedrig nicht abspielbar: kein Ausweichen (normaler Fehler)', async () => {
+test('Niedrig ohne Bild: kein Ausweichen', async () => {
   const c = await run('low');
   const r = await c.run(() => ({ q: window.__card._playQ, toast: window.__card.$('toast').textContent }));
   assert.equal(r.q, 'low');
