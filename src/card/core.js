@@ -4,6 +4,12 @@ import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, lensOf, prefixOf 
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
 
+/* Tele-Objektiv der TrackMix an Hub/NVR als „2. Objektiv“ (interne Schlüssel bzw. Namensendungen) */
+const TELE = {
+  cam_sd: { tk: ['telephoto_sub', 'autotrack_sub'], ent: ['tele_standardauflosung', 'telephoto_fluent'] },
+  cam_hd: { tk: ['telephoto_main', 'autotrack_main'], ent: ['tele_hochauflosung', 'telephoto_clear'] },
+};
+
 /* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
 const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
 
@@ -91,6 +97,13 @@ export default {
     }
     if (lens) {
       for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }
+      // TrackMix an Hub/NVR: das zweite Objektiv heißt dort „Tele“ (telephoto_* bzw. autotrack_*). Nur vorhandene
+      // (aktivierte) Streams verwenden – der hochauflösende Tele-Stream ist in Home Assistant meist deaktiviert.
+      const tele = lens === 1 && TELE[key];
+      if (tele) {
+        for (const tk of tele.tk) { const id = dev && dev[`camera:${tk}`]; if (id && this._st(id)) return id; }
+        for (const n of tele.ent) { const id = `camera.${cam.prefix}_${n}`; if (this._st(id)) return id; }
+      }
       return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden

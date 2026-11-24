@@ -250,3 +250,35 @@ test('Editor: Kamerawechsel setzt das Objektiv zurück; Objektiv-1-Kachel nur mi
   assert.deepEqual(c.errors, []);
   await c.close();
 });
+
+/* TrackMix an Hub/NVR: zweites Objektiv heißt „Tele“ (telephoto_sub, Aufnahmeordner autotrack_*) */
+const HUB = {
+  'camera.tm_fluent': 'sub', 'camera.tm_clear': 'main', 'camera.tm_telephoto_fluent': 'telephoto_sub',
+};
+const hubSt = {}, hubEn = {};
+Object.entries(HUB).forEach(([id, tk]) => { hubSt[id] = img; hubEn[id] = { entity_id: id, device_id: 'dT', platform: 'reolink', translation_key: tk }; });
+const HUBHASS = { states: hubSt, entities: hubEn, devices: { dT: { name: 'TrackMix', model: 'TrackMix PoE' } }, mediaCameras: ['TrackMix'], files: ['08:00:00 0:00:40 Person'], resolutions: true, telephoto: true };
+
+test('TrackMix an Hub: lens 1 nimmt den Tele-Stream und die Tele-Aufnahmen; Objektiv 0 ohne Tele-Stufe', async () => {
+  const cfg = { cameras: [{ entity: 'camera.tm_fluent', media_name: 'TrackMix' }, { entity: 'camera.tm_fluent', media_name: 'TrackMix', lens: 1 }], auto_live: false, show_hub: false };
+  const c = await openCard(browser, server, { config: cfg, hass: HUBHASS });
+  const r = await c.run(() => {
+    const k = window.__card, [a, b] = k._cams;
+    const avail = (cam) => { const o = k._cam; k._idx = k._cams.indexOf(cam); const v = k._qAvail(); k._idx = k._cams.indexOf(o); return v; };
+    return { bSd: k._e('cam_sd', b), bHd: !!k._st(k._e('cam_hd', b)), aAvail: avail(a), bAvail: avail(b), names: [a.name, b.name] };
+  });
+  assert.deepEqual(r, { bSd: 'camera.tm_telephoto_fluent', bHd: false, aAvail: ['fluent', 'clear'], bAvail: ['fluent'], names: ['TrackMix', 'TrackMix – Tele'] });
+  await c.run(() => window.__card._select(1));
+  await c.click('#m-play');
+  await wait(400);
+  const btns = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#pq button')].filter((x) => x.style.display !== 'none').map((x) => x.textContent));
+  assert.deepEqual(btns, ['Niedrig', 'Hoch']);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /\|RES\|autotrack_sub\|/);
+  await openEditor(c, cfg);
+  const fields = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema.map((s) => s.name));
+  assert.ok(fields.includes('lens'));
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});

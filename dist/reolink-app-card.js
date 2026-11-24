@@ -155,7 +155,7 @@
   function hasSecondLens(hass, cam) {
     if (!hass || !cam) return false;
     const reg = hass.entities || {}, states = hass.states || {};
-    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1);
+    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$|^telephoto_|^autotrack_/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1 || /_tele_standardauflosung$|_telephoto_fluent$/.test(id));
     const start = cam.entity && reg[cam.entity] && cam.entity || Object.keys(states).find((id) => id.startsWith("camera.") && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
     const dev = start && reg[start].device_id;
     if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
@@ -1392,6 +1392,10 @@
   };
 
   // src/card/core.js
+  var TELE = {
+    cam_sd: { tk: ["telephoto_sub", "autotrack_sub"], ent: ["tele_standardauflosung", "telephoto_fluent"] },
+    cam_hd: { tk: ["telephoto_main", "autotrack_main"], ent: ["tele_hochauflosung", "telephoto_clear"] }
+  };
   var LENS_KEYS = ["cam_sd", "cam_bal", "cam_hd", "snap", "snap_hd"];
   var core_default = {
     setConfig(config) {
@@ -1514,6 +1518,17 @@
         for (const s of suf) for (const w of ["objektiv", "lens", "linse"]) {
           const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`;
           if (this._st(id)) return id;
+        }
+        const tele = lens === 1 && TELE[key];
+        if (tele) {
+          for (const tk of tele.tk) {
+            const id = dev && dev[`camera:${tk}`];
+            if (id && this._st(id)) return id;
+          }
+          for (const n of tele.ent) {
+            const id = `camera.${cam.prefix}_${n}`;
+            if (this._st(id)) return id;
+          }
         }
         return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
       }
@@ -2508,7 +2523,8 @@
         low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
         high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
         // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
-        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null
+        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
+        teleHigh: kids.find((k) => /\|autotrack_main(\||$)|telephoto high/i.test(txt(k))) || null
       };
     },
     /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
@@ -2541,13 +2557,17 @@
         if (!camNode) throw new Error(this._t("cam_not_found"));
         const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
         const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
-        const useLens1 = !own && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
+        const teleOwn = !own && this._cam.lens === 1;
+        const useLens1 = !own && !teleOwn && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
         let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
         let kids = node.children || [];
         let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
           res = this._resNodes(kids);
-          if (own || this._lensSplit(this._cam)) {
+          if (teleOwn) {
+            if (!res.tele) throw new Error(this._t("cam_not_found"));
+            res = { low: res.tele, high: res.teleHigh || null, tele: null };
+          } else if (own || this._lensSplit(this._cam)) {
             res.tele = null;
             res.teleFolder = false;
           } else if (lens1) res.tele = lens1;
