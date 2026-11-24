@@ -312,7 +312,7 @@ export default {
     } catch (e) {
       if (seq !== this._playSeq) return; // inzwischen anderer Clip oder beendet (Laden abgebrochen)
       this._playing = null;
-      if (e && e.name === 'AbortError') { this._update(); return; }
+      if (e && e.name === 'AbortError') { if (this.$) this.$('preload').hidden = true; this._update(); return; }
       this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
     this._update();

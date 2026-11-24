@@ -1666,6 +1666,7 @@
       if (this._dlAbort) {
         this._dlAbort.abort();
         this._dlAbort = null;
+        if (this.$) this.$("preload").hidden = true;
       }
     },
     /* ---------- Sichtbarkeit & Auto-Live ---------- */
@@ -2688,6 +2689,7 @@
         if (seq !== this._playSeq) return;
         this._playing = null;
         if (e && e.name === "AbortError") {
+          if (this.$) this.$("preload").hidden = true;
           this._update();
           return;
         }

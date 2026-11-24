@@ -103,8 +103,10 @@ test('Zu großer Clip: Abbruch mit Hinweis; Abhängen der Karte bricht das Vorla
   await wait(200);
   await c.run(() => { const k = window.__card; window.__p = k.parentNode; k.remove(); });
   await wait(300);
-  r = await c.run(() => ({ playing: !!window.__card._playing, loading: !!window.__card._dlAbort, toast: window.__card.$('toast').classList.contains('show') }));
-  assert.deepEqual(r, { playing: false, loading: false, toast: false });
+  await c.run(() => window.__p.appendChild(window.__card));
+  await wait(200);
+  r = await c.run(() => ({ playing: !!window.__card._playing, loading: !!window.__card._dlAbort, toast: window.__card.$('toast').classList.contains('show'), bar: window.__card.$('preload').hidden }));
+  assert.deepEqual(r, { playing: false, loading: false, toast: false, bar: true });
   assert.deepEqual(c.errors, []);
   await c.close();
 });
