@@ -1995,6 +1995,16 @@
   };
 
   // src/card/live.js
+  function findVideo(root, depth = 0) {
+    if (!root || depth > 8) return null;
+    const v = root.querySelector && root.querySelector("video");
+    if (v) return v;
+    for (const el of root.querySelectorAll ? root.querySelectorAll("*") : []) {
+      const hit = el.shadowRoot && findVideo(el.shadowRoot, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  }
   var live_default = {
     /* ---------- Qualität ---------- */
     _normQ(q) {
@@ -2207,11 +2217,50 @@
       else this._loadSnap(this._idx, true);
       if (!silent) this._update();
     },
+    /* Vollbild: Fullscreen-API (auch mit webkit-Präfix). Das iPhone kennt sie nur für Video-Elemente:
+       dort das Video des Livebilds bzw. der Wiedergabe im iOS-Player, sonst die Bildfläche über den ganzen Bildschirm */
     _fullscreen() {
-      const el = this.$("stage");
-      if (document.fullscreenElement) document.exitFullscreen();
-      else if (el.requestFullscreen) el.requestFullscreen();
-      else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
+      const el = this.$("stage"), doc = document;
+      if (!this._fsListen) {
+        this._fsListen = () => this._update();
+        ["fullscreenchange", "webkitfullscreenchange"].forEach((t) => doc.addEventListener(t, this._fsListen));
+      }
+      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+        (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc);
+        return;
+      }
+      if (this._pseudoFs) {
+        this._setPseudoFs(false);
+        return;
+      }
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) {
+        try {
+          const p = req.call(el);
+          if (p && p.catch) p.catch(() => this._fsFallback());
+        } catch (_) {
+          this._fsFallback();
+        }
+        return;
+      }
+      this._fsFallback();
+    },
+    _fsFallback() {
+      const v = this._playing ? this._vid() : findVideo(this.$("pic"));
+      if (v && v.webkitEnterFullscreen && v.readyState > 0) {
+        try {
+          v.webkitEnterFullscreen();
+          return;
+        } catch (_) {
+        }
+      }
+      this._setPseudoFs(true);
+    },
+    /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+    _setPseudoFs(on) {
+      this._pseudoFs = !!on;
+      this.$("stage").classList.toggle("pseudofs", this._pseudoFs);
+      this._update();
     },
     /* ---------- Digitaler Zoom ---------- */
     _setupZoom() {
@@ -2992,6 +3041,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
   --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
 .stage.zoomed { touch-action: none; cursor: grab; }
 .stage:fullscreen { aspect-ratio: auto; }
+.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; height: 100vh; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 .stage.gridmode { aspect-ratio: auto; min-height: 120px; }
 .media { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .stage.gridmode .media { display: none; }
@@ -3606,7 +3656,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       this._updateTimer();
       $("stop").style.display = this._live || playing ? "" : "none";
       $("stop").title = this._t("stop_live");
+      const fsOn = !!(this._pseudoFs || document.fullscreenElement || document.webkitFullscreenElement);
       $("fs").title = this._t("fullscreen");
+      const fsIcon = $("fs").querySelector("ha-icon"), fsWant = fsOn ? "mdi:fullscreen-exit" : "mdi:fullscreen";
+      if (fsIcon.getAttribute("icon") !== fsWant) fsIcon.setAttribute("icon", fsWant);
       $("bigplay").title = this._t("start_live");
       $("bigplay").style.display = this._live || playing || this._mode !== "live" ? "none" : "";
       $("speed").style.display = playing ? "" : "none";

@@ -48,6 +48,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
   --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
 .stage.zoomed { touch-action: none; cursor: grab; }
 .stage:fullscreen { aspect-ratio: auto; }
+.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; height: 100vh; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 .stage.gridmode { aspect-ratio: auto; min-height: 120px; }
 .media { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .stage.gridmode .media { display: none; }

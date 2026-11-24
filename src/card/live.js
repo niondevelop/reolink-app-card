@@ -2,6 +2,18 @@
 import { Q, Q_ALIAS, Q_ORDER, Q_STORE } from '../constants.js';
 import { esc } from '../util.js';
 
+/* Erstes Video-Element, auch in eingebetteten Shadow-DOMs (Player von Home Assistant) */
+function findVideo(root, depth = 0) {
+  if (!root || depth > 8) return null;
+  const v = root.querySelector && root.querySelector('video');
+  if (v) return v;
+  for (const el of root.querySelectorAll ? root.querySelectorAll('*') : []) {
+    const hit = el.shadowRoot && findVideo(el.shadowRoot, depth + 1);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export default {
   /* ---------- Qualität ---------- */
   _normQ(q) { q = Q_ALIAS[String(q).toLowerCase()] || String(q).toLowerCase(); return Q[q] ? q : 'fluent'; },
@@ -194,11 +206,34 @@ export default {
     if (!silent) this._update();
   },
 
+  /* Vollbild: Fullscreen-API (auch mit webkit-Präfix). Das iPhone kennt sie nur für Video-Elemente:
+     dort das Video des Livebilds bzw. der Wiedergabe im iOS-Player, sonst die Bildfläche über den ganzen Bildschirm */
   _fullscreen() {
-    const el = this.$('stage');
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (el.requestFullscreen) el.requestFullscreen();
-    else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
+    const el = this.$('stage'), doc = document;
+    if (!this._fsListen) { this._fsListen = () => this._update(); ['fullscreenchange', 'webkitfullscreenchange'].forEach((t) => doc.addEventListener(t, this._fsListen)); }
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) { (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc); return; }
+    if (this._pseudoFs) { this._setPseudoFs(false); return; }
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) {
+      try { const p = req.call(el); if (p && p.catch) p.catch(() => this._fsFallback()); } catch (_) { this._fsFallback(); }
+      return;
+    }
+    this._fsFallback();
+  },
+
+  _fsFallback() {
+    const v = this._playing ? this._vid() : findVideo(this.$('pic'));
+    if (v && v.webkitEnterFullscreen && v.readyState > 0) {
+      try { v.webkitEnterFullscreen(); return; } catch (_) { /* weiter mit der Bildfläche */ }
+    }
+    this._setPseudoFs(true);
+  },
+
+  /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+  _setPseudoFs(on) {
+    this._pseudoFs = !!on;
+    this.$('stage').classList.toggle('pseudofs', this._pseudoFs);
+    this._update();
   },
 
   /* ---------- Digitaler Zoom ---------- */
