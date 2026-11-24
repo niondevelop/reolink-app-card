@@ -18,6 +18,11 @@ export const ENT = {
   pir: ['switch', 'pir_aktiviert', 'pir_enabled'],
   pir_reduce: ['switch', 'pir_fehlalarme_reduzieren', 'pir_reduce_false_alarm'],
   push: ['switch', 'push_benachrichtigungen', 'push_notifications'],
+  auto_track: ['switch', 'automatisches_tracking', 'auto_tracking'],
+  track_method: ['select', 'tracking_methode', 'auto_tracking_methode', 'auto_track_method', 'auto_tracking_method'],
+  guard_return: ['switch', 'automatisch_zur_startposition', 'guard_return', 'auto_return_to_home_position'],
+  guard_time: ['number', 'ruckkehrzeit_zur_startposition', 'guard_return_time', 'return_to_home_position_time'],
+  patrol: ['switch', 'ptz_patrouille', 'ptz_patrol'],
   ir: ['switch', 'infrarotlicht_im_nachtmodus', 'infrared_lights_in_night_mode', 'infra_red_lights_in_night_mode'],
   rec_audio: ['switch', 'audio_aufnehmen', 'record_audio'],
   siren_event: ['switch', 'sirene_bei_ereignis', 'siren_on_event'],
@@ -67,6 +72,7 @@ export const TK = {
   cam_tele: ['telephoto_sub', 'sub_lens_1'],
   light: 'floodlight', status_led: 'status_led', siren: 'siren', prealarm: 'pre_siren',
   manual_rec: 'manual_record', rec: 'record', pir: 'pir_enabled', pir_reduce: 'pir_reduce_alarm', push: 'push_notifications',
+  auto_track: 'auto_tracking', track_method: 'auto_track_method', guard_return: ['guard_return', 'gaurd_return'], guard_time: 'guard_return_time', patrol: 'ptz_patrol',
   ir: 'ir_lights', rec_audio: 'record_audio', siren_event: 'siren_on_event', prealarm_event: 'pre_siren_on_event', hub_ring_event: 'hub_ringtone_on_event',
   daynight: 'day_night_mode', anti_flicker: 'anti_flicker', fl_mode: 'floodlight_mode', post_rec: 'post_rec_time',
   pir_sens: 'pir_sensitivity', ai_person: 'ai_person_sensitivity', ai_vehicle: 'ai_vehicle_sensitivity', ai_animal: ['ai_animal_sensitivity', 'ai_pet_sensitivity'],
@@ -111,6 +117,22 @@ export const CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|b
 
 /* Interner Schlüssel einer Kamera-Entität ohne Objektiv-Zusatz: sub_lens_0 → sub */
 export const baseKey = (tk) => String(tk || '').replace(/_lens_\d$/, '');
+
+/* Objektiv, zu dem ein Stream gehört: „… objektiv 1“ / „… lens 1“ → 1, sonst 0 */
+export const lensOf = (entityId) => { const m = String(entityId || '').match(/_(lens|objektiv|linse)_(\d)$/); return m ? +m[2] : 0; };
+
+/* Hat die Kamera (Präfix oder Entität) ein zweites Objektiv? Über das Geräteregister, sonst über die Namensendungen */
+export function hasSecondLens(hass, cam) {
+  if (!hass || !cam) return false;
+  const reg = hass.entities || {}, states = hass.states || {};
+  // zweites Objektiv: „… lens 1“ (direkt eingebunden) oder Tele der TrackMix an Hub/NVR
+  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$|^telephoto_|^autotrack_/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1 || /_tele_standardauflosung$|_telephoto_fluent$/.test(id));
+  const start = (cam.entity && reg[cam.entity] && cam.entity)
+    || Object.keys(states).find((id) => id.startsWith('camera.') && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
+  const dev = start && reg[start].device_id;
+  if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
+  return !!cam.prefix && Object.keys(states).some((id) => lens1(id) && prefixOf(id) === cam.prefix);
+}
 
 export function prefixOf(entityId) {
   const m = String(entityId || '').match(/^camera\.(.+)$/);

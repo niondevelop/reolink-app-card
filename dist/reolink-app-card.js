@@ -19,6 +19,11 @@
     pir: ["switch", "pir_aktiviert", "pir_enabled"],
     pir_reduce: ["switch", "pir_fehlalarme_reduzieren", "pir_reduce_false_alarm"],
     push: ["switch", "push_benachrichtigungen", "push_notifications"],
+    auto_track: ["switch", "automatisches_tracking", "auto_tracking"],
+    track_method: ["select", "tracking_methode", "auto_tracking_methode", "auto_track_method", "auto_tracking_method"],
+    guard_return: ["switch", "automatisch_zur_startposition", "guard_return", "auto_return_to_home_position"],
+    guard_time: ["number", "ruckkehrzeit_zur_startposition", "guard_return_time", "return_to_home_position_time"],
+    patrol: ["switch", "ptz_patrouille", "ptz_patrol"],
     ir: ["switch", "infrarotlicht_im_nachtmodus", "infrared_lights_in_night_mode", "infra_red_lights_in_night_mode"],
     rec_audio: ["switch", "audio_aufnehmen", "record_audio"],
     siren_event: ["switch", "sirene_bei_ereignis", "siren_on_event"],
@@ -77,6 +82,11 @@
     pir: "pir_enabled",
     pir_reduce: "pir_reduce_alarm",
     push: "push_notifications",
+    auto_track: "auto_tracking",
+    track_method: "auto_track_method",
+    guard_return: ["guard_return", "gaurd_return"],
+    guard_time: "guard_return_time",
+    patrol: "ptz_patrol",
     ir: "ir_lights",
     rec_audio: "record_audio",
     siren_event: "siren_on_event",
@@ -148,6 +158,19 @@
   }
   var CAM_SUFFIX = /_(standardauflosung|ausgewogen|hochauflosung|fluent|balanced|clear|fliessend|schnappschusse_in_(standard|hoch)auflosung|schnappschusse_fliessend|snapshots_(fluent|clear|balanced))(_(lens|objektiv|linse)_\d)?$/;
   var baseKey = (tk) => String(tk || "").replace(/_lens_\d$/, "");
+  var lensOf = (entityId) => {
+    const m = String(entityId || "").match(/_(lens|objektiv|linse)_(\d)$/);
+    return m ? +m[2] : 0;
+  };
+  function hasSecondLens(hass, cam) {
+    if (!hass || !cam) return false;
+    const reg = hass.entities || {}, states = hass.states || {};
+    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$|^telephoto_|^autotrack_/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1 || /_tele_standardauflosung$|_telephoto_fluent$/.test(id));
+    const start = cam.entity && reg[cam.entity] && cam.entity || Object.keys(states).find((id) => id.startsWith("camera.") && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
+    const dev = start && reg[start].device_id;
+    if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
+    return !!cam.prefix && Object.keys(states).some((id) => lens1(id) && prefixOf(id) === cam.prefix);
+  }
   function prefixOf(entityId) {
     const m = String(entityId || "").match(/^camera\.(.+)$/);
     return m && CAM_SUFFIX.test(m[1]) ? m[1].replace(CAM_SUFFIX, "") : null;
@@ -289,6 +312,9 @@
       error: "Fehler",
       cam_not_found: "Kamera in der Medienquelle nicht gefunden",
       play_error: "Aufnahme kann nicht geladen werden",
+      loading_clip: "Clip wird geladen …",
+      clip_too_big: "Clip zu groß zum Vorladen – bitte niedrige Auflösung wählen",
+      hq_unsupported: "Hohe Auflösung (H.265) kann dieser Browser nicht abspielen – niedrige Auflösung",
       speed: "Geschwindigkeit",
       next: "Nächster Clip",
       download: "Herunterladen",
@@ -306,10 +332,16 @@
       g_detect: "Erkennung",
       g_image: "Bild",
       g_flood: "Flutlicht",
+      g_ptz: "PTZ & Tracking",
       g_audio: "Ton & Aufnahme",
       pir: "PIR-Erkennung",
       rec: "Aufzeichnung",
       push: "Push-Benachrichtigungen",
+      auto_track: "Automatisches Tracking",
+      track_method: "Tracking-Methode",
+      guard_return: "Zurück zur Startposition",
+      guard_time: "Rückkehr nach (s)",
+      patrol: "Patrouille",
       pir_reduce: "PIR-Fehlalarme reduzieren",
       daynight: "Tag/Nacht",
       ir: "Infrarotlicht nachts",
@@ -362,7 +394,8 @@
       confirm_action: "„{name}“ ausführen?",
       confirm_btn: "Ausführen",
       sd_full: "SD-Karte {name} fast voll ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Verlauf des Ladestands"
     },
     editor: {
       mode_entity: "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -370,6 +403,7 @@
       live_timeout: "Live-Limit (Sekunden, 0 = kein Limit)",
       auto_live: "Live automatisch starten",
       auto_switch: "Bei Erkennung zur Kamera springen",
+      alert_other_only: "Erkennungs-Hinweis nur für andere Kameras",
       autoplay_next: "Nächsten Clip automatisch abspielen",
       battery_warning: "Akku-Warnung ab (%)",
       temperature_warning: "Temperatur-Warnung ab (°C)",
@@ -382,6 +416,9 @@
       doorbell_sound: "Klingelton abspielen",
       name: "Anzeigename",
       media_name: "Name in der Medienquelle (für Wiedergabe)",
+      lens: "Objektiv",
+      lens_0: "1. Objektiv",
+      lens_1: "2. Objektiv (Tele)",
       cameras: "Kameras",
       add: "Kamera hinzufügen",
       remove: "Entfernen",
@@ -432,7 +469,8 @@
       show_controls: "Bedienpanel unter dem Bild anzeigen",
       show_settings: "Einstellungen anzeigen",
       show_mode: "Modus-Zeile anzeigen",
-      talk_prepare: "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)"
+      talk_prepare: "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)",
+      grid_columns: "Spalten in der Rasteransicht"
     }
   };
 
@@ -507,6 +545,9 @@
       error: "Error",
       cam_not_found: "Camera not found in the media source",
       play_error: "Recording could not be loaded",
+      loading_clip: "Loading clip …",
+      clip_too_big: "Clip too large to preload – please choose low resolution",
+      hq_unsupported: "This browser can’t play the high resolution (H.265) – using low resolution",
       speed: "Speed",
       next: "Next clip",
       download: "Download",
@@ -524,10 +565,16 @@
       g_detect: "Detection",
       g_image: "Image",
       g_flood: "Floodlight",
+      g_ptz: "PTZ & tracking",
       g_audio: "Audio & recording",
       pir: "PIR detection",
       rec: "Recording",
       push: "Push notifications",
+      auto_track: "Auto tracking",
+      track_method: "Tracking method",
+      guard_return: "Return to home position",
+      guard_time: "Return after (s)",
+      patrol: "Patrol",
       pir_reduce: "Reduce PIR false alarms",
       daynight: "Day/night",
       ir: "Infrared at night",
@@ -580,7 +627,8 @@
       confirm_action: "Run “{name}”?",
       confirm_btn: "Run",
       sd_full: "SD card {name} almost full ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Battery level history"
     },
     editor: {
       mode_entity: "Mode selector on top (e.g. an input_select for notifications)",
@@ -588,6 +636,7 @@
       live_timeout: "Live limit (seconds, 0 = no limit)",
       auto_live: "Start live automatically",
       auto_switch: "Jump to camera on detection",
+      alert_other_only: "Detection notice only for other cameras",
       autoplay_next: "Autoplay next clip",
       battery_warning: "Battery warning at (%)",
       temperature_warning: "Temperature warning at (°C)",
@@ -600,6 +649,9 @@
       doorbell_sound: "Play ring tone",
       name: "Display name",
       media_name: "Name in the media source (for playback)",
+      lens: "Lens",
+      lens_0: "First lens",
+      lens_1: "Second lens (telephoto)",
       cameras: "Cameras",
       add: "Add camera",
       remove: "Remove",
@@ -650,7 +702,8 @@
       show_controls: "Show control panel under the image",
       show_settings: "Show settings",
       show_mode: "Show mode row",
-      talk_prepare: "Prepare two-way audio (faster start, talk channel open while live)"
+      talk_prepare: "Prepare two-way audio (faster start, talk channel open while live)",
+      grid_columns: "Columns in grid view"
     }
   };
 
@@ -725,6 +778,9 @@
       error: "Erreur",
       cam_not_found: "Caméra introuvable dans la source multimédia",
       play_error: "Impossible de charger l’enregistrement",
+      loading_clip: "Chargement du clip …",
+      clip_too_big: "Clip trop volumineux pour le préchargement – choisissez la basse résolution",
+      hq_unsupported: "Ce navigateur ne lit pas la haute résolution (H.265) – basse résolution",
       speed: "Vitesse",
       next: "Clip suivant",
       download: "Télécharger",
@@ -742,10 +798,16 @@
       g_detect: "Détection",
       g_image: "Image",
       g_flood: "Projecteur",
+      g_ptz: "PTZ & suivi",
       g_audio: "Son et enregistrement",
       pir: "Détection PIR",
       rec: "Enregistrement",
       push: "Notifications push",
+      auto_track: "Suivi automatique",
+      track_method: "Méthode de suivi",
+      guard_return: "Retour à la position initiale",
+      guard_time: "Retour après (s)",
+      patrol: "Patrouille",
       pir_reduce: "Réduire les fausses alarmes PIR",
       daynight: "Jour/nuit",
       ir: "Infrarouge la nuit",
@@ -798,7 +860,8 @@
       confirm_action: "Exécuter « {name} » ?",
       confirm_btn: "Exécuter",
       sd_full: "Carte SD {name} presque pleine ({v} %)",
-      hub: "Hub"
+      hub: "Hub",
+      battery_history: "Historique de la batterie"
     },
     editor: {
       mode_entity: "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -806,6 +869,7 @@
       live_timeout: "Limite du direct (secondes, 0 = sans limite)",
       auto_live: "Démarrer le direct automatiquement",
       auto_switch: "Basculer vers la caméra lors d’une détection",
+      alert_other_only: "Alerte de détection uniquement pour les autres caméras",
       autoplay_next: "Lire automatiquement le clip suivant",
       battery_warning: "Alerte batterie à partir de (%)",
       temperature_warning: "Alerte température à partir de (°C)",
@@ -818,6 +882,9 @@
       doorbell_sound: "Jouer une sonnerie",
       name: "Nom affiché",
       media_name: "Nom dans la source multimédia (pour la lecture)",
+      lens: "Objectif",
+      lens_0: "1er objectif",
+      lens_1: "2e objectif (télé)",
       cameras: "Caméras",
       add: "Ajouter une caméra",
       remove: "Supprimer",
@@ -868,7 +935,8 @@
       show_controls: "Afficher le panneau de commande sous l’image",
       show_settings: "Afficher les réglages",
       show_mode: "Afficher la ligne de mode",
-      talk_prepare: "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
+      talk_prepare: "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)",
+      grid_columns: "Colonnes de la vue grille"
     }
   };
 
@@ -961,6 +1029,13 @@
     { g: "g_flood", icon: "mdi:flashlight", items: [
       ["fl_mode", "sel", "mdi:lightbulb-auto-outline"],
       ["fl_bright", "num", "mdi:brightness-percent"]
+    ] },
+    { g: "g_ptz", icon: "mdi:pan", items: [
+      ["auto_track", "sw", "mdi:radar"],
+      ["track_method", "sel", "mdi:target-account"],
+      ["guard_return", "sw", "mdi:home-import-outline"],
+      ["guard_time", "num", "mdi:timer-sand"],
+      ["patrol", "sw", "mdi:routes"]
     ] },
     { g: "g_audio", icon: "mdi:volume-high", items: [
       ["volume", "num", "mdi:volume-high"],
@@ -1370,6 +1445,13 @@
   };
 
   // src/card/core.js
+  var TELE = {
+    cam_sd: { tk: ["telephoto_sub", "autotrack_sub"], ent: ["tele_standardauflosung", "telephoto_fluent"] },
+    cam_hd: { tk: ["telephoto_main", "autotrack_main"], ent: ["tele_hochauflosung", "telephoto_clear"] }
+  };
+  var LENS_KEYS = ["cam_sd", "cam_bal", "cam_hd", "snap", "snap_hd"];
+  var ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
+  var ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
   var core_default = {
     setConfig(config) {
       if (!config || !Array.isArray(config.cameras) || !config.cameras.length) throw new Error(STR.de.need_cameras);
@@ -1388,6 +1470,7 @@
         show_hub: true,
         layout: "auto",
         alert_seconds: 8,
+        alert_other_only: false,
         language: "auto",
         doorbell_timeout: 30,
         doorbell_sound: true,
@@ -1400,7 +1483,8 @@
         });
         const entity = c.entity || (/^camera\./.test(String(c.prefix || "")) ? c.prefix : void 0);
         const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split(".").pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, "");
-        return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+        const lens = c.lens != null && c.lens !== "" && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensOf(entity);
+        return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
       });
       this._idx = 0;
       this._mode = "live";
@@ -1426,7 +1510,7 @@
       this._files = null;
       this._playing = null;
       this._settingsOpen = false;
-      this._group = null;
+      this._groupsOpen = null;
       let panel = null;
       try {
         panel = localStorage.getItem(PANEL_STORE);
@@ -1478,11 +1562,31 @@
       const [domain, ...suf] = ENT[key];
       if (this._foreign(cam)) return key === "cam_sd" ? cam.entity : `${domain}.rac_none_${key}`;
       const dev = this._devIndex(cam);
+      const lens = domain === "camera" && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
+      if (key === "cam_tele" && (cam.lens || this._lensSplit(cam))) return `${domain}.rac_none_${key}`;
       if (dev) {
         for (const tk of [].concat(TK[key] || [])) {
-          const id = dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
+          const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
+      }
+      if (lens) {
+        for (const s of suf) for (const w of ["objektiv", "lens", "linse"]) {
+          const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`;
+          if (this._st(id)) return id;
+        }
+        const tele = lens === 1 && TELE[key];
+        if (tele) {
+          for (const tk of tele.tk) {
+            const id = dev && dev[`camera:${tk}`];
+            if (id && this._st(id)) return id;
+          }
+          for (const n of tele.ent) {
+            const id = `camera.${cam.prefix}_${n}`;
+            if (this._st(id)) return id;
+          }
+        }
+        return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
       }
       const reg = this._hass && this._hass.entities || {};
       const wrongKey = (id) => {
@@ -1496,6 +1600,17 @@
       if (dev && DC[key] && dev[`${domain}:dc:${DC[key]}`]) return dev[`${domain}:dc:${DC[key]}`];
       return `${domain}.${cam.prefix}_${suf[0]}`;
     },
+    /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
+       für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+    _devKey(cam) {
+      this._devIndex(cam);
+      return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`;
+    },
+    _lensSplit(cam) {
+      if (!cam || cam.lens || !this._cams) return false;
+      this._devIndex(cam);
+      return this._cams.some((c) => c !== cam && c.lens > 0 && (this._devIndex(c), c._devId && cam._devId ? c._devId === cam._devId : c.prefix === cam.prefix));
+    },
     /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
     _devIndex(cam) {
       const reg = this._hass && this._hass.entities;
@@ -1504,6 +1619,7 @@
       cam._reg = reg;
       cam._dev = null;
       cam._devId = null;
+      cam._zones = null;
       const cand = [cam.entity, ...["cam_sd", "cam_bal", "cam_hd", "snap"].flatMap((k) => ENT[k].slice(1).flatMap((x) => ["", "_lens_0", "_objektiv_0", "_linse_0"].map((l) => `camera.${cam.prefix}_${x}${l}`)))];
       const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
       if (!hit) return null;
@@ -1524,7 +1640,7 @@
       const dev = this._hass.devices && this._hass.devices[cam._devId];
       const devName = dev && (dev.name_by_user || dev.name);
       if (devName) {
-        if (!cam.nameSet) cam.name = devName;
+        if (!cam.nameSet) cam.name = cam.lens ? `${devName} – ${this._qLabel("tele", cam)}` : devName;
         if (!cam.mediaSet) cam.media_name = devName;
       }
       return idx;
@@ -1580,6 +1696,7 @@
           if (reg[id].device_id === cam._devId) ids.add(id);
         });
         Object.values(ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${cam.prefix}_${x}`)));
+        this._zoneSensors(cam).forEach((z) => ids.add(z.id));
       });
       [this._config.hub_prefix, this._hubAuto].filter(Boolean).forEach((pre) => Object.values(HUB_ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${pre}_${x}`))));
       Object.values(this._config.hub_entities || {}).forEach((id) => ids.add(id));
@@ -1602,6 +1719,38 @@
     },
     _det(cam) {
       return DET.filter((k) => this._on(this._e(`det_${k}`, cam)));
+    },
+    /* Smarte Erkennung mit Zonen und Linien (Grenzlinie, Eindringen, Herumlungern, vergessene/entfernte Gegenstände):
+       alle Sensoren des Geräts, mit Namen ohne Gerätenamen, z. B. „Person-Grenzlinie Garten“ */
+    _zoneSensors(cam) {
+      const dev = this._devIndex(cam);
+      if (dev && cam._zones) return cam._zones;
+      const states = this._hass && this._hass.states || {}, reg = this._hass && this._hass.entities || {};
+      if (!dev && cam._zonesFor === states && cam._zonesNoReg) return cam._zonesNoReg;
+      const longer = this._cams.map((c) => c.prefix).filter((p) => p && p !== cam.prefix && p.startsWith(`${cam.prefix}_`));
+      const ids = dev ? Object.keys(reg).filter((id) => reg[id].device_id === cam._devId && id.startsWith("binary_sensor.") && ZONE_TK.test(reg[id].translation_key || "")) : Object.keys(states).filter((id) => id.startsWith(`binary_sensor.${cam.prefix}_`) && ZONE_ID.test(id.slice(`binary_sensor.${cam.prefix}_`.length)) && !longer.some((p) => id.startsWith(`binary_sensor.${p}_`)));
+      const devObj = dev && this._hass.devices && this._hass.devices[cam._devId];
+      const names = [devObj && devObj.name_by_user, devObj && devObj.name, cam.name].filter(Boolean);
+      const list = ids.map((id) => {
+        let label = String(states[id] && states[id].attributes.friendly_name || id.split(".")[1]);
+        const pre = names.find((n) => label.toLowerCase().startsWith(`${n.toLowerCase()} `));
+        if (pre) label = label.slice(pre.length).trim();
+        return { id, label };
+      }).sort((a, b) => a.label.localeCompare(b.label));
+      if (dev) cam._zones = list;
+      else {
+        cam._zonesFor = states;
+        cam._zonesNoReg = list;
+      }
+      return list;
+    },
+    /* Gerade ausgelöste Zonen bzw. Linien */
+    _zones(cam) {
+      return this._zoneSensors(cam).filter((z) => this._on(z.id));
+    },
+    /* Irgendeine Erkennung aktiv (Person, Fahrzeug, Tier, Bewegung oder Zone/Linie) */
+    _alerting(cam) {
+      return this._det(cam).length > 0 || this._zones(cam).length > 0;
     },
     getCardSize() {
       return 10;
@@ -1657,6 +1806,12 @@
       }
       this._visible = false;
       this._stopLive(true);
+      this._fsCleanup();
+      if (this._dlAbort) {
+        this._dlAbort.abort();
+        this._dlAbort = null;
+        if (this.$) this.$("preload").hidden = true;
+      }
     },
     /* ---------- Sichtbarkeit & Auto-Live ---------- */
     _observe() {
@@ -1733,19 +1888,31 @@
     },
     /* ---------- Erkennung: automatisch zur Kamera springen ---------- */
     _checkDetections() {
-      const now = this._cams.map((c) => this._det(c));
+      const now = this._cams.map((c) => [...this._det(c), ...this._zones(c).map((z) => z.id)]);
       const prev = this._prevDet;
       this._prevDet = now;
       if (!prev) return;
+      const seen = /* @__PURE__ */ new Set();
       now.forEach((list, i) => {
-        const fresh = list.filter((k) => !prev[i].includes(k));
+        const fresh = list.filter((k) => !(prev[i] || []).includes(k));
         if (!fresh.length) return;
-        const type = fresh[0];
-        this._toast({ text: this._t("detected", { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-        if (!this._live) this._loadSnap(i, true);
+        const key = this._devKey(this._cams[i]);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+        const t = group.includes(this._idx) ? this._idx : group[0];
+        const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
+        const type = zone ? "smart" : fresh[0];
+        const what = zone ? zone.label : this._t(`evt_${type}`);
+        const visible = this._visible && !document.hidden;
+        const jumps = this._config.auto_switch && this._mode === "live" && !this._playing && !this._grid;
+        const single = visible && !this._grid && this._mode === "live" && !this._playing && (group.includes(this._idx) || jumps);
+        const watching = visible && (this._grid || group.includes(this._idx));
+        if (!single && !(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+        if (!this._live) group.forEach((j) => this._loadSnap(j, true));
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
-        if (i !== this._idx && !this._grid) {
-          this._idx = i;
+        if (t !== this._idx && !this._grid) {
+          this._idx = t;
           this._expired = false;
           this._rebuildCamera();
         } else if (!this._live && this._visible && !document.hidden) {
@@ -1757,6 +1924,7 @@
     /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
     _ask(text, okLabel, danger) {
       const $ = this.$, box = $("dlg");
+      if (this._pseudoFs) this._setPseudoFs(false);
       if (this._askDone) this._askDone(false);
       $("dtext").textContent = text;
       $("dno").textContent = this._t("cancel");
@@ -1792,6 +1960,11 @@
       el.classList.add("show");
       clearTimeout(this._toastT);
       this._toastT = setTimeout(() => el.classList.remove("show"), (+this._config.alert_seconds || 8) * 1e3);
+    },
+    /* Detailfenster von Home Assistant (mit Verlauf) für eine Entität öffnen */
+    _moreInfo(entityId) {
+      if (!entityId || !this._st(entityId)) return;
+      this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
     },
     /* ---------- Steuerung ---------- */
     _call(domain, service, entity_id, data = {}) {
@@ -1995,6 +2168,16 @@
   };
 
   // src/card/live.js
+  function findVideo(root, depth = 0) {
+    if (!root || depth > 8) return null;
+    const v = root.querySelector && root.querySelector("video");
+    if (v) return v;
+    for (const el of root.querySelectorAll ? root.querySelectorAll("*") : []) {
+      const hit = el.shadowRoot && findVideo(el.shadowRoot, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  }
   var live_default = {
     /* ---------- Qualität ---------- */
     _normQ(q) {
@@ -2027,7 +2210,10 @@
       this._qOpen = false;
       if (q !== this._quality) {
         this._quality = q;
-        if (this._live) this._makePic();
+        if (this._live) {
+          if (this._grid) this._swapCell(this._idx);
+          else this._makePic();
+        }
       }
       try {
         localStorage.setItem(Q_STORE, q);
@@ -2135,23 +2321,66 @@
         if (this._sound) this._applySound();
       }
     },
+    /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
+    _gridSelect(i) {
+      if (i === this._idx) return;
+      const old = this._idx, qBefore = this._quality;
+      this._idx = i;
+      this._ptzOpen = false;
+      this._qOpen = false;
+      this._ensureQ();
+      this._loadSnap(i);
+      this._days = null;
+      this._files = null;
+      this._dayIdx = 0;
+      if (this._eventsShown()) this._loadDays();
+      if (this._live && (qBefore !== "fluent" || this._quality !== "fluent")) {
+        this._swapCell(old);
+        this._swapCell(i);
+      }
+      this._update();
+    },
+    /* Livebild einer Rasterkachel neu aufbauen (z. B. andere Qualität), die übrigen Kacheln laufen weiter */
+    async _swapCell(i) {
+      if (!this._grid || !this._live || !this._cams[i]) return;
+      const token = this._picToken;
+      const el = await this._liveEl(this._cams[i]);
+      if (token !== this._picToken || !this._grid) return;
+      const pic = this.$("grid").querySelector(`.cell[data-i="${i}"] .pic`);
+      if (!pic) return;
+      pic.innerHTML = "";
+      pic.appendChild(el);
+      this._pics[i] = el;
+    },
     _renderGrid(liveEls) {
       const grid = this.$("grid");
       grid.innerHTML = "";
       if (!this._grid) return;
-      grid.style.setProperty("--cols", this._cams.length > 4 ? 3 : 2);
+      const gc = Math.round(+this._config.grid_columns);
+      grid.style.setProperty("--cols", gc >= 1 && gc <= 4 ? gc : this._cams.length > 4 ? 3 : 2);
       this._cams.forEach((c, i) => {
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.dataset.i = i;
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute("aria-label", c.name);
         const snap = this._snaps[i];
         cell.innerHTML = `<img class="prev${snap ? " ok" : ""}" alt="" ${snap ? `src="${esc(snap.url)}"` : ""}><div class="pic"></div>
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
         if (liveEls[i]) cell.querySelector(".pic").appendChild(liveEls[i]);
         cell.onclick = () => {
-          this._idx = i;
-          this._setGrid(false);
-          this._rebuildCamera();
+          if (i === this._idx) {
+            this._setGrid(false);
+            this._rebuildCamera();
+          } else this._gridSelect(i);
+        };
+        cell.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            cell.onclick();
+          }
         };
         grid.appendChild(cell);
       });
@@ -2207,11 +2436,89 @@
       else this._loadSnap(this._idx, true);
       if (!silent) this._update();
     },
+    /* Vollbild: Fullscreen-API (auch mit webkit-Präfix). Das iPhone kennt sie nur für Video-Elemente:
+       dort das Video des Livebilds bzw. der Wiedergabe im iOS-Player, sonst die Bildfläche über den ganzen Bildschirm */
     _fullscreen() {
-      const el = this.$("stage");
-      if (document.fullscreenElement) document.exitFullscreen();
-      else if (el.requestFullscreen) el.requestFullscreen();
-      else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
+      const el = this.$("stage"), doc = document;
+      if (!this._fsListen) {
+        this._fsListen = () => this._update();
+        ["fullscreenchange", "webkitfullscreenchange"].forEach((t) => doc.addEventListener(t, this._fsListen));
+      }
+      if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+        (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc);
+        return;
+      }
+      if (this._pseudoFs) {
+        this._setPseudoFs(false);
+        return;
+      }
+      const req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) {
+        try {
+          const p = req.call(el);
+          if (p && p.catch) p.catch(() => this._fsFallback());
+        } catch (_) {
+          this._fsFallback();
+        }
+        return;
+      }
+      this._fsFallback();
+    },
+    _fsFallback() {
+      const v = this._playing ? this._vid() : findVideo(this.$("pic"));
+      if (v && v.webkitEnterFullscreen && v.readyState > 0) {
+        try {
+          v.webkitEnterFullscreen();
+          return;
+        } catch (_) {
+        }
+      }
+      this._setPseudoFs(true);
+    },
+    /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+    /* Bildfläche über den ganzen Bildschirm. Wo möglich in der obersten Ebene (Popover): dort stören weder
+       Container mit transform/filter noch die Kopfleiste. Escape beendet; die Seite dahinter scrollt nicht. */
+    _setPseudoFs(on) {
+      on = !!on;
+      if (on === !!this._pseudoFs) return;
+      this._pseudoFs = on;
+      const st = this.$ && this.$("stage");
+      if (st) {
+        st.classList.toggle("pseudofs", on);
+        if (typeof st.showPopover === "function") {
+          try {
+            if (on) {
+              st.setAttribute("popover", "manual");
+              st.showPopover();
+            } else {
+              if (st.matches(":popover-open")) st.hidePopover();
+              st.removeAttribute("popover");
+            }
+          } catch (_) {
+            st.removeAttribute("popover");
+          }
+        }
+      }
+      const root = document.documentElement;
+      if (on) {
+        this._fsOverflow = root.style.overflow;
+        root.style.overflow = "hidden";
+        this._fsKey = (e) => {
+          if (e.key === "Escape") this._setPseudoFs(false);
+        };
+        document.addEventListener("keydown", this._fsKey);
+      } else {
+        root.style.overflow = this._fsOverflow || "";
+        if (this._fsKey) document.removeEventListener("keydown", this._fsKey);
+        this._fsKey = null;
+      }
+      if (this.$) this._update();
+    },
+    /* Beim Abhängen der Karte: Vollbild-Ersatz beenden und Listener am Dokument entfernen */
+    _fsCleanup() {
+      this._setPseudoFs(false);
+      if (this._fsListen) ["fullscreenchange", "webkitfullscreenchange"].forEach((t) => document.removeEventListener(t, this._fsListen));
+      this._fsListen = null;
     },
     /* ---------- Digitaler Zoom ---------- */
     _setupZoom() {
@@ -2352,6 +2659,7 @@
   };
 
   // src/card/playback.js
+  var PRELOAD_MAX = 150 * 1024 * 1024;
   var playback_default = {
     /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
     _pickEvent() {
@@ -2458,14 +2766,15 @@
         low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
         high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
         // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
-        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null
+        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
+        teleHigh: kids.find((k) => /\|autotrack_main(\||$)|telephoto high/i.test(txt(k))) || null
       };
     },
     /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
        Tag und laufender Clip (samt Stelle) bleiben erhalten. */
-    async _setPlayQ(q) {
+    async _setPlayQ(q, keep = true) {
       if (!["low", "high", "tele"].includes(q)) return;
-      try {
+      if (keep) try {
         localStorage.setItem(PLAY_Q_STORE, q);
       } catch (_) {
       }
@@ -2490,13 +2799,21 @@
         const camNode = await this._findCameraNode();
         if (!camNode) throw new Error(this._t("cam_not_found"));
         const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
-        const useLens1 = this._playQ === "tele" && lens1;
-        let node = await this._browse((useLens1 ? lens1 : camNode).media_content_id);
+        const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
+        const teleOwn = !own && this._cam.lens === 1;
+        const useLens1 = !own && !teleOwn && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
+        let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
         let kids = node.children || [];
         let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
           res = this._resNodes(kids);
-          if (lens1) res.tele = lens1;
+          if (teleOwn) {
+            if (!res.tele) throw new Error(this._t("cam_not_found"));
+            res = { low: res.tele, high: res.teleHigh || null, tele: null };
+          } else if (own || this._lensSplit(this._cam)) {
+            res.tele = null;
+            res.teleFolder = false;
+          } else if (lens1) res.tele = lens1;
           else if (res.tele) res.teleFolder = true;
           const pick = useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
           res.used = useLens1 || pick === res.tele ? "tele" : pick === res.high ? "high" : "low";
@@ -2528,6 +2845,18 @@
         this._days = { error: e.message || String(e) };
         this._update();
       }
+    },
+    /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft):
+       auf die niedrige Auflösung ausweichen, an derselben Stelle weiter. Die gespeicherte Wahl bleibt. */
+    _checkVideo(err) {
+      const v = this.$ && this.$("video");
+      if (!v || !this._playing || this._hls || !this._res || this._res.used !== "high" || !this._res.low) return;
+      if (err) {
+        const e = v.error;
+        if (!e || !(e.code === 3 || /NO_SUPPORTED_STREAMS|DECODE|codec/i.test(e.message || ""))) return;
+      } else if (v.videoWidth > 0) return;
+      this._toast({ text: this._t("hq_unsupported"), color: "#636366", icon: "mdi:video-off-outline", wrap: true });
+      this._setPlayQ("low", false);
     },
     /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */
     _resumeClip({ start, at }) {
@@ -2650,27 +2979,37 @@
       if (this.$) this.$("stage").classList.remove("hls");
     },
     async _play(file) {
+      if (this._playing === file && this._dlAbort) return;
+      const seq = this._playSeq = Symbol("play");
       this._stopLive(true);
       this._resetZoom();
       this._playing = file;
       this._update();
       try {
         const r = await this._hass.callWS({ type: "media_source/resolve_media", media_content_id: file.node.media_content_id, expires: 3600 });
-        if (this._playing !== file) return;
+        if (seq !== this._playSeq) return;
         this._playUrl = this._hass.hassUrl(r.url);
         if (this._needsHlsPlayer(r)) {
           await this._playHls(this._playUrl, file);
         } else {
           this._removeHls();
           const v = this.$("video");
-          v.src = this._playUrl;
+          const src = this._preloadClips() ? await this._preload(this._playUrl, seq) : this._playUrl;
+          if (seq !== this._playSeq) return;
+          v.src = src;
           v.playbackRate = this._speed;
           const p = v.play();
           if (p && p.catch) p.catch(() => {
           });
         }
       } catch (e) {
+        if (seq !== this._playSeq) return;
         this._playing = null;
+        if (e && e.name === "AbortError") {
+          if (this.$) this.$("preload").hidden = true;
+          this._update();
+          return;
+        }
         this._toast({ text: `${this._t("play_error")}: ${e.message || e}`, color: "#636366", icon: "mdi:alert-circle-outline", wrap: true });
       }
       this._update();
@@ -2732,6 +3071,62 @@
       const d = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : "";
       this._openLink(this._playUrl, `${this._cam.name}_${d}_${this._playing.time.replace(/:/g, "-")}.mp4`);
     },
+    /* Clips vorab ganz laden? Option playback_preload: true/false, sonst automatisch auf iPhone/iPad */
+    _preloadClips() {
+      const o = this._config.playback_preload;
+      if (o === true || o === false) return o;
+      const ua = navigator.userAgent || "";
+      return /iPad|iPhone|iPod/.test(ua) || /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+    },
+    /* Clip ganz herunterladen (mit Fortschritt) und als Blob-URL zurückgeben; ein Wechsel des Clips bricht ab */
+    async _preload(url, seq) {
+      this._dropBlob();
+      const ac = new AbortController();
+      this._dlAbort = ac;
+      const box = this.$("preload"), bar = this.$("preload-b"), txt = this.$("preload-t");
+      const show = (done, total) => {
+        box.hidden = false;
+        txt.textContent = total ? `${this._t("loading_clip")} ${Math.round(done / total * 100)} %` : `${this._t("loading_clip")} ${(done / 1048576).toFixed(1)} MB`;
+        bar.style.width = total ? `${Math.min(100, done / total * 100)}%` : "30%";
+      };
+      try {
+        show(0, 0);
+        const resp = await fetch(url, { signal: ac.signal, credentials: "same-origin" });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const total = +resp.headers.get("content-length") || 0;
+        const parts = [];
+        let done = 0;
+        if (resp.body && resp.body.getReader) {
+          const rd = resp.body.getReader();
+          for (; ; ) {
+            const { value, done: end } = await rd.read();
+            if (end) break;
+            parts.push(value);
+            done += value.length;
+            show(done, total);
+            if (done > (this._preloadMax || PRELOAD_MAX)) throw new Error(this._t("clip_too_big"));
+          }
+        } else parts.push(new Uint8Array(await resp.arrayBuffer()));
+        if (seq !== this._playSeq) return "";
+        this._blobUrl = URL.createObjectURL(new Blob(parts, { type: resp.headers.get("content-type") || "video/mp4" }));
+        return this._blobUrl;
+      } finally {
+        if (this._dlAbort === ac) {
+          this._dlAbort = null;
+          box.hidden = true;
+        }
+      }
+    },
+    _dropBlob() {
+      if (this._dlAbort) {
+        this._dlAbort.abort();
+        this._dlAbort = null;
+      }
+      if (this._blobUrl) {
+        URL.revokeObjectURL(this._blobUrl);
+        this._blobUrl = null;
+      }
+    },
     _stopPlayback(silent) {
       const v = this.$ && this._vid();
       if (v) {
@@ -2742,6 +3137,9 @@
         } catch (_) {
         }
       }
+      this._playSeq = null;
+      this._dropBlob();
+      if (this.$) this.$("preload").hidden = true;
       this._removeHls();
       if (!this._playing) return;
       this._playing = null;
@@ -2903,7 +3301,7 @@
     },
     _updatePtz() {
       const box = this.$("ptz");
-      const show = this._ptzOpen && !this._grid && this._mode === "live" && this._hasPtz();
+      const show = this._ptzOpen && this._mode === "live" && this._hasPtz();
       box.classList.toggle("open", !!show);
       if (!show) return;
       const preset = this._e("ptz_preset"), ps = this._st(preset);
@@ -2992,6 +3390,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
   --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
 .stage.zoomed { touch-action: none; cursor: grab; }
 .stage:fullscreen { aspect-ratio: auto; }
+.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; background: #000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 .stage.gridmode { aspect-ratio: auto; min-height: 120px; }
 .media { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .stage.gridmode .media { display: none; }
@@ -3010,13 +3409,16 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }
 .cell { position: relative; aspect-ratio: 16/9; background: #111; overflow: hidden; cursor: pointer; }
 .cell::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: box-shadow .2s; }
+.cell.sel::after { box-shadow: inset 0 0 0 3px var(--primary-color, #1e8bff); }
 .cell.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b; }
+.cell.sel.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b, inset 0 0 0 6px var(--primary-color, #1e8bff); }
 .cell .cl { z-index: 3; }
 .cell .cl { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; font-weight: 600; }
 .ov { position: absolute; left: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
 .ov > *, .ov .pillrow > * { pointer-events: auto; }
 .ov.top { top: 8px; justify-content: space-between; }
 .ov.det { top: 42px; flex-wrap: wrap; }
+.pill.btn.bat { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .ov.bottom { bottom: 8px; }
 .stage.gridmode .ov.top, .stage.gridmode .ov.det, .stage.gridmode #fs { display: none; }
 .stage.gridmode .ov.bottom { top: 8px; bottom: auto; }
@@ -3036,6 +3438,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .toast ha-icon { --mdc-icon-size: 18px; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
+.preload { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); z-index: 3; pointer-events: none; }
+.preload[hidden] { display: none; }
+.preload i { display: block; width: 140px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); overflow: hidden; }
+.preload b { display: block; height: 100%; width: 0; background: #fff; transition: width .2s; }
 .bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
 .bigplay ha-icon { --mdc-icon-size: 38px; }
 .seg { display: flex; margin: 10px 10px 4px; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); }
@@ -3114,7 +3520,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .more span { flex: 1; text-align: left; }
 .more ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); }
 .settings { padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
-.grp { border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
+.grp { flex: none; border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
 .gh { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600; text-align: left; }
 .gh span { flex: 1; }
 .gh ha-icon { --mdc-icon-size: 20px; }
@@ -3217,7 +3623,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
 `;
 
   // src/version.js
-  var RAC_VERSION = "0.3.5";
+  var RAC_VERSION = "0.3.6";
 
   // src/card/render.js
   var render_default = {
@@ -3238,6 +3644,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             <div class="pic" id="pic"></div>
             <video id="video" playsinline controls></video>
           </div>
+          <div class="preload" id="preload" role="status" aria-live="polite" hidden><ha-icon icon="mdi:download"></ha-icon><span id="preload-t"></span><i><b id="preload-b"></b></i></div>
           <div class="grid" id="grid"></div>
           <div class="ov top">
             <div class="pillrow"><span class="pill" id="badge"></span><span class="pill" id="zoompill"></span></div>
@@ -3372,6 +3779,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
       });
       v.addEventListener("loadedmetadata", () => {
         v.playbackRate = this._speed;
+        this._checkVideo(false);
+      });
+      v.addEventListener("error", () => {
+        if (v.getAttribute("src")) this._checkVideo(true);
       });
       v.addEventListener("timeupdate", () => this._updatePlayhead());
       this.addEventListener("keydown", (e) => this._playbackKey(e));
@@ -3414,7 +3825,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         light: () => this._st(light) && { icon: "mdi:flashlight", label: this._t("spotlight"), on: this._on(light), run: () => this._call("light", "toggle", light) },
         rec: () => this._st(mrec) && { icon: "mdi:video-outline", label: this._t("record"), on: this._on(mrec), run: () => this._call("switch", "toggle", mrec) },
         snap: () => ({ icon: "mdi:camera-outline", label: this._t("snapshot"), run: () => this._snapshot() }),
-        ptz: () => !this._grid && this._hasPtz() && {
+        ptz: () => this._hasPtz() && {
           icon: "mdi:arrow-all",
           label: this._t("ptz"),
           on: this._ptzOpen,
@@ -3424,7 +3835,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             this._update();
           }
         },
-        q: () => this._qAvail().length && !this._grid && {
+        q: () => this._qAvail().length && {
           icon: Q[this._quality].icon,
           label: `${this._t("quality")}: ${this._t(Q[this._quality].key)}`,
           on: this._qOpen,
@@ -3503,7 +3914,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     },
     _camDot(cam) {
       const camSt = this._st(this._e("cam_sd", cam));
-      return !camSt || camSt.state === "unavailable" ? "off" : this._det(cam).length ? "alert" : this._on(this._e("sleep", cam)) ? "sleep" : "on";
+      return !camSt || camSt.state === "unavailable" ? "off" : this._alerting(cam) ? "alert" : this._on(this._e("sleep", cam)) ? "sleep" : "on";
     },
     _updateTimer() {
       const t = this.$("timer"), timed = this._live && !!this._liveEnds;
@@ -3591,22 +4002,34 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           stat += `<span class="pill" title="${this._t("wifi")} ${w < 0 ? w + " dBm" : bars + "/4"}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
         }
         const bat = this._batteryIcon(c);
-        if (bat) stat += `<span class="pill ${bat.v <= this._config.battery_warning && !bat.charging ? "low" : ""}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</span>`;
+        if (bat) stat += `<button class="pill btn bat ${bat.v <= this._config.battery_warning && !bat.charging ? "low" : ""}" title="${this._t("battery_history")}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</button>`;
       }
-      $("stat").innerHTML = stat;
+      if ($("stat").dataset.sig !== stat) {
+        $("stat").dataset.sig = stat;
+        $("stat").innerHTML = stat;
+        const bb = $("stat").querySelector(".bat");
+        if (bb) bb.onclick = () => this._moreInfo(this._e("battery"));
+      }
       const active = this._grid ? [] : this._det(c);
-      $("det").innerHTML = active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join("");
+      const zones = this._grid ? [] : this._zones(c);
+      $("det").innerHTML = zones.map((z) => `<span class="pill det" style="--c:${EVT.smart.color}"><ha-icon icon="${EVT.smart.icon}"></ha-icon>${esc(z.label)}</span>`).join("") + active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join("");
       root.querySelectorAll(".cell").forEach((cell) => {
         const cam = this._cams[+cell.dataset.i];
         const bat = this._batteryIcon(cam);
         cell.querySelector(".cb").textContent = bat ? ` · ${bat.v}%` : "";
         cell.querySelector(".dot").className = `dot ${this._camDot(cam)}`;
-        cell.classList.toggle("alert", this._det(cam).length > 0);
+        cell.classList.toggle("alert", this._alerting(cam));
+        const sel = this._cams.length > 1 && +cell.dataset.i === this._idx;
+        cell.classList.toggle("sel", sel);
+        cell.setAttribute("aria-pressed", String(sel));
       });
       this._updateTimer();
       $("stop").style.display = this._live || playing ? "" : "none";
       $("stop").title = this._t("stop_live");
+      const fsOn = !!(this._pseudoFs || document.fullscreenElement || document.webkitFullscreenElement);
       $("fs").title = this._t("fullscreen");
+      const fsIcon = $("fs").querySelector("ha-icon"), fsWant = fsOn ? "mdi:fullscreen-exit" : "mdi:fullscreen";
+      if (fsIcon.getAttribute("icon") !== fsWant) fsIcon.setAttribute("icon", fsWant);
       $("bigplay").title = this._t("start_live");
       $("bigplay").style.display = this._live || playing || this._mode !== "live" ? "none" : "";
       $("speed").style.display = playing ? "" : "none";
@@ -3833,16 +4256,20 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     },
     _updateSettings(box) {
       const groups = this._settingGroups();
-      if (!this._group || !groups.some((g) => g.g === this._group)) this._group = groups.length ? groups[0].g : null;
-      const sig = `${this._idx}|${this._lang}|${this._group}|${groups.map((g) => g.g + ":" + g.items.map((i) => i.key).join(",")).join(";")}`;
+      if (!this._groupsOpen && groups.length) this._groupsOpen = /* @__PURE__ */ new Set([groups[0].g]);
+      if (!this._groupsOpen) return;
+      const open = (g) => this._groupsOpen.has(g);
+      const sig = `${this._idx}|${this._lang}|${[...this._groupsOpen].join(",")}|${groups.map((g) => g.g + ":" + g.items.map((i) => i.key).join(",")).join(";")}`;
       if (box.dataset.sig !== sig) {
         box.dataset.sig = sig;
-        box.innerHTML = groups.map((g) => `<div class="grp${g.g === this._group ? " open" : ""}">
-        <button class="gh" data-g="${g.g}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${g.g === this._group ? "up" : "down"}"></ha-icon></button>
-        ${g.g === this._group ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join("")}</div>` : ""}</div>`).join("");
+        box.innerHTML = groups.map((g) => `<div class="grp${open(g.g) ? " open" : ""}">
+        <button class="gh" data-g="${g.g}" aria-expanded="${open(g.g)}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${open(g.g) ? "up" : "down"}"></ha-icon></button>
+        ${open(g.g) ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join("")}</div>` : ""}</div>`).join("");
         box.querySelectorAll(".gh").forEach((b) => {
           b.onclick = () => {
-            this._group = this._group === b.dataset.g ? "" : b.dataset.g;
+            const g = b.dataset.g;
+            if (this._groupsOpen.has(g)) this._groupsOpen.delete(g);
+            else this._groupsOpen.add(g);
             this._update();
           };
         });
@@ -3983,6 +4410,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             { name: "layout", selector: { select: { mode: "dropdown", options: ["auto", "right", "left", "bottom"].map((v) => ({ value: v, label: L[`layout_${v}`] })) } } },
             { name: "panel", selector: { select: { mode: "dropdown", options: ["events", "settings", "none"].map((v) => ({ value: v, label: L[`panel_${v}`] })) } } }
           ] },
+          { name: "grid_columns", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, ...["1", "2", "3", "4"].map((v) => ({ value: v, label: v }))] } } },
           { name: "language", selector: { select: { mode: "dropdown", options: [{ value: "auto", label: L.auto }, { value: "en", label: "English" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" }] } } },
           { type: "grid", name: "", schema: [
             { name: "show_camera_tabs", selector: { boolean: {} } },
@@ -4007,7 +4435,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           { name: "audio", selector: { select: { mode: "dropdown", options: [{ value: "manual", label: L.audio_manual }, { value: "auto", label: L.audio_auto }] } } },
           { type: "grid", name: "", schema: [
             { name: "auto_live", selector: { boolean: {} } },
-            { name: "auto_switch", selector: { boolean: {} } }
+            { name: "auto_switch", selector: { boolean: {} } },
+            { name: "alert_other_only", selector: { boolean: {} } }
           ] }
         ]),
         group("grp_playback", "mdi:play-box-multiple-outline", [
@@ -4043,7 +4472,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           ] }
         ] }
       ];
-      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const defaults = { mode_entity: "", audio: "manual", doorbell_timeout: 30, doorbell_sound: true, default_quality: "fluent", live_timeout: 300, auto_live: true, auto_switch: true, alert_other_only: false, autoplay_next: true, show_scene: true, show_sd: true, show_camera_tabs: true, show_live_playback: true, show_controls: true, show_settings: true, show_mode: true, grid_columns: "auto", layout: "auto", panel: "events", playback: true, battery_warning: 20, temperature_warning: 45, hub_prefix: "reolink_hub", language: "auto" };
+      const lensField = { name: "lens", selector: { select: { mode: "dropdown", options: [{ value: "0", label: L.lens_0 }, { value: "1", label: L.lens_1 }] } } };
+      const effLens = (c) => c.lens != null && c.lens !== "" ? +c.lens || 0 : lensOf(c.entity);
+      const withLens = (c) => ({ ...c, lens: String(effLens(c)) });
       if (!this._openCams) this._openCams = new Set(this._config.cameras.length === 1 ? [0] : []);
       this.shadowRoot.innerHTML = `<style>
       .cams { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
@@ -4082,11 +4514,13 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         const box = document.createElement("div");
         box.className = `cam${this._openCams.has(i) ? " open" : ""}`;
         const hit0 = detected.find((d) => d.prefix === cam.prefix) || others.find((o) => o.entity === (cam.entity || cam.prefix));
-        box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(cam.name || hit0 && hit0.name || cam.prefix || "—")}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
+        const two = hasSecondLens(this._hass, cam);
+        const title = cam.name || `${hit0 && hit0.name || cam.prefix || "—"}${two && effLens(cam) ? ` – ${L.lens_1}` : ""}`;
+        box.innerHTML = `<div class="ch" data-a="toggle"><span class="chev">›</span><span class="tt"><b>${esc(title)}</b><small>${esc(cam.entity || cam.prefix || "")}</small></span>${i ? `<button data-a="up" title="${L.up}">↑</button>` : ""}<button data-a="rm">${L.remove}</button></div><div class="cb"></div>`;
         const form = document.createElement("ha-form");
         form.hass = this._hass;
-        form.schema = camSchema;
-        form.data = cam;
+        form.schema = two ? [camSchema[0], camSchema[1], lensField, ...camSchema.slice(2)] : camSchema;
+        form.data = two ? withLens(cam) : cam;
         form.computeLabel = label;
         form.addEventListener("value-changed", (e) => {
           const v = { ...e.detail.value };
@@ -4103,6 +4537,12 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             delete v.media_name;
             delete v.entity;
           }
+          if ((hit || other) && v.prefix !== cam.prefix) delete v.lens;
+          if (v.lens !== void 0 && v.lens !== "") {
+            const want = +v.lens || 0;
+            if (want === lensOf(v.entity)) delete v.lens;
+            else v.lens = want;
+          }
           Object.keys(v).forEach((k) => {
             if (v[k] === "" || v[k] === void 0) delete v[k];
           });
@@ -4118,7 +4558,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           list[i] = v;
           this._changed({ ...this._config, cameras: list });
           if ((hit || other) && v.prefix !== cam.prefix) this._render();
-          else form.data = v;
+          else form.data = two ? withLens(v) : v;
         });
         const body = box.querySelector(".cb");
         body.appendChild(form);
@@ -4168,9 +4608,11 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         cams.appendChild(box);
       });
       this.shadowRoot.getElementById("add").onclick = () => {
-        const used = this._config.cameras.map((c) => c.prefix);
+        const pre = (c) => c.prefix || (c.entity ? prefixOf(c.entity) : "");
+        const used = this._config.cameras.map(pre);
         const next = detected.find((d) => !used.includes(d.prefix));
-        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : { prefix: "" };
+        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => pre(c) === d.prefix && effLens(c) === 1));
+        const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...needsEntity(lens2.entity) ? { entity: lens2.entity } : {}, ...lensOf(lens2.entity) === 1 ? {} : { lens: 1 } } : { prefix: "" };
         this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
         this._render();
@@ -4188,6 +4630,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         if (this._config.show_scene === void 0) data.show_scene = false;
         if (this._config.show_sd === void 0) data.show_sd = false;
       }
+      if (data.grid_columns !== void 0) data.grid_columns = String(data.grid_columns);
       gen.data = data;
       gen.addEventListener("value-changed", (e) => {
         const v = e.detail.value, cfg = { ...this._config };
@@ -4196,6 +4639,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
           if (v[k] === void 0 || v[k] === null || v[k] === defOf(k)) delete cfg[k];
           else cfg[k] = v[k];
         });
+        if (cfg.grid_columns !== void 0) cfg.grid_columns = +cfg.grid_columns;
         gen.data = { ...v };
         this._changed(cfg);
       });

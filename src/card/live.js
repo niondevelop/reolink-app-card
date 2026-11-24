@@ -2,6 +2,18 @@
 import { Q, Q_ALIAS, Q_ORDER, Q_STORE } from '../constants.js';
 import { esc } from '../util.js';
 
+/* Erstes Video-Element, auch in eingebetteten Shadow-DOMs (Player von Home Assistant) */
+function findVideo(root, depth = 0) {
+  if (!root || depth > 8) return null;
+  const v = root.querySelector && root.querySelector('video');
+  if (v) return v;
+  for (const el of root.querySelectorAll ? root.querySelectorAll('*') : []) {
+    const hit = el.shadowRoot && findVideo(el.shadowRoot, depth + 1);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export default {
   /* ---------- Qualität ---------- */
   _normQ(q) { q = Q_ALIAS[String(q).toLowerCase()] || String(q).toLowerCase(); return Q[q] ? q : 'fluent'; },
@@ -27,7 +39,8 @@ export default {
 
   _setQuality(q) {
     this._qOpen = false;
-    if (q !== this._quality) { this._quality = q; if (this._live) this._makePic(); }
+    // Im Raster nur die gewählte Kachel neu aufbauen, nicht alle Streams
+    if (q !== this._quality) { this._quality = q; if (this._live) { if (this._grid) this._swapCell(this._idx); else this._makePic(); } }
     try { localStorage.setItem(Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     this._update();
   },
@@ -129,20 +142,56 @@ export default {
     }
   },
 
+  /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
+  _gridSelect(i) {
+    if (i === this._idx) return;
+    const old = this._idx, qBefore = this._quality;
+    this._idx = i;
+    this._ptzOpen = false; this._qOpen = false;
+    this._ensureQ();
+    this._loadSnap(i);
+    // Aufnahmen und Ereignisse gehören zur gewählten Kamera
+    this._days = null; this._files = null; this._dayIdx = 0;
+    if (this._eventsShown()) this._loadDays();
+    // Die gewählte Kamera läuft in der gewählten Qualität, die übrigen flüssig: nur alte und neue Kachel tauschen
+    if (this._live && (qBefore !== 'fluent' || this._quality !== 'fluent')) { this._swapCell(old); this._swapCell(i); }
+    this._update();
+  },
+
+  /* Livebild einer Rasterkachel neu aufbauen (z. B. andere Qualität), die übrigen Kacheln laufen weiter */
+  async _swapCell(i) {
+    if (!this._grid || !this._live || !this._cams[i]) return;
+    const token = this._picToken;
+    const el = await this._liveEl(this._cams[i]);
+    if (token !== this._picToken || !this._grid) return;
+    const pic = this.$('grid').querySelector(`.cell[data-i="${i}"] .pic`);
+    if (!pic) return;
+    pic.innerHTML = '';
+    pic.appendChild(el);
+    this._pics[i] = el;
+  },
+
   _renderGrid(liveEls) {
     const grid = this.$('grid');
     grid.innerHTML = '';
     if (!this._grid) return;
-    grid.style.setProperty('--cols', this._cams.length > 4 ? 3 : 2);
+    // Spalten: Option grid_columns (1–4), sonst automatisch (bis 4 Kameras 2, darüber 3)
+    const gc = Math.round(+this._config.grid_columns);
+    grid.style.setProperty('--cols', gc >= 1 && gc <= 4 ? gc : this._cams.length > 4 ? 3 : 2);
     this._cams.forEach((c, i) => {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.i = i;
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-label', c.name);
       const snap = this._snaps[i];
       cell.innerHTML = `<img class="prev${snap ? ' ok' : ''}" alt="" ${snap ? `src="${esc(snap.url)}"` : ''}><div class="pic"></div>
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
       if (liveEls[i]) cell.querySelector('.pic').appendChild(liveEls[i]);
-      cell.onclick = () => { this._idx = i; this._setGrid(false); this._rebuildCamera(); };
+      // Erster Tipp wählt die Kachel (Tasten wirken auf sie), ein weiterer Tipp auf die gewählte öffnet sie gross
+      cell.onclick = () => { if (i === this._idx) { this._setGrid(false); this._rebuildCamera(); } else this._gridSelect(i); };
+      cell.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cell.onclick(); } };
       grid.appendChild(cell);
     });
     this._update();
@@ -194,11 +243,64 @@ export default {
     if (!silent) this._update();
   },
 
+  /* Vollbild: Fullscreen-API (auch mit webkit-Präfix). Das iPhone kennt sie nur für Video-Elemente:
+     dort das Video des Livebilds bzw. der Wiedergabe im iOS-Player, sonst die Bildfläche über den ganzen Bildschirm */
   _fullscreen() {
-    const el = this.$('stage');
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (el.requestFullscreen) el.requestFullscreen();
-    else if (this._vid().webkitEnterFullscreen && this._playing) this._vid().webkitEnterFullscreen();
+    const el = this.$('stage'), doc = document;
+    if (!this._fsListen) { this._fsListen = () => this._update(); ['fullscreenchange', 'webkitfullscreenchange'].forEach((t) => doc.addEventListener(t, this._fsListen)); }
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) { (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc); return; }
+    if (this._pseudoFs) { this._setPseudoFs(false); return; }
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) {
+      try { const p = req.call(el); if (p && p.catch) p.catch(() => this._fsFallback()); } catch (_) { this._fsFallback(); }
+      return;
+    }
+    this._fsFallback();
+  },
+
+  _fsFallback() {
+    const v = this._playing ? this._vid() : findVideo(this.$('pic'));
+    if (v && v.webkitEnterFullscreen && v.readyState > 0) {
+      try { v.webkitEnterFullscreen(); return; } catch (_) { /* weiter mit der Bildfläche */ }
+    }
+    this._setPseudoFs(true);
+  },
+
+  /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+  /* Bildfläche über den ganzen Bildschirm. Wo möglich in der obersten Ebene (Popover): dort stören weder
+     Container mit transform/filter noch die Kopfleiste. Escape beendet; die Seite dahinter scrollt nicht. */
+  _setPseudoFs(on) {
+    on = !!on;
+    if (on === !!this._pseudoFs) return;
+    this._pseudoFs = on;
+    const st = this.$ && this.$('stage');
+    if (st) {
+      st.classList.toggle('pseudofs', on);
+      if (typeof st.showPopover === 'function') {
+        try {
+          if (on) { st.setAttribute('popover', 'manual'); st.showPopover(); } else { if (st.matches(':popover-open')) st.hidePopover(); st.removeAttribute('popover'); }
+        } catch (_) { st.removeAttribute('popover'); /* ohne Popover: nur CSS (sonst bliebe die Bühne unsichtbar) */ }
+      }
+    }
+    const root = document.documentElement;
+    if (on) {
+      this._fsOverflow = root.style.overflow;
+      root.style.overflow = 'hidden';
+      this._fsKey = (e) => { if (e.key === 'Escape') this._setPseudoFs(false); };
+      document.addEventListener('keydown', this._fsKey);
+    } else {
+      root.style.overflow = this._fsOverflow || '';
+      if (this._fsKey) document.removeEventListener('keydown', this._fsKey);
+      this._fsKey = null;
+    }
+    if (this.$) this._update();
+  },
+
+  /* Beim Abhängen der Karte: Vollbild-Ersatz beenden und Listener am Dokument entfernen */
+  _fsCleanup() {
+    this._setPseudoFs(false);
+    if (this._fsListen) ['fullscreenchange', 'webkitfullscreenchange'].forEach((t) => document.removeEventListener(t, this._fsListen));
+    this._fsListen = null;
   },
 
   /* ---------- Digitaler Zoom ---------- */

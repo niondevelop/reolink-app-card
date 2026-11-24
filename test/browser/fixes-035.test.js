@@ -77,3 +77,12 @@ test('Bereiche ausblenden: Kameraauswahl, Live/Wiedergabe, Bedienpanel, Einstell
   assert.deepEqual(c.errors, []);
   await c.close();
 });
+
+test('TrackMix: lens: 1 zeigt das Tele-Objektiv (telephoto_sub / telephoto_main)', async () => {
+  const states = { ...STATES, 'camera.garten_tele_fliessend': img, 'camera.garten_tele_klar': img };
+  const entities = { ...ENTITIES, 'camera.garten_tele_fliessend': reg('camera.garten_tele_fliessend', 'telephoto_sub'), 'camera.garten_tele_klar': reg('camera.garten_tele_klar', 'telephoto_main') };
+  const c = await openCard(browser, server, { config: { ...CFG, cameras: [{ entity: 'camera.garten_fliessend_lens_0', lens: 1 }] }, hass: { ...HASS, states, entities } });
+  const r = await c.run(() => ({ sd: window.__card._e('cam_sd'), hd: window.__card._e('cam_hd'), tele: window.__card._qAvail().includes('tele') }));
+  assert.deepEqual(r, { sd: 'camera.garten_tele_fliessend', hd: 'camera.garten_tele_klar', tele: false });
+  await c.close();
+});

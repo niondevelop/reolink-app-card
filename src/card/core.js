@@ -1,8 +1,20 @@
 /* Grundlagen: Konfiguration, Entitäten, hass, Sichtbarkeit, Kamera- und Moduswechsel, Dialoge – Methoden der Klasse ReolinkAppCard */
 import { DET, EVT, PANEL_STORE, PLAY_Q_STORE, Q, Q_STORE } from '../constants.js';
-import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, prefixOf } from '../entities.js';
+import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, lensOf, prefixOf } from '../entities.js';
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
+
+/* Tele-Objektiv der TrackMix an Hub/NVR als „2. Objektiv“ (interne Schlüssel bzw. Namensendungen) */
+const TELE = {
+  cam_sd: { tk: ['telephoto_sub', 'autotrack_sub'], ent: ['tele_standardauflosung', 'telephoto_fluent'] },
+  cam_hd: { tk: ['telephoto_main', 'autotrack_main'], ent: ['tele_hochauflosung', 'telephoto_clear'] },
+};
+
+/* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
+const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
+/* Interne Schlüssel bzw. Namensendungen der Sensoren für Zonen und Linien (Reolink „Smarte Erkennung“) */
+const ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
+const ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
 
 export default {
   setConfig(config) {
@@ -11,7 +23,7 @@ export default {
     this._config = {
       live_timeout: 300, auto_live: true, auto_switch: true, autoplay_next: true,
       default_quality: 'fluent', audio: 'manual', battery_warning: 20, temperature_warning: 45, temperature_low_warning: -10,
-      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
+      hub_prefix: 'reolink_hub', show_hub: true, layout: 'auto', alert_seconds: 8, alert_other_only: false, language: 'auto', doorbell_timeout: 30, doorbell_sound: true,
       ...config,
     };
     this._cams = config.cameras.map((c) => {
@@ -22,7 +34,9 @@ export default {
       // Ältere Versionen speicherten bei Kameras ohne Video-Stream „…_schnappschusse_in“ bzw. „…_snapshots“ als Präfix,
       // und bei neuen deutschen Entitäts-IDs („…_fliessend“) die ganze ID ohne „camera.“
       const prefix = ((c.prefix && !/^camera\./.test(c.prefix) ? c.prefix : null) || prefixOf(entity) || String(entity).split('.').pop()).replace(/_(schnappschusse_in|snapshots|fliessend)$/, '');
-      return { prefix, entity, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
+      // Kameras mit zwei Objektiven: welches diese Kachel zeigt (lens: 1 oder Entität „… objektiv 1“ / „… lens 1“)
+      const lens = c.lens != null && c.lens !== '' && !Number.isNaN(+c.lens) ? Math.max(0, Math.floor(+c.lens)) : lensOf(entity);
+      return { prefix, entity, lens, doorbell: c.doorbell, nameSet: !!c.name, mediaSet: !!c.media_name, name: c.name || prefix, media_name: c.media_name || c.name || prefix, talk_url: c.talk_url, talk_prepare: c.talk_prepare, playback: c.playback, buttons: c.buttons, zoom: c.zoom, zoom_x: c.zoom_x, zoom_y: c.zoom_y, over };
     });
     this._idx = 0;
     this._mode = 'live';
@@ -40,7 +54,7 @@ export default {
     this._live = false;
     this._filter = 'all';
     this._days = null; this._dayIdx = 0; this._files = null; this._playing = null;
-    this._settingsOpen = false; this._group = null;
+    this._settingsOpen = false; this._groupsOpen = null;
     // Seitenleiste bei breiter Karte: Ereignisse, Einstellungen oder zugeklappt (zuletzt auf diesem Gerät gewählt)
     let panel = null;
     try { panel = localStorage.getItem(PANEL_STORE); } catch (_) { /* privater Modus o. ä. */ }
@@ -75,11 +89,25 @@ export default {
     // Kamera eines anderen Herstellers: nur das Livebild, alle Reolink-Funktionen fehlen (ausser per entities gesetzt)
     if (this._foreign(cam)) return key === 'cam_sd' ? cam.entity : `${domain}.rac_none_${key}`;
     const dev = this._devIndex(cam);
+    // Kachel für ein weiteres Objektiv: dessen Streams; „2. Objektiv“ als eigene Stufe gibt es dort nicht
+    const lens = domain === 'camera' && cam.lens && LENS_KEYS.includes(key) ? cam.lens : 0;
+    if (key === 'cam_tele' && (cam.lens || this._lensSplit(cam))) return `${domain}.rac_none_${key}`;
     if (dev) {
       for (const tk of [].concat(TK[key] || [])) {
-        const id = dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
+        const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
+    }
+    if (lens) {
+      for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }
+      // TrackMix an Hub/NVR: das zweite Objektiv heißt dort „Tele“ (telephoto_* bzw. autotrack_*). Nur vorhandene
+      // (aktivierte) Streams verwenden – der hochauflösende Tele-Stream ist in Home Assistant meist deaktiviert.
+      const tele = lens === 1 && TELE[key];
+      if (tele) {
+        for (const tk of tele.tk) { const id = dev && dev[`camera:${tk}`]; if (id && this._st(id)) return id; }
+        for (const n of tele.ent) { const id = `camera.${cam.prefix}_${n}`; if (this._st(id)) return id; }
+      }
+      return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
     const reg = (this._hass && this._hass.entities) || {};
@@ -93,12 +121,22 @@ export default {
     return `${domain}.${cam.prefix}_${suf[0]}`;
   },
 
+  /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
+     für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+  _devKey(cam) { this._devIndex(cam); return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`; },
+
+  _lensSplit(cam) {
+    if (!cam || cam.lens || !this._cams) return false;
+    this._devIndex(cam);
+    return this._cams.some((c) => c !== cam && c.lens > 0 && (this._devIndex(c), c._devId && cam._devId ? c._devId === cam._devId : c.prefix === cam.prefix));
+  },
+
   /* Alle Entitäten des Geräts einer Kamera nach internem Schlüssel (aus hass.entities, ohne Streams oder Abfragen) */
   _devIndex(cam) {
     const reg = this._hass && this._hass.entities;
     if (!reg) return null;
     if (cam._reg === reg) return cam._dev;
-    cam._reg = reg; cam._dev = null; cam._devId = null;
+    cam._reg = reg; cam._dev = null; cam._devId = null; cam._zones = null;
     // Namensendungen, bei Kameras mit zwei Objektiven auch mit Zusatz für das erste Objektiv
     const cand = [cam.entity, ...['cam_sd', 'cam_bal', 'cam_hd', 'snap'].flatMap((k) => ENT[k].slice(1).flatMap((x) => ['', '_lens_0', '_objektiv_0', '_linse_0'].map((l) => `camera.${cam.prefix}_${x}${l}`)))];
     const hit = cand.find((id) => id && reg[id] && reg[id].device_id);
@@ -122,7 +160,11 @@ export default {
     // Ohne eigenen Namen: Gerätename verwenden (ist auch der Name in der Reolink-Medienquelle)
     const dev = this._hass.devices && this._hass.devices[cam._devId];
     const devName = dev && (dev.name_by_user || dev.name);
-    if (devName) { if (!cam.nameSet) cam.name = devName; if (!cam.mediaSet) cam.media_name = devName; }
+    if (devName) {
+      // Kachel für das zweite Objektiv: „Gerät – Tele“ bzw. „Gerät – 2. Objektiv“, damit beide Kacheln unterscheidbar sind
+      if (!cam.nameSet) cam.name = cam.lens ? `${devName} – ${this._qLabel('tele', cam)}` : devName;
+      if (!cam.mediaSet) cam.media_name = devName;
+    }
     return idx;
   },
 
@@ -177,6 +219,8 @@ export default {
       Object.values(cam.over).forEach((id) => ids.add(id));
       if (this._devIndex(cam)) Object.keys(reg).forEach((id) => { if (reg[id].device_id === cam._devId) ids.add(id); });
       Object.values(ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${cam.prefix}_${x}`)));
+      // Zonen/Linien (ohne Register nicht in der Geräteliste)
+      this._zoneSensors(cam).forEach((z) => ids.add(z.id));
     });
     [this._config.hub_prefix, this._hubAuto].filter(Boolean).forEach((pre) => Object.values(HUB_ENT).forEach(([domain, ...suf]) => suf.forEach((x) => ids.add(`${domain}.${pre}_${x}`))));
     Object.values(this._config.hub_entities || {}).forEach((id) => ids.add(id));
@@ -195,6 +239,39 @@ export default {
   },
 
   _det(cam) { return DET.filter((k) => this._on(this._e(`det_${k}`, cam))); },
+
+  /* Smarte Erkennung mit Zonen und Linien (Grenzlinie, Eindringen, Herumlungern, vergessene/entfernte Gegenstände):
+     alle Sensoren des Geräts, mit Namen ohne Gerätenamen, z. B. „Person-Grenzlinie Garten“ */
+  _zoneSensors(cam) {
+    const dev = this._devIndex(cam);
+    if (dev && cam._zones) return cam._zones;
+    const states = (this._hass && this._hass.states) || {}, reg = (this._hass && this._hass.entities) || {};
+    // Ohne Register: Suche über alle Zustände nur einmal je Zustandsobjekt
+    if (!dev && cam._zonesFor === states && cam._zonesNoReg) return cam._zonesNoReg;
+    // Längere Präfixe anderer Kameras (z. B. „hof_ost“ neben „hof“) gehören nicht zu dieser Kamera
+    const longer = this._cams.map((c) => c.prefix).filter((p) => p && p !== cam.prefix && p.startsWith(`${cam.prefix}_`));
+    const ids = dev
+      ? Object.keys(reg).filter((id) => reg[id].device_id === cam._devId && id.startsWith('binary_sensor.') && ZONE_TK.test(reg[id].translation_key || ''))
+      : Object.keys(states).filter((id) => id.startsWith(`binary_sensor.${cam.prefix}_`) && ZONE_ID.test(id.slice(`binary_sensor.${cam.prefix}_`.length))
+        && !longer.some((p) => id.startsWith(`binary_sensor.${p}_`)));
+    const devObj = dev && this._hass.devices && this._hass.devices[cam._devId];
+    const names = [devObj && devObj.name_by_user, devObj && devObj.name, cam.name].filter(Boolean);
+    const list = ids.map((id) => {
+      let label = String((states[id] && states[id].attributes.friendly_name) || id.split('.')[1]);
+      const pre = names.find((n) => label.toLowerCase().startsWith(`${n.toLowerCase()} `));
+      if (pre) label = label.slice(pre.length).trim();
+      return { id, label };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+    if (dev) cam._zones = list;
+    else { cam._zonesFor = states; cam._zonesNoReg = list; }
+    return list;
+  },
+
+  /* Gerade ausgelöste Zonen bzw. Linien */
+  _zones(cam) { return this._zoneSensors(cam).filter((z) => this._on(z.id)); },
+
+  /* Irgendeine Erkennung aktiv (Person, Fahrzeug, Tier, Bewegung oder Zone/Linie) */
+  _alerting(cam) { return this._det(cam).length > 0 || this._zones(cam).length > 0; },
 
   getCardSize() { return 10; },
 
@@ -240,6 +317,9 @@ export default {
     if (this._onVis) { document.removeEventListener('visibilitychange', this._onVis); this._onVis = null; }
     this._visible = false;
     this._stopLive(true);
+    this._fsCleanup();
+    // Laufendes Vorladen abbrechen (der fertig geladene Clip bleibt, falls die Karte wieder eingehängt wird)
+    if (this._dlAbort) { this._dlAbort.abort(); this._dlAbort = null; if (this.$) this.$('preload').hidden = true; }
   },
 
   /* ---------- Sichtbarkeit & Auto-Live ---------- */
@@ -317,18 +397,37 @@ export default {
 
   /* ---------- Erkennung: automatisch zur Kamera springen ---------- */
   _checkDetections() {
-    const now = this._cams.map((c) => this._det(c));
+    // Zonen/Linien als Entitäts-ID neben den Erkennungsarten; sie sind genauer und haben beim Hinweis Vorrang
+    const now = this._cams.map((c) => [...this._det(c), ...this._zones(c).map((z) => z.id)]);
     const prev = this._prevDet;
     this._prevDet = now;
     if (!prev) return;
+    // Mehrere Kacheln desselben Geräts (je Objektiv eine) melden dieselbe Erkennung: pro Gerät nur einmal,
+    // und ist schon eine Kachel des Geräts gewählt, bleibt sie gewählt
+    const seen = new Set();
     now.forEach((list, i) => {
-      const fresh = list.filter((k) => !prev[i].includes(k));
+      const fresh = list.filter((k) => !(prev[i] || []).includes(k));
       if (!fresh.length) return;
-      const type = fresh[0];
-      this._toast({ text: this._t('detected', { type: this._t(`evt_${type}`), name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-      if (!this._live) this._loadSnap(i, true);
+      const key = this._devKey(this._cams[i]);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+      const t = group.includes(this._idx) ? this._idx : group[0];
+      // Zonen/Linien sind genauer und haben beim Hinweis Vorrang
+      const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
+      const type = zone ? 'smart' : fresh[0];
+      const what = zone ? zone.label : this._t(`evt_${type}`);
+      // Kamera ist (oder wird gleich durch den Sprung) in der Einzelansicht zu sehen: die Erkennungs-Pill im Bild
+      // zeigt es schon, also kein zusätzlicher Hinweis. Mit alert_other_only auch nicht im Raster.
+      const visible = this._visible && !document.hidden;
+      const jumps = this._config.auto_switch && this._mode === 'live' && !this._playing && !this._grid;
+      const single = visible && !this._grid && this._mode === 'live' && !this._playing && (group.includes(this._idx) || jumps);
+      const watching = visible && (this._grid || group.includes(this._idx));
+      if (!single && !(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+      if (!this._live) group.forEach((j) => this._loadSnap(j, true));
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
-      if (i !== this._idx && !this._grid) { this._idx = i; this._expired = false; this._rebuildCamera(); }
+      // Im Raster nur die rote Markierung, die Auswahl (und damit das Ziel der Tasten) bleibt
+      if (t !== this._idx && !this._grid) { this._idx = t; this._expired = false; this._rebuildCamera(); }
       else if (!this._live && this._visible && !document.hidden) { this._expired = false; this._startLive(); }
     });
   },
@@ -336,6 +435,8 @@ export default {
   /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
   _ask(text, okLabel, danger) {
     const $ = this.$, box = $('dlg');
+    // Der Dialog liegt außerhalb der Bildfläche: Vollbild-Ersatz beenden, sonst wäre er verdeckt
+    if (this._pseudoFs) this._setPseudoFs(false);
     if (this._askDone) this._askDone(false);
     $('dtext').textContent = text;
     $('dno').textContent = this._t('cancel');
@@ -362,6 +463,12 @@ export default {
     el.classList.add('show');
     clearTimeout(this._toastT);
     this._toastT = setTimeout(() => el.classList.remove('show'), (+this._config.alert_seconds || 8) * 1000);
+  },
+
+  /* Detailfenster von Home Assistant (mit Verlauf) für eine Entität öffnen */
+  _moreInfo(entityId) {
+    if (!entityId || !this._st(entityId)) return;
+    this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId }, bubbles: true, composed: true }));
   },
 
   /* ---------- Steuerung ---------- */

@@ -3,6 +3,9 @@ import { DET, EVT, EVT_ORDER, PANEL_STORE, PLAY_Q_STORE, SPEEDS } from '../const
 import { LOCALES } from '../i18n.js';
 import { esc } from '../util.js';
 
+/* Höchstgröße beim Vorladen (iPhone/iPad), der ganze Clip liegt im Speicher */
+const PRELOAD_MAX = 150 * 1024 * 1024;
+
 export default {
   /* Passende Aufnahme zum Zeitpunkt der Meldung suchen und abspielen */
   _pickEvent() {
@@ -108,14 +111,15 @@ export default {
       high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
       // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
       tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
+      teleHigh: kids.find((k) => /\|autotrack_main(\||$)|telephoto high/i.test(txt(k))) || null,
     };
   },
 
   /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
      Tag und laufender Clip (samt Stelle) bleiben erhalten. */
-  async _setPlayQ(q) {
+  async _setPlayQ(q, keep = true) {
     if (!['low', 'high', 'tele'].includes(q)) return;
-    try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
+    if (keep) try { localStorage.setItem(PLAY_Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     if (q === this._playQ) return;
     this._playQ = q;
     const day = Array.isArray(this._days) && this._days[this._dayIdx] ? this._days[this._dayIdx].date : null;
@@ -133,14 +137,22 @@ export default {
       if (!camNode) throw new Error(this._t('cam_not_found'));
       // Direkt eingebundene TrackMix/Duo: zweites Objektiv als eigener Eintrag „Name lens 1“
       const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
-      const useLens1 = this._playQ === 'tele' && lens1;
-      let node = await this._browse((useLens1 ? lens1 : camNode).media_content_id);
+      // Kachel für ein weiteres Objektiv (lens: 1): immer dessen Aufnahmen, ohne Umschalter zum anderen Objektiv
+      const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
+      // TrackMix an Hub/NVR: kein eigener Eintrag fürs 2. Objektiv, sondern ein Tele-Ordner unter der Kamera
+      const teleOwn = !own && this._cam.lens === 1;
+      const useLens1 = !own && !teleOwn && !this._lensSplit(this._cam) && this._playQ === 'tele' && lens1;
+      let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
       let kids = node.children || [];
       // Auflösungsebene (falls vorhanden): gewählte Auflösung, sonst die andere
       let res = null;
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
         res = this._resNodes(kids);
-        if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
+        if (teleOwn) {
+          // Nur die Tele-Ordner zur Wahl; ohne Tele-Ordner keine (falschen) Aufnahmen des anderen Objektivs
+          if (!res.tele) throw new Error(this._t('cam_not_found'));
+          res = { low: res.tele, high: res.teleHigh || null, tele: null };
+        } else if (own || this._lensSplit(this._cam)) { res.tele = null; res.teleFolder = false; } else if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
         const pick = useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
         res.used = useLens1 || pick === res.tele ? 'tele' : pick === res.high ? 'high' : 'low';
         node = await this._browse(pick.media_content_id);
@@ -172,6 +184,20 @@ export default {
       this._days = { error: e.message || String(e) };
       this._update();
     }
+  },
+
+  /* Hohe Auflösung ohne Bild (z. B. H.265 in Chrome unter Linux: nur der Ton läuft):
+     auf die niedrige Auflösung ausweichen, an derselben Stelle weiter. Die gespeicherte Wahl bleibt. */
+  _checkVideo(err) {
+    const v = this.$ && this.$('video');
+    if (!v || !this._playing || this._hls || !this._res || this._res.used !== 'high' || !this._res.low) return;
+    if (err) {
+      // Nur Codec-Fehler (Clip ohne Tonspur, Video nicht dekodierbar), keine Netzwerk- oder Ladefehler
+      const e = v.error;
+      if (!e || !(e.code === 3 || /NO_SUPPORTED_STREAMS|DECODE|codec/i.test(e.message || ''))) return;
+    } else if (v.videoWidth > 0) return;
+    this._toast({ text: this._t('hq_unsupported'), color: '#636366', icon: 'mdi:video-off-outline', wrap: true });
+    this._setPlayQ('low', false);
   },
 
   /* Nach dem Wechsel der Auflösung denselben Clip an derselben Stelle weiterspielen */
@@ -280,26 +306,36 @@ export default {
   },
 
   async _play(file) {
+    // Derselbe Clip lädt gerade: erneutes Antippen nicht als neuen Start werten
+    if (this._playing === file && this._dlAbort) return;
+    // Jeder Aufruf hat ein eigenes Kennzeichen: ein späterer Aufruf (auch für denselben Clip) oder Beenden macht ihn ungültig
+    const seq = (this._playSeq = Symbol('play'));
     this._stopLive(true);
     this._resetZoom();
     this._playing = file;
     this._update();
     try {
       const r = await this._hass.callWS({ type: 'media_source/resolve_media', media_content_id: file.node.media_content_id, expires: 3600 });
-      if (this._playing !== file) return;
+      if (seq !== this._playSeq) return;
       this._playUrl = this._hass.hassUrl(r.url);
       if (this._needsHlsPlayer(r)) {
         await this._playHls(this._playUrl, file);
       } else {
         this._removeHls();
         const v = this.$('video');
-        v.src = this._playUrl;
+        // iPhone/iPad: Die Wiedergabe-URL der Reolink-Integration beantwortet keine Range-Anfragen, ohne die iOS
+        // kein MP4 abspielt. Dann den Clip erst ganz laden und aus dem Speicher abspielen (Option playback_preload).
+        const src = this._preloadClips() ? await this._preload(this._playUrl, seq) : this._playUrl;
+        if (seq !== this._playSeq) return;
+        v.src = src;
         v.playbackRate = this._speed;
         const p = v.play();
         if (p && p.catch) p.catch(() => {});
       }
     } catch (e) {
+      if (seq !== this._playSeq) return; // inzwischen anderer Clip oder beendet (Laden abgebrochen)
       this._playing = null;
+      if (e && e.name === 'AbortError') { if (this.$) this.$('preload').hidden = true; this._update(); return; }
       this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
     this._update();
@@ -359,9 +395,61 @@ export default {
     this._openLink(this._playUrl, `${this._cam.name}_${d}_${this._playing.time.replace(/:/g, '-')}.mp4`);
   },
 
+  /* Clips vorab ganz laden? Option playback_preload: true/false, sonst automatisch auf iPhone/iPad */
+  _preloadClips() {
+    const o = this._config.playback_preload;
+    if (o === true || o === false) return o;
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  },
+
+  /* Clip ganz herunterladen (mit Fortschritt) und als Blob-URL zurückgeben; ein Wechsel des Clips bricht ab */
+  async _preload(url, seq) {
+    this._dropBlob();
+    const ac = new AbortController();
+    this._dlAbort = ac;
+    const box = this.$('preload'), bar = this.$('preload-b'), txt = this.$('preload-t');
+    const show = (done, total) => {
+      box.hidden = false;
+      txt.textContent = total ? `${this._t('loading_clip')} ${Math.round((done / total) * 100)} %` : `${this._t('loading_clip')} ${(done / 1048576).toFixed(1)} MB`;
+      bar.style.width = total ? `${Math.min(100, (done / total) * 100)}%` : '30%';
+    };
+    try {
+      show(0, 0);
+      const resp = await fetch(url, { signal: ac.signal, credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const total = +resp.headers.get('content-length') || 0;
+      const parts = [];
+      let done = 0;
+      if (resp.body && resp.body.getReader) {
+        const rd = resp.body.getReader();
+        for (;;) {
+          const { value, done: end } = await rd.read();
+          if (end) break;
+          parts.push(value); done += value.length; show(done, total);
+          // Ganzer Clip liegt im Speicher: sehr lange Clips in hoher Auflösung könnten iOS den Tab beenden lassen
+          if (done > (this._preloadMax || PRELOAD_MAX)) throw new Error(this._t('clip_too_big'));
+        }
+      } else parts.push(new Uint8Array(await resp.arrayBuffer()));
+      if (seq !== this._playSeq) return '';
+      this._blobUrl = URL.createObjectURL(new Blob(parts, { type: resp.headers.get('content-type') || 'video/mp4' }));
+      return this._blobUrl;
+    } finally {
+      if (this._dlAbort === ac) { this._dlAbort = null; box.hidden = true; }
+    }
+  },
+
+  _dropBlob() {
+    if (this._dlAbort) { this._dlAbort.abort(); this._dlAbort = null; }
+    if (this._blobUrl) { URL.revokeObjectURL(this._blobUrl); this._blobUrl = null; }
+  },
+
   _stopPlayback(silent) {
     const v = this.$ && this._vid();
     if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) { /* ignorieren */ } }
+    this._playSeq = null;
+    this._dropBlob();
+    if (this.$) this.$('preload').hidden = true;
     this._removeHls();
     if (!this._playing) return;
     this._playing = null; this._playUrl = null;

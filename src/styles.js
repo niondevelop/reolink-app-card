@@ -48,6 +48,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
   --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
 .stage.zoomed { touch-action: none; cursor: grab; }
 .stage:fullscreen { aspect-ratio: auto; }
+.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; background: #000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 .stage.gridmode { aspect-ratio: auto; min-height: 120px; }
 .media { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .stage.gridmode .media { display: none; }
@@ -66,13 +67,16 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .stage.gridmode .grid { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 2px; }
 .cell { position: relative; aspect-ratio: 16/9; background: #111; overflow: hidden; cursor: pointer; }
 .cell::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: box-shadow .2s; }
+.cell.sel::after { box-shadow: inset 0 0 0 3px var(--primary-color, #1e8bff); }
 .cell.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b; }
+.cell.sel.alert::after { box-shadow: inset 0 0 0 3px #ff5b5b, inset 0 0 0 6px var(--primary-color, #1e8bff); }
 .cell .cl { z-index: 3; }
 .cell .cl { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; font-weight: 600; }
 .ov { position: absolute; left: 8px; right: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; }
 .ov > *, .ov .pillrow > * { pointer-events: auto; }
 .ov.top { top: 8px; justify-content: space-between; }
 .ov.det { top: 42px; flex-wrap: wrap; }
+.pill.btn.bat { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .ov.bottom { bottom: 8px; }
 .stage.gridmode .ov.top, .stage.gridmode .ov.det, .stage.gridmode #fs { display: none; }
 .stage.gridmode .ov.bottom { top: 8px; bottom: auto; }
@@ -92,6 +96,10 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .toast ha-icon { --mdc-icon-size: 18px; }
 .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
+.preload { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 14px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); z-index: 3; pointer-events: none; }
+.preload[hidden] { display: none; }
+.preload i { display: block; width: 140px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); overflow: hidden; }
+.preload b { display: block; height: 100%; width: 0; background: #fff; transition: width .2s; }
 .bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; backdrop-filter: blur(4px); }
 .bigplay ha-icon { --mdc-icon-size: 38px; }
 .seg { display: flex; margin: 10px 10px 4px; padding: 3px; border-radius: 10px; background: var(--secondary-background-color); }
@@ -170,7 +178,7 @@ ha-hls-player.hls { position: absolute; inset: 0; width: 100%; height: 100%; bac
 .more span { flex: 1; text-align: left; }
 .more ha-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); }
 .settings { padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
-.grp { border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
+.grp { flex: none; border-radius: 12px; background: var(--secondary-background-color); overflow: hidden; }
 .gh { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600; text-align: left; }
 .gh span { flex: 1; }
 .gh ha-icon { --mdc-icon-size: 20px; }

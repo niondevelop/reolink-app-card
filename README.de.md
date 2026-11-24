@@ -47,19 +47,19 @@ Eine Lovelace-Karte für Home Assistant, die sich wie die offizielle Reolink-App
 - **Gegensprechen:** direkt aus der Karte durch die Kamera sprechen, mit Hörer-Button und Gesprächsansicht wie in der Reolink-App (Labs-Funktion von Home Assistant, siehe Hinweise).
 - **Klingel:** für eine Reolink-Klingel oder eine Kamera, die du als Klingel nutzt: Beim Klingeln erscheint eine Anrufansicht mit Ablehnen und Annehmen. Annehmen startet das Gegensprechen.
 - **Schwenken & Neigen (PTZ):** Steuerkreuz, Zoom und gespeicherte Positionen für schwenkbare Kameras. Bei einer TrackMix ohne Zoom-Tasten steuern + und − die Entität für den optischen Zoom.
-- **Zwei Objektive:** Bei TrackMix und Duo ist das zweite Objektiv (Tele) eine zusätzliche Stufe im Qualitätsmenü und in der Wiedergabe.
+- **Zwei Objektive:** Bei TrackMix, Duo und anderen Kameras mit zwei Objektiven (z. B. OMVI) ist das zweite Objektiv (Tele) eine zusätzliche Stufe im Qualitätsmenü und in der Wiedergabe. Wer jedes Objektiv als eigene Kamera möchte, trägt die Kamera zweimal ein, das zweite Mal mit `entity: camera.<…>_objektiv_1` (oder `lens: 1`): Diese Kamera zeigt dann Livebild und Aufnahmen des zweiten Objektivs. Das geht auch bei einer TrackMix an Hub/NVR. Sparsamer ist die Stufe im Qualitätsmenü: Mit zwei Kacheln laufen im Raster zwei Livestreams des Geräts über Home Assistant (nicht gewählte Kacheln in „Flüssig“).
 - **Breite Bildschirme:** Bei einer breiten Karte läuft das Livebild links weiter, daneben steht ein Panel (rechts oder links, Option `layout`; oder alles unten). Im Panel stehen die **Ereignisse** – antippen spielt die Aufnahme im Bild ab. Die **Einstellungen** öffnen sich als eigenes Panel nur auf Wunsch. Das Panel lässt sich zuklappen und über den Griff am Bildrand wieder öffnen; die Wahl merkt sich das Gerät. Die Knöpfe sitzen kompakt unter dem Bild.
 - **Öffnen aus einer Mitteilung:** Ein Link in deiner Push-Mitteilung öffnet die richtige Kamera live oder spielt die passende Aufnahme ab.
 - **Steuerleiste wie in der Reolink-App:** Sprechen, Ton-Alarm, Spotlight, Aufnahme, Schnappschuss und Qualität (Flüssig, Balanciert, Klar). Die gewählte Qualität merkt sich jedes Gerät.
 - **Kameras anderer Hersteller:** jede andere Kamera-Entität (z. B. Tapo, Unifi) lässt sich mit `entity:` hinzufügen. Sie zeigt Livebild, Schnappschuss, Zoom, Gegensprechen (wenn die Kamera es kann) und die eigenen Knöpfe des Bedienpanels; reine Reolink-Funktionen sind ausgeblendet.
 - **Eigenes Bedienpanel:** eingebaute Knöpfe ein- und ausblenden, beliebig anordnen und eigene Knöpfe ergänzen, z. B. einen Türöffner oder das Terrassenlicht. Für die ganze Karte oder pro Kamera, im visuellen Editor (siehe [Bedienpanel](#bedienpanel)).
 - **Modus-Auswahl oben:** entweder der Reolink-Szenenmodus des Hubs (Deaktiviert / Zuhause / Abwesend) oder ein eigener Modus aus Home Assistant (`mode_entity`), etwa für Push-Benachrichtigungen. Dazu die Belegung der SD-Karte: der gewählten Kamera, wenn sie eine eigene hat, sonst die des Hubs, mit Warnung, wenn sie fast voll ist.
-- **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt einen Hinweis.
-- **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern; ein Tipp öffnet die Kamera.
+- **Automatischer Sprung bei Erkennung:** Erkennt eine Kamera eine Person, ein Fahrzeug oder ein Tier, wechselt die Karte dorthin und zeigt die Erkennung im Bild an. Ein Hinweis erscheint nur für eine Kamera, die gerade nicht im Bild ist. Das gilt auch für Zonen und Linien der smarten Erkennung (Grenzlinie, Eindringen, Herumlungern …); der Hinweis nennt dann die Zone, z. B. „Person-Grenzlinie Garten erkannt“.
+- **Alle Kameras gleichzeitig:** Rasteransicht mit allen Livebildern. Ein Tipp wählt eine Kamera (blauer Rahmen); die Steuerleiste, Schwenken & Neigen und die Qualität gelten dann für sie. Ein weiterer Tipp öffnet sie gross. Eine Erkennung markiert ihre Kachel rot, ändert die Auswahl aber nicht.
 - **Digitaler Zoom:** mit zwei Fingern zoomen, doppeltippen zum Vergrössern, mit dem Mausrad bei gedrückter Ctrl-Taste. Pro Kamera lässt sich ein Start-Ausschnitt einstellen (`zoom`), z. B. bei einem Fischaugen-Objektiv.
 - **Einstellungen in Gruppen:** Allgemein, Erkennung (PIR- und KI-Empfindlichkeit), Bild (Helligkeit, Kontrast, Sättigung, Schärfe), Flutlicht, Ton & Aufnahme – mit Reglern und Auswahllisten.
 - **Wiedergabe:** Tagesauswahl, Filter nach Ereignistyp (Person, Fahrzeug, Tier, Bewegung, dazu Klingeln, Paket, Gesicht und Smart-Ereignisse, wenn sie vorkommen), farbige 24-Stunden-Zeitleiste (Tippen auf eine Lücke springt zum nächsten Clip; am PC: Leertaste = Pause, ←/→ = vorheriger/nächster Clip, Umschalt + ←/→ = 10 s), Geschwindigkeit (0,5× bis 4×), nächster Clip automatisch, Clip herunterladen und ein Umschalter **Niedrig / Hoch** für die Auflösung, der auf jedem Gerät gespeichert wird (unabhängig von der Livebild-Qualität).
-- **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur.
+- **Akku-Warnung:** Hinweis bei schwachem Akku und bei zu hoher oder zu tiefer Batterietemperatur. Ein Tipp auf den Ladestand im Bild öffnet seinen Verlauf.
 - **Visueller Editor:** Kameras werden automatisch erkannt und lassen sich per Klick hinzufügen.
 - **Kartenvorschläge:** Bei *Zum Dashboard hinzufügen* an einer Reolink-Kamera (oder am Hub) erscheint die Karte unter den Community-Vorschlägen, fertig eingerichtet.
 - **Englisch, Deutsch und Französisch,** passend zur Sprache von Home Assistant.
@@ -116,6 +116,8 @@ cameras:
 | `auto_live`               | `true`        | Livebild automatisch starten, sobald die Karte sichtbar ist |
 | `auto_switch`             | `true`        | Bei einer Erkennung automatisch zur betroffenen Kamera springen |
 | `alert_seconds`           | `8`           | Wie lange der Erkennungs-Hinweis sichtbar bleibt |
+| `alert_other_only`        | `false`       | Auch im Raster keinen Erkennungs-Hinweis (dort sind alle Kameras im Bild). In der Einzelansicht gibt es für die Kamera im Bild nie einen Hinweis, das zeigen schon ihre Erkennungs-Chips |
+| `playback_preload`        | automatisch   | Aufnahmen vor dem Abspielen ganz laden. Standard: nur auf iPhone/iPad, weil iOS die Wiedergabe-URL der Reolink-Integration sonst nicht abspielt (sie unterstützt keine Range-Anfragen). `true`/`false` erzwingt es |
 | `autoplay_next`           | `true`        | Nach dem Ende eines Clips den nächsten abspielen |
 | `battery_warning`         | `20`          | Akku-Warnung ab diesem Ladestand (%). `0` = aus |
 | `temperature_warning`     | `45`          | Warnung bei Batterietemperatur ab (°C). `false` = aus |
@@ -129,6 +131,7 @@ cameras:
 | `show_live_playback`      | `true`        | Umschalter Live / Wiedergabe anzeigen |
 | `show_controls`           | `true`        | Bedienpanel und Steuerkreuz unter dem Bild anzeigen |
 | `show_settings`           | `true`        | Einstellungen der Kamera anzeigen |
+| `grid_columns`            | automatisch   | Spalten in der Rasteransicht (`1`–`4`). Automatisch: 2, bei mehr als vier Kameras 3 |
 | `show_mode`               | `true`        | Modus-Zeile anzeigen (eigene `mode_entity` oder Reolink-Szenenmodus). Die SD-Belegung bleibt |
 | `talk_prepare`            | `false`       | Gegensprechen vorbereiten: Das Livebild öffnet mit einem stummen Sprechkanal, Sprechen startet dann sofort statt nach einem Neuaufbau der Verbindung. Der Kanal ist nur offen, solange das Livebild läuft; das Mikrofon wird erst beim Sprechen benutzt. Auch pro Kamera möglich |
 | `buttons`                 | alle          | Knöpfe des Bedienpanels und ihre Reihenfolge, siehe [Bedienpanel](#bedienpanel). Auch pro Kamera möglich |
@@ -153,6 +156,7 @@ cameras:
 | `talk_prepare` | Gegensprechen für diese Kamera vorbereiten (siehe oben), z. B. nur bei der Klingel |
 | `talk_url`   | Link für den Sprechen-Button dieser Kamera, wenn Gegensprechen nicht verfügbar ist |
 | `doorbell`   | Was bei dieser Kamera klingelt: ein beliebiger Binärsensor, Taster, Schalter, Helfer oder ein Ereignis. Ohne Angabe wird der Besucher-Sensor einer Reolink-Klingel genommen, falls vorhanden. `false` schaltet es ab |
+| `lens`       | Nur bei Kameras mit zwei Objektiven: `1` zeigt Livebild und Aufnahmen des zweiten Objektivs. Ergibt sich von selbst, wenn `entity` ein Stream des zweiten Objektivs ist (`…_objektiv_1`, `…_lens_1`). Bei einer TrackMix an Hub/NVR ist das zweite Objektiv das Tele (Tele-Stream und Tele-Aufnahmen); der hochauflösende Tele-Stream wird nur genutzt, wenn er in Home Assistant aktiviert ist |
 | `entities`   | Einzelne Entitäten überschreiben, z. B. `entities: { light: light.mein_flutlicht }` |
 | `playback`   | `false` blendet den Reiter „Wiedergabe“ für diese Kamera aus |
 | `buttons`    | Eigenes Bedienpanel für diese Kamera, siehe [Bedienpanel](#bedienpanel) |

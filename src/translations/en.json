@@ -68,6 +68,9 @@
     "error": "Error",
     "cam_not_found": "Camera not found in the media source",
     "play_error": "Recording could not be loaded",
+    "loading_clip": "Loading clip …",
+    "clip_too_big": "Clip too large to preload – please choose low resolution",
+    "hq_unsupported": "This browser can’t play the high resolution (H.265) – using low resolution",
     "speed": "Speed",
     "next": "Next clip",
     "download": "Download",
@@ -85,10 +88,16 @@
     "g_detect": "Detection",
     "g_image": "Image",
     "g_flood": "Floodlight",
+    "g_ptz": "PTZ & tracking",
     "g_audio": "Audio & recording",
     "pir": "PIR detection",
     "rec": "Recording",
     "push": "Push notifications",
+    "auto_track": "Auto tracking",
+    "track_method": "Tracking method",
+    "guard_return": "Return to home position",
+    "guard_time": "Return after (s)",
+    "patrol": "Patrol",
     "pir_reduce": "Reduce PIR false alarms",
     "daynight": "Day/night",
     "ir": "Infrared at night",
@@ -141,7 +150,8 @@
     "confirm_action": "Run “{name}”?",
     "confirm_btn": "Run",
     "sd_full": "SD card {name} almost full ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Battery level history"
   },
   "editor": {
     "mode_entity": "Mode selector on top (e.g. an input_select for notifications)",
@@ -149,6 +159,7 @@
     "live_timeout": "Live limit (seconds, 0 = no limit)",
     "auto_live": "Start live automatically",
     "auto_switch": "Jump to camera on detection",
+    "alert_other_only": "Detection notice only for other cameras",
     "autoplay_next": "Autoplay next clip",
     "battery_warning": "Battery warning at (%)",
     "temperature_warning": "Temperature warning at (°C)",
@@ -161,6 +172,9 @@
     "doorbell_sound": "Play ring tone",
     "name": "Display name",
     "media_name": "Name in the media source (for playback)",
+    "lens": "Lens",
+    "lens_0": "First lens",
+    "lens_1": "Second lens (telephoto)",
     "cameras": "Cameras",
     "add": "Add camera",
     "remove": "Remove",
@@ -211,6 +225,7 @@
     "show_controls": "Show control panel under the image",
     "show_settings": "Show settings",
     "show_mode": "Show mode row",
-    "talk_prepare": "Prepare two-way audio (faster start, talk channel open while live)"
+    "talk_prepare": "Prepare two-way audio (faster start, talk channel open while live)",
+    "grid_columns": "Columns in grid view"
   }
 }

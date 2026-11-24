@@ -14,14 +14,20 @@ export default {
 
   _updateSettings(box) {
     const groups = this._settingGroups();
-    if (!this._group || !groups.some((g) => g.g === this._group)) this._group = groups.length ? groups[0].g : null;
-    const sig = `${this._idx}|${this._lang}|${this._group}|${groups.map((g) => g.g + ':' + g.items.map((i) => i.key).join(',')).join(';')}`;
+    // Jede Gruppe klappt für sich auf und zu; zu Beginn ist die erste offen
+    // (erst festlegen, wenn eine Kamera Gruppen hat – sonst blieben bei Fremdkameras vorn alle zu)
+    if (!this._groupsOpen && groups.length) this._groupsOpen = new Set([groups[0].g]);
+    if (!this._groupsOpen) return;
+    const open = (g) => this._groupsOpen.has(g);
+    const sig = `${this._idx}|${this._lang}|${[...this._groupsOpen].join(',')}|${groups.map((g) => g.g + ':' + g.items.map((i) => i.key).join(',')).join(';')}`;
     if (box.dataset.sig !== sig) {
       box.dataset.sig = sig;
-      box.innerHTML = groups.map((g) => `<div class="grp${g.g === this._group ? ' open' : ''}">
-        <button class="gh" data-g="${g.g}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${g.g === this._group ? 'up' : 'down'}"></ha-icon></button>
-        ${g.g === this._group ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join('')}</div>` : ''}</div>`).join('');
-      box.querySelectorAll('.gh').forEach((b) => { b.onclick = () => { this._group = this._group === b.dataset.g ? '' : b.dataset.g; this._update(); }; });
+      box.innerHTML = groups.map((g) => `<div class="grp${open(g.g) ? ' open' : ''}">
+        <button class="gh" data-g="${g.g}" aria-expanded="${open(g.g)}"><ha-icon icon="${g.icon}"></ha-icon><span>${this._t(g.g)}</span><ha-icon class="gc" icon="mdi:chevron-${open(g.g) ? 'up' : 'down'}"></ha-icon></button>
+        ${open(g.g) ? `<div class="gb">${g.items.map((it) => this._rowHtml(it)).join('')}</div>` : ''}</div>`).join('');
+      box.querySelectorAll('.gh').forEach((b) => {
+        b.onclick = () => { const g = b.dataset.g; if (this._groupsOpen.has(g)) this._groupsOpen.delete(g); else this._groupsOpen.add(g); this._update(); };
+      });
       groups.forEach((g) => g.items.forEach((it) => this._bindRow(box, it)));
     }
     groups.forEach((g) => g.items.forEach((it) => this._syncRow(box, it)));

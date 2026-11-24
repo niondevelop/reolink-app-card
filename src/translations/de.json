@@ -68,6 +68,9 @@
     "error": "Fehler",
     "cam_not_found": "Kamera in der Medienquelle nicht gefunden",
     "play_error": "Aufnahme kann nicht geladen werden",
+    "loading_clip": "Clip wird geladen …",
+    "clip_too_big": "Clip zu groß zum Vorladen – bitte niedrige Auflösung wählen",
+    "hq_unsupported": "Hohe Auflösung (H.265) kann dieser Browser nicht abspielen – niedrige Auflösung",
     "speed": "Geschwindigkeit",
     "next": "Nächster Clip",
     "download": "Herunterladen",
@@ -85,10 +88,16 @@
     "g_detect": "Erkennung",
     "g_image": "Bild",
     "g_flood": "Flutlicht",
+    "g_ptz": "PTZ & Tracking",
     "g_audio": "Ton & Aufnahme",
     "pir": "PIR-Erkennung",
     "rec": "Aufzeichnung",
     "push": "Push-Benachrichtigungen",
+    "auto_track": "Automatisches Tracking",
+    "track_method": "Tracking-Methode",
+    "guard_return": "Zurück zur Startposition",
+    "guard_time": "Rückkehr nach (s)",
+    "patrol": "Patrouille",
     "pir_reduce": "PIR-Fehlalarme reduzieren",
     "daynight": "Tag/Nacht",
     "ir": "Infrarotlicht nachts",
@@ -141,7 +150,8 @@
     "confirm_action": "„{name}“ ausführen?",
     "confirm_btn": "Ausführen",
     "sd_full": "SD-Karte {name} fast voll ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Verlauf des Ladestands"
   },
   "editor": {
     "mode_entity": "Modus-Auswahl oben (z. B. input_select für Benachrichtigungen)",
@@ -149,6 +159,7 @@
     "live_timeout": "Live-Limit (Sekunden, 0 = kein Limit)",
     "auto_live": "Live automatisch starten",
     "auto_switch": "Bei Erkennung zur Kamera springen",
+    "alert_other_only": "Erkennungs-Hinweis nur für andere Kameras",
     "autoplay_next": "Nächsten Clip automatisch abspielen",
     "battery_warning": "Akku-Warnung ab (%)",
     "temperature_warning": "Temperatur-Warnung ab (°C)",
@@ -161,6 +172,9 @@
     "doorbell_sound": "Klingelton abspielen",
     "name": "Anzeigename",
     "media_name": "Name in der Medienquelle (für Wiedergabe)",
+    "lens": "Objektiv",
+    "lens_0": "1. Objektiv",
+    "lens_1": "2. Objektiv (Tele)",
     "cameras": "Kameras",
     "add": "Kamera hinzufügen",
     "remove": "Entfernen",
@@ -211,6 +225,7 @@
     "show_controls": "Bedienpanel unter dem Bild anzeigen",
     "show_settings": "Einstellungen anzeigen",
     "show_mode": "Modus-Zeile anzeigen",
-    "talk_prepare": "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)"
+    "talk_prepare": "Gegensprechen vorbereiten (schnellerer Start, Sprechkanal offen solange live)",
+    "grid_columns": "Spalten in der Rasteransicht"
   }
 }

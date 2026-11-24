@@ -25,6 +25,7 @@ export default {
             <div class="pic" id="pic"></div>
             <video id="video" playsinline controls></video>
           </div>
+          <div class="preload" id="preload" role="status" aria-live="polite" hidden><ha-icon icon="mdi:download"></ha-icon><span id="preload-t"></span><i><b id="preload-b"></b></i></div>
           <div class="grid" id="grid"></div>
           <div class="ov top">
             <div class="pillrow"><span class="pill" id="badge"></span><span class="pill" id="zoompill"></span></div>
@@ -135,7 +136,8 @@ export default {
     $('prev').onerror = () => { $('prev').classList.remove('ok'); };
     const v = $('video');
     v.addEventListener('ended', () => { if (this._config.autoplay_next) this._playNext(true); });
-    v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; });
+    v.addEventListener('loadedmetadata', () => { v.playbackRate = this._speed; this._checkVideo(false); });
+    v.addEventListener('error', () => { if (v.getAttribute('src')) this._checkVideo(true); });
     v.addEventListener('timeupdate', () => this._updatePlayhead());
     this.addEventListener('keydown', (e) => this._playbackKey(e));
     this._setupZoom();
@@ -156,7 +158,7 @@ export default {
     const c = this._cam, siren = this._e('siren'), light = this._e('light'), mrec = this._e('manual_rec');
     const build = {
       talk: () => {
-        if (this._grid) return null;
+        if (this._grid) return null; // Gegensprechen nur in der Einzelansicht (Ton kommt aus dem einen Player)
         const active = this._mic !== 'off', why = active ? null : this._talkReason();
         const legacy = why === 'feature' && this._talkLegacy();
         return { icon: active ? 'mdi:phone-hangup' : 'mdi:phone', on: active, warn: active,
@@ -170,9 +172,9 @@ export default {
       light: () => this._st(light) && { icon: 'mdi:flashlight', label: this._t('spotlight'), on: this._on(light), run: () => this._call('light', 'toggle', light) },
       rec: () => this._st(mrec) && { icon: 'mdi:video-outline', label: this._t('record'), on: this._on(mrec), run: () => this._call('switch', 'toggle', mrec) },
       snap: () => ({ icon: 'mdi:camera-outline', label: this._t('snapshot'), run: () => this._snapshot() }),
-      ptz: () => !this._grid && this._hasPtz() && { icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
+      ptz: () => this._hasPtz() && { icon: 'mdi:arrow-all', label: this._t('ptz'), on: this._ptzOpen,
         run: () => { this._ptzOpen = !this._ptzOpen; this._qOpen = false; this._update(); } },
-      q: () => this._qAvail().length && !this._grid && { icon: Q[this._quality].icon,
+      q: () => this._qAvail().length && { icon: Q[this._quality].icon,
         label: `${this._t('quality')}: ${this._t(Q[this._quality].key)}`, on: this._qOpen,
         run: () => { this._qOpen = !this._qOpen; this._ptzOpen = false; this._update(); } },
     };
@@ -234,7 +236,7 @@ export default {
 
   _camDot(cam) {
     const camSt = this._st(this._e('cam_sd', cam));
-    return !camSt || camSt.state === 'unavailable' ? 'off' : this._det(cam).length ? 'alert' : this._on(this._e('sleep', cam)) ? 'sleep' : 'on';
+    return !camSt || camSt.state === 'unavailable' ? 'off' : this._alerting(cam) ? 'alert' : this._on(this._e('sleep', cam)) ? 'sleep' : 'on';
   },
 
   _updateTimer() {
@@ -332,12 +334,20 @@ export default {
         stat += `<span class="pill" title="${this._t('wifi')} ${w < 0 ? w + ' dBm' : bars + '/4'}"><ha-icon icon="mdi:wifi-strength-${bars}"></ha-icon></span>`;
       }
       const bat = this._batteryIcon(c);
-      if (bat) stat += `<span class="pill ${bat.v <= this._config.battery_warning && !bat.charging ? 'low' : ''}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</span>`;
+      // Antippen öffnet den Verlauf des Ladestands (Detailfenster von Home Assistant)
+      if (bat) stat += `<button class="pill btn bat ${bat.v <= this._config.battery_warning && !bat.charging ? 'low' : ''}" title="${this._t('battery_history')}"><ha-icon icon="${bat.icon}"></ha-icon>${bat.v}%</button>`;
     }
-    $('stat').innerHTML = stat;
+    if ($('stat').dataset.sig !== stat) {
+      $('stat').dataset.sig = stat;
+      $('stat').innerHTML = stat;
+      const bb = $('stat').querySelector('.bat');
+      if (bb) bb.onclick = () => this._moreInfo(this._e('battery'));
+    }
 
     const active = this._grid ? [] : this._det(c);
-    $('det').innerHTML = active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join('');
+    const zones = this._grid ? [] : this._zones(c);
+    $('det').innerHTML = zones.map((z) => `<span class="pill det" style="--c:${EVT.smart.color}"><ha-icon icon="${EVT.smart.icon}"></ha-icon>${esc(z.label)}</span>`).join('')
+      + active.map((k) => `<span class="pill det" style="--c:${EVT[k].color}"><ha-icon icon="${EVT[k].icon}"></ha-icon>${this._t(`evt_${k}`)}</span>`).join('');
 
     // Raster-Zellen
     root.querySelectorAll('.cell').forEach((cell) => {
@@ -345,13 +355,19 @@ export default {
       const bat = this._batteryIcon(cam);
       cell.querySelector('.cb').textContent = bat ? ` · ${bat.v}%` : '';
       cell.querySelector('.dot').className = `dot ${this._camDot(cam)}`;
-      cell.classList.toggle('alert', this._det(cam).length > 0);
+      cell.classList.toggle('alert', this._alerting(cam));
+      const sel = this._cams.length > 1 && +cell.dataset.i === this._idx;
+      cell.classList.toggle('sel', sel);
+      cell.setAttribute('aria-pressed', String(sel));
     });
 
     this._updateTimer();
     $('stop').style.display = this._live || playing ? '' : 'none';
     $('stop').title = this._t('stop_live');
+    const fsOn = !!(this._pseudoFs || document.fullscreenElement || document.webkitFullscreenElement);
     $('fs').title = this._t('fullscreen');
+    const fsIcon = $('fs').querySelector('ha-icon'), fsWant = fsOn ? 'mdi:fullscreen-exit' : 'mdi:fullscreen';
+    if (fsIcon.getAttribute('icon') !== fsWant) fsIcon.setAttribute('icon', fsWant);
     $('bigplay').title = this._t('start_live');
     $('bigplay').style.display = this._live || playing || this._mode !== 'live' ? 'none' : '';
     $('speed').style.display = playing ? '' : 'none';

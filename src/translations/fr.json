@@ -68,6 +68,9 @@
     "error": "Erreur",
     "cam_not_found": "Caméra introuvable dans la source multimédia",
     "play_error": "Impossible de charger l’enregistrement",
+    "loading_clip": "Chargement du clip …",
+    "clip_too_big": "Clip trop volumineux pour le préchargement – choisissez la basse résolution",
+    "hq_unsupported": "Ce navigateur ne lit pas la haute résolution (H.265) – basse résolution",
     "speed": "Vitesse",
     "next": "Clip suivant",
     "download": "Télécharger",
@@ -85,10 +88,16 @@
     "g_detect": "Détection",
     "g_image": "Image",
     "g_flood": "Projecteur",
+    "g_ptz": "PTZ & suivi",
     "g_audio": "Son et enregistrement",
     "pir": "Détection PIR",
     "rec": "Enregistrement",
     "push": "Notifications push",
+    "auto_track": "Suivi automatique",
+    "track_method": "Méthode de suivi",
+    "guard_return": "Retour à la position initiale",
+    "guard_time": "Retour après (s)",
+    "patrol": "Patrouille",
     "pir_reduce": "Réduire les fausses alarmes PIR",
     "daynight": "Jour/nuit",
     "ir": "Infrarouge la nuit",
@@ -141,7 +150,8 @@
     "confirm_action": "Exécuter « {name} » ?",
     "confirm_btn": "Exécuter",
     "sd_full": "Carte SD {name} presque pleine ({v} %)",
-    "hub": "Hub"
+    "hub": "Hub",
+    "battery_history": "Historique de la batterie"
   },
   "editor": {
     "mode_entity": "Sélecteur de mode en haut (p. ex. un input_select pour les notifications)",
@@ -149,6 +159,7 @@
     "live_timeout": "Limite du direct (secondes, 0 = sans limite)",
     "auto_live": "Démarrer le direct automatiquement",
     "auto_switch": "Basculer vers la caméra lors d’une détection",
+    "alert_other_only": "Alerte de détection uniquement pour les autres caméras",
     "autoplay_next": "Lire automatiquement le clip suivant",
     "battery_warning": "Alerte batterie à partir de (%)",
     "temperature_warning": "Alerte température à partir de (°C)",
@@ -161,6 +172,9 @@
     "doorbell_sound": "Jouer une sonnerie",
     "name": "Nom affiché",
     "media_name": "Nom dans la source multimédia (pour la lecture)",
+    "lens": "Objectif",
+    "lens_0": "1er objectif",
+    "lens_1": "2e objectif (télé)",
     "cameras": "Caméras",
     "add": "Ajouter une caméra",
     "remove": "Supprimer",
@@ -211,6 +225,7 @@
     "show_controls": "Afficher le panneau de commande sous l’image",
     "show_settings": "Afficher les réglages",
     "show_mode": "Afficher la ligne de mode",
-    "talk_prepare": "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)"
+    "talk_prepare": "Préparer l’interphone (démarrage rapide, canal ouvert pendant le direct)",
+    "grid_columns": "Colonnes de la vue grille"
   }
 }
