@@ -78,6 +78,11 @@ export const SETTINGS = [
   { g: 'g_flood', icon: 'mdi:flashlight', items: [
     ['fl_mode', 'sel', 'mdi:lightbulb-auto-outline'], ['fl_bright', 'num', 'mdi:brightness-percent'],
   ] },
+  { g: 'g_ptz', icon: 'mdi:pan', items: [
+    ['auto_track', 'sw', 'mdi:radar'], ['track_method', 'sel', 'mdi:target-account'],
+    ['guard_return', 'sw', 'mdi:home-import-outline'], ['guard_time', 'num', 'mdi:timer-sand'],
+    ['patrol', 'sw', 'mdi:routes'],
+  ] },
   { g: 'g_audio', icon: 'mdi:volume-high', items: [
     ['volume', 'num', 'mdi:volume-high'], ['post_rec', 'sel', 'mdi:timer-outline'], ['rec_audio', 'sw', 'mdi:microphone'],
     ['siren_event', 'sw', 'mdi:alarm-light-outline'], ['prealarm_event', 'sw', 'mdi:bullhorn-outline'],
