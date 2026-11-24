@@ -119,7 +119,7 @@ export const lensOf = (entityId) => { const m = String(entityId || '').match(/_(
 export function hasSecondLens(hass, cam) {
   if (!hass || !cam) return false;
   const reg = hass.entities || {}, states = hass.states || {};
-  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$|^telephoto_/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1);
+  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1);
   const start = (cam.entity && reg[cam.entity] && cam.entity)
     || Object.keys(states).find((id) => id.startsWith('camera.') && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
   const dev = start && reg[start].device_id;

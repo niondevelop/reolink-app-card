@@ -6,8 +6,6 @@ import { esc } from '../util.js';
 
 /* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
 const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
-/* TrackMix: das Tele-Objektiv hat eigene Schlüssel statt „…_lens_1“ */
-const TELE_TK = { cam_sd: 'telephoto_sub', cam_hd: 'telephoto_main', snap: 'snapshots_telephoto_sub', snap_hd: 'snapshots_telephoto_main' };
 /* Interne Schlüssel bzw. Namensendungen der Sensoren für Zonen und Linien (Reolink „Smarte Erkennung“) */
 const ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
 const ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
@@ -93,7 +91,6 @@ export default {
         const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || (domain === 'camera' && dev[`${domain}:${tk}_lens_0`]);
         if (id) return id;
       }
-      if (lens === 1 && TELE_TK[key] && dev[`${domain}:${TELE_TK[key]}`]) return dev[`${domain}:${TELE_TK[key]}`];
     }
     if (lens) {
       for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }

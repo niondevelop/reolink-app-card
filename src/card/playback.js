@@ -143,9 +143,7 @@ export default {
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
         res = this._resNodes(kids);
         if (own || this._lensSplit(this._cam)) { res.tele = null; res.teleFolder = false; } else if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
-        // Kachel für das Tele-Objektiv einer TrackMix (Aufnahmen als Ordner „Tele“ statt als eigene Kamera)
-        const teleOwn = this._cam.lens && !own && res.tele;
-        const pick = teleOwn ? res.tele : useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
+        const pick = useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
         res.used = useLens1 || pick === res.tele ? 'tele' : pick === res.high ? 'high' : 'low';
         node = await this._browse(pick.media_content_id);
         kids = node.children || [];
