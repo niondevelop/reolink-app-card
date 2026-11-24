@@ -337,6 +337,8 @@ export default {
   /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
   _ask(text, okLabel, danger) {
     const $ = this.$, box = $('dlg');
+    // Der Dialog liegt außerhalb der Bildfläche: Vollbild-Ersatz beenden, sonst wäre er verdeckt
+    if (this._pseudoFs) this._setPseudoFs(false);
     if (this._askDone) this._askDone(false);
     $('dtext').textContent = text;
     $('dno').textContent = this._t('cancel');

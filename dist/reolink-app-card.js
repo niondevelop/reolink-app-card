@@ -1758,6 +1758,7 @@
     /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
     _ask(text, okLabel, danger) {
       const $ = this.$, box = $("dlg");
+      if (this._pseudoFs) this._setPseudoFs(false);
       if (this._askDone) this._askDone(false);
       $("dtext").textContent = text;
       $("dno").textContent = this._t("cancel");
@@ -2277,6 +2278,7 @@
               st.removeAttribute("popover");
             }
           } catch (_) {
+            st.removeAttribute("popover");
           }
         }
       }

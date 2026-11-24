@@ -79,3 +79,14 @@ test('Abhängen der Karte: Vollbild-Ersatz endet, Listener am Dokument werden en
   assert.deepEqual(r, { during: true, left: 0, overflow: '', on: false });
   await c.close();
 });
+
+test('Vollbild-Ersatz: Rückfrage beendet ihn, damit der Dialog sichtbar ist; Popover-Fehler lässt die Bühne sichtbar', async () => {
+  const c = await openCard(browser, server, { config: CFG, hass: HASS });
+  await noApi(c);
+  await tapFs(c);
+  const r = await c.run(() => { const k = window.__card; k._ask('Test?', 'OK'); return { on: !!k._pseudoFs, dlg: getComputedStyle(k.$('dlg')).display !== 'none' }; });
+  assert.deepEqual(r, { on: false, dlg: true });
+  const v = await c.run(() => { const k = window.__card, st = k.$('stage'); k._askDone && k._askDone(false); st.showPopover = () => { throw new Error('x'); }; k._setPseudoFs(true); return { attr: st.hasAttribute('popover'), shown: getComputedStyle(st).display !== 'none' }; });
+  assert.deepEqual(v, { attr: false, shown: true });
+  await c.close();
+});

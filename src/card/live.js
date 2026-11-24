@@ -242,7 +242,7 @@ export default {
       if (typeof st.showPopover === 'function') {
         try {
           if (on) { st.setAttribute('popover', 'manual'); st.showPopover(); } else { if (st.matches(':popover-open')) st.hidePopover(); st.removeAttribute('popover'); }
-        } catch (_) { /* ohne Popover: nur CSS */ }
+        } catch (_) { st.removeAttribute('popover'); /* ohne Popover: nur CSS (sonst bliebe die Bühne unsichtbar) */ }
       }
     }
     const root = document.documentElement;
