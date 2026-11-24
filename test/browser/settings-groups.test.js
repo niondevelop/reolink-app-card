@@ -54,3 +54,15 @@ test('Seitenleiste: offene Gruppen werden nicht gestaucht (die Leiste scrollt st
   assert.deepEqual(r, { squeezed: false, scrolls: true });
   await c.close();
 });
+
+test('Erste Kamera ohne Einstellungen: bei der nächsten ist die erste Gruppe offen', async () => {
+  const states = { ...STATES, 'camera.fremd': ['idle', { entity_picture: '/x.jpg' }] };
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.fremd', prefix: 'camera.fremd' }, { prefix: 'hof' }], auto_live: false, show_hub: false }, hass: { states } });
+  await c.run(() => { window.__card._settingsOpen = true; window.__card._update(); });
+  await wait(100);
+  await c.run(() => window.__card._select(1));
+  await c.run(() => { window.__card._settingsOpen = true; window.__card._update(); });
+  await wait(100);
+  assert.deepEqual(await groups(c), [true, false]);
+  await c.close();
+});

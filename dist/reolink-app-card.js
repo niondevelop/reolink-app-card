@@ -3833,7 +3833,8 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
     },
     _updateSettings(box) {
       const groups = this._settingGroups();
-      if (!this._groupsOpen) this._groupsOpen = new Set(groups.length ? [groups[0].g] : []);
+      if (!this._groupsOpen && groups.length) this._groupsOpen = /* @__PURE__ */ new Set([groups[0].g]);
+      if (!this._groupsOpen) return;
       const open = (g) => this._groupsOpen.has(g);
       const sig = `${this._idx}|${this._lang}|${[...this._groupsOpen].join(",")}|${groups.map((g) => g.g + ":" + g.items.map((i) => i.key).join(",")).join(";")}`;
       if (box.dataset.sig !== sig) {

@@ -15,7 +15,9 @@ export default {
   _updateSettings(box) {
     const groups = this._settingGroups();
     // Jede Gruppe klappt für sich auf und zu; zu Beginn ist die erste offen
-    if (!this._groupsOpen) this._groupsOpen = new Set(groups.length ? [groups[0].g] : []);
+    // (erst festlegen, wenn eine Kamera Gruppen hat – sonst blieben bei Fremdkameras vorn alle zu)
+    if (!this._groupsOpen && groups.length) this._groupsOpen = new Set([groups[0].g]);
+    if (!this._groupsOpen) return;
     const open = (g) => this._groupsOpen.has(g);
     const sig = `${this._idx}|${this._lang}|${[...this._groupsOpen].join(',')}|${groups.map((g) => g.g + ':' + g.items.map((i) => i.key).join(',')).join(';')}`;
     if (box.dataset.sig !== sig) {
