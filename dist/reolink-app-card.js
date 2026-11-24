@@ -1749,6 +1749,7 @@
       }
       this._visible = false;
       this._stopLive(true);
+      this._fsCleanup();
     },
     /* ---------- Sichtbarkeit & Auto-Live ---------- */
     _observe() {
@@ -1858,6 +1859,7 @@
     /* Bestätigung im Design der Karte statt Browser-Fenster; liefert true/false */
     _ask(text, okLabel, danger) {
       const $ = this.$, box = $("dlg");
+      if (this._pseudoFs) this._setPseudoFs(false);
       if (this._askDone) this._askDone(false);
       $("dtext").textContent = text;
       $("dno").textContent = this._t("cancel");
@@ -2403,10 +2405,49 @@
       this._setPseudoFs(true);
     },
     /* Bildfläche über den ganzen Bildschirm (ohne Fullscreen-API); Steuerung im Bild bleibt erhalten */
+    /* Bildfläche über den ganzen Bildschirm. Wo möglich in der obersten Ebene (Popover): dort stören weder
+       Container mit transform/filter noch die Kopfleiste. Escape beendet; die Seite dahinter scrollt nicht. */
     _setPseudoFs(on) {
-      this._pseudoFs = !!on;
-      this.$("stage").classList.toggle("pseudofs", this._pseudoFs);
-      this._update();
+      on = !!on;
+      if (on === !!this._pseudoFs) return;
+      this._pseudoFs = on;
+      const st = this.$ && this.$("stage");
+      if (st) {
+        st.classList.toggle("pseudofs", on);
+        if (typeof st.showPopover === "function") {
+          try {
+            if (on) {
+              st.setAttribute("popover", "manual");
+              st.showPopover();
+            } else {
+              if (st.matches(":popover-open")) st.hidePopover();
+              st.removeAttribute("popover");
+            }
+          } catch (_) {
+            st.removeAttribute("popover");
+          }
+        }
+      }
+      const root = document.documentElement;
+      if (on) {
+        this._fsOverflow = root.style.overflow;
+        root.style.overflow = "hidden";
+        this._fsKey = (e) => {
+          if (e.key === "Escape") this._setPseudoFs(false);
+        };
+        document.addEventListener("keydown", this._fsKey);
+      } else {
+        root.style.overflow = this._fsOverflow || "";
+        if (this._fsKey) document.removeEventListener("keydown", this._fsKey);
+        this._fsKey = null;
+      }
+      if (this.$) this._update();
+    },
+    /* Beim Abhängen der Karte: Vollbild-Ersatz beenden und Listener am Dokument entfernen */
+    _fsCleanup() {
+      this._setPseudoFs(false);
+      if (this._fsListen) ["fullscreenchange", "webkitfullscreenchange"].forEach((t) => document.removeEventListener(t, this._fsListen));
+      this._fsListen = null;
     },
     /* ---------- Digitaler Zoom ---------- */
     _setupZoom() {
@@ -3196,7 +3237,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--ra); outli
   --ha-card-border-radius: 0px; --ha-card-border-width: 0px; --ha-card-box-shadow: none; }
 .stage.zoomed { touch-action: none; cursor: grab; }
 .stage:fullscreen { aspect-ratio: auto; }
-.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; height: 100vh; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
+.stage.pseudofs { position: fixed; inset: 0; z-index: 9999; aspect-ratio: auto; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; background: #000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
 .stage.gridmode { aspect-ratio: auto; min-height: 120px; }
 .media { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
 .stage.gridmode .media { display: none; }
