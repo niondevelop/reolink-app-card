@@ -119,7 +119,8 @@ export const lensOf = (entityId) => { const m = String(entityId || '').match(/_(
 export function hasSecondLens(hass, cam) {
   if (!hass || !cam) return false;
   const reg = hass.entities || {}, states = hass.states || {};
-  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1);
+  // zweites Objektiv: „… lens 1“ (direkt eingebunden) oder Tele der TrackMix an Hub/NVR
+  const lens1 = (id) => id.startsWith('camera.') && (/_lens_1$|^telephoto_|^autotrack_/.test((reg[id] && reg[id].translation_key) || '') || lensOf(id) === 1 || /_tele_standardauflosung$|_telephoto_fluent$/.test(id));
   const start = (cam.entity && reg[cam.entity] && cam.entity)
     || Object.keys(states).find((id) => id.startsWith('camera.') && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
   const dev = start && reg[start].device_id;

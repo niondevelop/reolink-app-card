@@ -4,6 +4,12 @@ import { DC, ENT, HUB_ENT, LEGACY, TK, baseKey, findHubPrefix, lensOf, prefixOf 
 import { STR, fmt, pickLang } from '../i18n.js';
 import { esc } from '../util.js';
 
+/* Tele-Objektiv der TrackMix an Hub/NVR als „2. Objektiv“ (interne Schlüssel bzw. Namensendungen) */
+const TELE = {
+  cam_sd: { tk: ['telephoto_sub', 'autotrack_sub'], ent: ['tele_standardauflosung', 'telephoto_fluent'] },
+  cam_hd: { tk: ['telephoto_main', 'autotrack_main'], ent: ['tele_hochauflosung', 'telephoto_clear'] },
+};
+
 /* Streams, die es bei Kameras mit zwei Objektiven je Objektiv gibt */
 const LENS_KEYS = ['cam_sd', 'cam_bal', 'cam_hd', 'snap', 'snap_hd'];
 /* Interne Schlüssel bzw. Namensendungen der Sensoren für Zonen und Linien (Reolink „Smarte Erkennung“) */
@@ -94,6 +100,13 @@ export default {
     }
     if (lens) {
       for (const s of suf) for (const w of ['objektiv', 'lens', 'linse']) { const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`; if (this._st(id)) return id; }
+      // TrackMix an Hub/NVR: das zweite Objektiv heißt dort „Tele“ (telephoto_* bzw. autotrack_*). Nur vorhandene
+      // (aktivierte) Streams verwenden – der hochauflösende Tele-Stream ist in Home Assistant meist deaktiviert.
+      const tele = lens === 1 && TELE[key];
+      if (tele) {
+        for (const tk of tele.tk) { const id = dev && dev[`camera:${tk}`]; if (id && this._st(id)) return id; }
+        for (const n of tele.ent) { const id = `camera.${cam.prefix}_${n}`; if (this._st(id)) return id; }
+      }
       return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
     }
     // Über den Namen gefunden, gehört aber laut Register zu einem anderen Zweck (z. B. Schnappschüsse statt Video-Stream): nicht verwenden
@@ -110,6 +123,8 @@ export default {
 
   /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
      für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+  _devKey(cam) { this._devIndex(cam); return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`; },
+
   _lensSplit(cam) {
     if (!cam || cam.lens || !this._cams) return false;
     this._devIndex(cam);
@@ -376,19 +391,28 @@ export default {
     const prev = this._prevDet;
     this._prevDet = now;
     if (!prev) return;
+    // Mehrere Kacheln desselben Geräts (je Objektiv eine) melden dieselbe Erkennung: pro Gerät nur einmal,
+    // und ist schon eine Kachel des Geräts gewählt, bleibt sie gewählt
+    const seen = new Set();
     now.forEach((list, i) => {
-      const fresh = list.filter((k) => !prev[i].includes(k));
+      const fresh = list.filter((k) => !(prev[i] || []).includes(k));
       if (!fresh.length) return;
+      const key = this._devKey(this._cams[i]);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+      const t = group.includes(this._idx) ? this._idx : group[0];
+      // Zonen/Linien sind genauer und haben beim Hinweis Vorrang
       const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
       const type = zone ? 'smart' : fresh[0];
       const what = zone ? zone.label : this._t(`evt_${type}`);
       // Optional: Hinweis nur zeigen, wenn die Kamera nicht bereits im Bild ist
-      const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
-      if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-      if (!this._live) this._loadSnap(i, true);
+      const watching = this._visible && !document.hidden && (this._grid || group.includes(this._idx));
+      if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t('detected', { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+      if (!this._live) group.forEach((j) => this._loadSnap(j, true));
       if (!this._config.auto_switch || this._mode !== 'live' || this._playing) return;
-      if (i !== this._idx && this._grid) this._gridSelect(i);
-      else if (i !== this._idx) { this._idx = i; this._expired = false; this._rebuildCamera(); }
+      // Im Raster nur die rote Markierung, die Auswahl (und damit das Ziel der Tasten) bleibt
+      if (t !== this._idx && !this._grid) { this._idx = t; this._expired = false; this._rebuildCamera(); }
       else if (!this._live && this._visible && !document.hidden) { this._expired = false; this._startLive(); }
     });
   },

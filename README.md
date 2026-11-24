@@ -49,7 +49,7 @@ A Lovelace card for Home Assistant that feels like the official Reolink app: liv
 - **Two-way audio:** talk through the camera right from the card, with a handset button and a call screen like in the Reolink app (Home Assistant Labs feature, see notes).
 - **Doorbell:** for a Reolink doorbell or any camera you use as one: when the bell is pressed, a call screen with Decline and Answer appears. Answer starts two-way audio.
 - **Pan & tilt (PTZ):** direction pad, zoom and saved positions for cameras that can move. On a TrackMix without zoom buttons, + and − use the optical zoom entity.
-- **Two lenses:** for the TrackMix, Duo and other cameras with two lenses (e.g. OMVI), the second lens (telephoto) is an extra quality level in the quality menu and in playback. To show each lens as a camera of its own, add the camera twice, the second time with `entity: camera.<…>_lens_1` (or `lens: 1`): that camera then shows the live view and recordings of the second lens.
+- **Two lenses:** for the TrackMix, Duo and other cameras with two lenses (e.g. OMVI), the second lens (telephoto) is an extra quality level in the quality menu and in playback. To show each lens as a camera of its own, add the camera twice, the second time with `entity: camera.<…>_lens_1` (or `lens: 1`): that camera then shows the live view and recordings of the second lens. This also works for a TrackMix on a Hub/NVR. The quality level is the lighter option: with two tiles the grid runs two live streams of the device through Home Assistant (unselected tiles in “fluent”).
 - **Wide screens:** on a wide card the live view keeps running and a side panel sits next to it (right or left, option `layout`; or everything below). The panel shows the **events** – tap one to play it in the image. **Settings** open as their own panel only when you want them. The panel can be collapsed and reopened with the handle at the image edge; the device remembers the choice. The control buttons sit compact under the image.
 - **Open from a notification:** a link in your push notification opens the right camera live or plays the matching recording.
 - **Control bar like the Reolink app:** talk, siren, spotlight, record, snapshot and quality (fluent, balanced, clear). The chosen quality is remembered per device.
@@ -156,7 +156,7 @@ cameras:
 | `talk_prepare` | Prepare two-way audio for this camera (see above), e.g. only for the doorbell |
 | `talk_url`   | Link for the talk button of this camera when two-way audio is not available |
 | `doorbell`   | What rings the bell for this camera: any binary sensor, button, switch, input or event entity. Without it, the visitor sensor of a Reolink doorbell is used if there is one. `false` turns it off |
-| `lens`       | Cameras with two lenses only: `1` shows the live view and recordings of the second lens. Set automatically when `entity` is a stream of the second lens (`…_lens_1`, `…_objektiv_1`) |
+| `lens`       | Cameras with two lenses only: `1` shows the live view and recordings of the second lens. Set automatically when `entity` is a stream of the second lens (`…_lens_1`, `…_objektiv_1`). For a TrackMix on a Hub/NVR the second lens is the telephoto (telephoto stream and recordings); the high-resolution telephoto stream is only used if it is enabled in Home Assistant |
 | `entities`   | Override single entities, e.g. `entities: { light: light.my_floodlight }` |
 | `playback`   | `false` hides the playback tab for this camera |
 | `buttons`    | Own control panel for this camera, see [Control panel](#control-panel) |

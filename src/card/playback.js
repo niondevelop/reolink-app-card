@@ -108,6 +108,7 @@ export default {
       high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
       // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
       tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
+      teleHigh: kids.find((k) => /\|autotrack_main(\||$)|telephoto high/i.test(txt(k))) || null,
     };
   },
 
@@ -135,14 +136,20 @@ export default {
       const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
       // Kachel für ein weiteres Objektiv (lens: 1): immer dessen Aufnahmen, ohne Umschalter zum anderen Objektiv
       const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
-      const useLens1 = !own && !this._lensSplit(this._cam) && this._playQ === 'tele' && lens1;
+      // TrackMix an Hub/NVR: kein eigener Eintrag fürs 2. Objektiv, sondern ein Tele-Ordner unter der Kamera
+      const teleOwn = !own && this._cam.lens === 1;
+      const useLens1 = !own && !teleOwn && !this._lensSplit(this._cam) && this._playQ === 'tele' && lens1;
       let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
       let kids = node.children || [];
       // Auflösungsebene (falls vorhanden): gewählte Auflösung, sonst die andere
       let res = null;
       if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
         res = this._resNodes(kids);
-        if (own || this._lensSplit(this._cam)) { res.tele = null; res.teleFolder = false; } else if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
+        if (teleOwn) {
+          // Nur die Tele-Ordner zur Wahl; ohne Tele-Ordner keine (falschen) Aufnahmen des anderen Objektivs
+          if (!res.tele) throw new Error(this._t('cam_not_found'));
+          res = { low: res.tele, high: res.teleHigh || null, tele: null };
+        } else if (own || this._lensSplit(this._cam)) { res.tele = null; res.teleFolder = false; } else if (lens1) res.tele = lens1; else if (res.tele) res.teleFolder = true;
         const pick = useLens1 ? (res.low || res.high || kids[0]) : (this._playQ !== 'tele' && res[this._playQ]) || (this._playQ === 'tele' && res.tele) || res.low || res.high || kids[0];
         res.used = useLens1 || pick === res.tele ? 'tele' : pick === res.high ? 'high' : 'low';
         node = await this._browse(pick.media_content_id);

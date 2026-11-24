@@ -105,7 +105,7 @@ test('TrackMix ohne Hub: Tele-Aufnahmen vom zweiten Objektiv', async () => {
 const L1 = {
   'camera.hof_standardauflosung_objektiv_0': 'sub_lens_0', 'camera.hof_standardauflosung_objektiv_1': 'sub_lens_1',
   'camera.hof_ost_hochauflosung_objektiv_0': 'main_lens_0', 'camera.hof_ost_hochauflosung_objektiv_1': 'main_lens_1',
-  'button.hof_ptz_links': 'ptz_left',
+  'button.hof_ptz_links': 'ptz_left', 'binary_sensor.hof_person': 'person',
 };
 const l1st = {}, l1en = {};
 Object.entries(L1).forEach(([id, tk]) => { l1st[id] = id.startsWith('camera') ? img : 'off'; l1en[id] = { entity_id: id, device_id: 'dH', platform: 'reolink', translation_key: tk }; });
@@ -208,5 +208,77 @@ test('Beide Objektive als eigene Kameras: Objektiv 0 bietet „2. Objektiv“ we
 test('Nur Objektiv 0 eingetragen: „2. Objektiv“ bleibt wie bisher', async () => {
   const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }], auto_live: false, show_hub: false }, hass: L1HASS });
   assert.deepEqual(await c.run(() => window.__card._qAvail()), ['fluent', 'clear', 'tele']);
+  await c.close();
+});
+
+test('Zwei Objektiv-Kacheln: eine Erkennung, ein Hinweis, die gewählte Kachel bleibt', async () => {
+  const states = { ...L1HASS.states, 'camera.tor_standardauflosung': img, 'binary_sensor.tor_person': 'off' };
+  const c = await openCard(browser, server, { config: { cameras: [{ entity: 'camera.tor_standardauflosung' }, { entity: 'camera.hof_standardauflosung_objektiv_0' }, { entity: 'camera.hof_standardauflosung_objektiv_1' }], auto_live: false, show_hub: false, auto_switch: true }, hass: { ...L1HASS, states } });
+  // Tor gewählt: Erkennung am Hof wechselt auf die erste Kachel des Geräts (Objektiv 0), nicht auf Objektiv 1
+  await c.run(() => { window.__toasts = []; const k = window.__card, t = k._toast.bind(k); k._toast = (x) => { window.__toasts.push(x.text); t(x); }; window.setState('binary_sensor.hof_person', 'on'); });
+  await wait(100);
+  let r = await c.run(() => ({ idx: window.__card._idx, toasts: window.__toasts.length }));
+  assert.deepEqual(r, { idx: 1, toasts: 1 });
+  // Objektiv 1 gewählt: neue Erkennung lässt die Auswahl dort
+  await c.run(() => { window.__card._idx = 2; window.__card._rebuildCamera(); window.setState('binary_sensor.hof_person', 'off'); });
+  await wait(50);
+  await c.run(() => { window.__toasts = []; window.setState('binary_sensor.hof_person', 'on'); });
+  await wait(100);
+  r = await c.run(() => ({ idx: window.__card._idx, toasts: window.__toasts.length }));
+  assert.deepEqual(r, { idx: 2, toasts: 1 });
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+test('Editor: Kamerawechsel setzt das Objektiv zurück; Objektiv-1-Kachel nur mit entity wird nicht erneut angeboten', async () => {
+  const states = { ...L1HASS.states, 'camera.tor_standardauflosung': img };
+  const cfg = { cameras: [{ entity: 'camera.hof_standardauflosung_objektiv_0' }, { entity: 'camera.hof_standardauflosung_objektiv_1' }, { prefix: 'hof', lens: 1 }], auto_live: false, show_hub: false };
+  const c = await openCard(browser, server, { config: cfg, hass: { ...L1HASS, states } });
+  await openEditor(c, cfg);
+  const r = await c.run(async () => {
+    const ed = window.__ed, f = ed.shadowRoot.querySelectorAll('#cams ha-form')[2];
+    f.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...f.data, prefix: 'tor' } } }));
+    const switched = window.__edCfg.cameras[2];
+    const cfg2 = { ...window.__edCfg, cameras: window.__edCfg.cameras.slice(0, 2) };
+    ed.setConfig(cfg2);
+    ed.shadowRoot.getElementById('add').click();
+    return { switched, added: window.__edCfg.cameras[2] };
+  });
+  assert.equal(r.switched.prefix, 'tor');
+  assert.equal(r.switched.lens, undefined);
+  assert.notEqual(r.added.lens, 1);
+  assert.deepEqual(c.errors, []);
+  await c.close();
+});
+
+/* TrackMix an Hub/NVR: zweites Objektiv heißt „Tele“ (telephoto_sub, Aufnahmeordner autotrack_*) */
+const HUB = {
+  'camera.tm_fluent': 'sub', 'camera.tm_clear': 'main', 'camera.tm_telephoto_fluent': 'telephoto_sub',
+};
+const hubSt = {}, hubEn = {};
+Object.entries(HUB).forEach(([id, tk]) => { hubSt[id] = img; hubEn[id] = { entity_id: id, device_id: 'dT', platform: 'reolink', translation_key: tk }; });
+const HUBHASS = { states: hubSt, entities: hubEn, devices: { dT: { name: 'TrackMix', model: 'TrackMix PoE' } }, mediaCameras: ['TrackMix'], files: ['08:00:00 0:00:40 Person'], resolutions: true, telephoto: true };
+
+test('TrackMix an Hub: lens 1 nimmt den Tele-Stream und die Tele-Aufnahmen; Objektiv 0 ohne Tele-Stufe', async () => {
+  const cfg = { cameras: [{ entity: 'camera.tm_fluent', media_name: 'TrackMix' }, { entity: 'camera.tm_fluent', media_name: 'TrackMix', lens: 1 }], auto_live: false, show_hub: false };
+  const c = await openCard(browser, server, { config: cfg, hass: HUBHASS });
+  const r = await c.run(() => {
+    const k = window.__card, [a, b] = k._cams;
+    const avail = (cam) => { const o = k._cam; k._idx = k._cams.indexOf(cam); const v = k._qAvail(); k._idx = k._cams.indexOf(o); return v; };
+    return { bSd: k._e('cam_sd', b), bHd: !!k._st(k._e('cam_hd', b)), aAvail: avail(a), bAvail: avail(b), names: [a.name, b.name] };
+  });
+  assert.deepEqual(r, { bSd: 'camera.tm_telephoto_fluent', bHd: false, aAvail: ['fluent', 'clear'], bAvail: ['fluent'], names: ['TrackMix', 'TrackMix – Tele'] });
+  await c.run(() => window.__card._select(1));
+  await c.click('#m-play');
+  await wait(400);
+  const btns = await c.run(() => [...window.__card.shadowRoot.querySelectorAll('#pq button')].filter((x) => x.style.display !== 'none').map((x) => x.textContent));
+  assert.deepEqual(btns, ['Niedrig', 'Hoch']);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /\|RES\|autotrack_sub\|/);
+  await openEditor(c, cfg);
+  const fields = await c.run(() => window.__ed.shadowRoot.querySelector('#cams ha-form').schema.map((s) => s.name));
+  assert.ok(fields.includes('lens'));
+  assert.deepEqual(c.errors, []);
   await c.close();
 });

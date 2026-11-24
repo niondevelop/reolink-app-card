@@ -155,7 +155,7 @@
   function hasSecondLens(hass, cam) {
     if (!hass || !cam) return false;
     const reg = hass.entities || {}, states = hass.states || {};
-    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$|^telephoto_/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1);
+    const lens1 = (id) => id.startsWith("camera.") && (/_lens_1$|^telephoto_|^autotrack_/.test(reg[id] && reg[id].translation_key || "") || lensOf(id) === 1 || /_tele_standardauflosung$|_telephoto_fluent$/.test(id));
     const start = cam.entity && reg[cam.entity] && cam.entity || Object.keys(states).find((id) => id.startsWith("camera.") && cam.prefix && prefixOf(id) === cam.prefix && reg[id]);
     const dev = start && reg[start].device_id;
     if (dev) return Object.keys(reg).some((id) => reg[id].device_id === dev && lens1(id));
@@ -1395,8 +1395,11 @@
   };
 
   // src/card/core.js
+  var TELE = {
+    cam_sd: { tk: ["telephoto_sub", "autotrack_sub"], ent: ["tele_standardauflosung", "telephoto_fluent"] },
+    cam_hd: { tk: ["telephoto_main", "autotrack_main"], ent: ["tele_hochauflosung", "telephoto_clear"] }
+  };
   var LENS_KEYS = ["cam_sd", "cam_bal", "cam_hd", "snap", "snap_hd"];
-  var TELE_TK = { cam_sd: "telephoto_sub", cam_hd: "telephoto_main", snap: "snapshots_telephoto_sub", snap_hd: "snapshots_telephoto_main" };
   var ZONE_TK = /^(crossline|intrusion|linger|loitering|forgotten|taken)_/;
   var ZONE_ID = /(grenzlinie|crossline|line_crossing|eindringen|intrusion|herumlungern|linger|loitering|vergessen|forgotten|entfernt|taken)/;
   var core_default = {
@@ -1516,12 +1519,22 @@
           const id = lens ? dev[`${domain}:${tk}_lens_${lens}`] : dev[`${domain}:${tk}`] || domain === "camera" && dev[`${domain}:${tk}_lens_0`];
           if (id) return id;
         }
-        if (lens === 1 && TELE_TK[key] && dev[`${domain}:${TELE_TK[key]}`]) return dev[`${domain}:${TELE_TK[key]}`];
       }
       if (lens) {
         for (const s of suf) for (const w of ["objektiv", "lens", "linse"]) {
           const id = `${domain}.${cam.prefix}_${s}_${w}_${lens}`;
           if (this._st(id)) return id;
+        }
+        const tele = lens === 1 && TELE[key];
+        if (tele) {
+          for (const tk of tele.tk) {
+            const id = dev && dev[`camera:${tk}`];
+            if (id && this._st(id)) return id;
+          }
+          for (const n of tele.ent) {
+            const id = `camera.${cam.prefix}_${n}`;
+            if (this._st(id)) return id;
+          }
         }
         return `${domain}.${cam.prefix}_${suf[0]}_objektiv_${lens}`;
       }
@@ -1539,6 +1552,10 @@
     },
     /* Ist das zweite Objektiv dieses Geräts schon als eigene Kamera eingetragen? Dann bietet die Kamera
        für Objektiv 0 „2. Objektiv“ weder im Livebild noch in der Wiedergabe an */
+    _devKey(cam) {
+      this._devIndex(cam);
+      return cam._devId ? `d:${cam._devId}` : `p:${cam.prefix}`;
+    },
     _lensSplit(cam) {
       if (!cam || cam.lens || !this._cams) return false;
       this._devIndex(cam);
@@ -1812,19 +1829,24 @@
       const prev = this._prevDet;
       this._prevDet = now;
       if (!prev) return;
+      const seen = /* @__PURE__ */ new Set();
       now.forEach((list, i) => {
-        const fresh = list.filter((k) => !prev[i].includes(k));
+        const fresh = list.filter((k) => !(prev[i] || []).includes(k));
         if (!fresh.length) return;
+        const key = this._devKey(this._cams[i]);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const group = this._cams.map((_, j) => j).filter((j) => this._devKey(this._cams[j]) === key);
+        const t = group.includes(this._idx) ? this._idx : group[0];
         const zone = this._zones(this._cams[i]).find((z) => fresh.includes(z.id));
         const type = zone ? "smart" : fresh[0];
         const what = zone ? zone.label : this._t(`evt_${type}`);
-        const watching = this._visible && !document.hidden && (this._grid || i === this._idx);
-        if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[i].name }), color: EVT[type].color, icon: EVT[type].icon });
-        if (!this._live) this._loadSnap(i, true);
+        const watching = this._visible && !document.hidden && (this._grid || group.includes(this._idx));
+        if (!(this._config.alert_other_only && watching)) this._toast({ text: this._t("detected", { type: what, name: this._cams[t].name }), color: EVT[type].color, icon: EVT[type].icon });
+        if (!this._live) group.forEach((j) => this._loadSnap(j, true));
         if (!this._config.auto_switch || this._mode !== "live" || this._playing) return;
-        if (i !== this._idx && this._grid) this._gridSelect(i);
-        else if (i !== this._idx) {
-          this._idx = i;
+        if (t !== this._idx && !this._grid) {
+          this._idx = t;
           this._expired = false;
           this._rebuildCamera();
         } else if (!this._live && this._visible && !document.hidden) {
@@ -2598,7 +2620,8 @@
         low: plain.find((k) => /\|sub(\||$)|low|niedrig|basse|fluent/i.test(txt(k))) || null,
         high: plain.find((k) => /\|main(\||$)|high|hoch|haute|clear/i.test(txt(k))) || null,
         // Tele der TrackMix an Hub/NVR: eigener Ordner „Telephoto low resolution“ (…|autotrack_sub)
-        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null
+        tele: kids.find((k) => /\|autotrack_sub(\||$)|telephoto low/i.test(txt(k))) || null,
+        teleHigh: kids.find((k) => /\|autotrack_main(\||$)|telephoto high/i.test(txt(k))) || null
       };
     },
     /* Niedrige oder hohe Auflösung wählen, dauerhaft auf diesem Gerät merken.
@@ -2631,19 +2654,22 @@
         if (!camNode) throw new Error(this._t("cam_not_found"));
         const lens1 = this._mediaNodeOf(this._mediaKids || [], this._cam, 1);
         const own = this._cam.lens ? this._mediaNodeOf(this._mediaKids || [], this._cam, this._cam.lens) : null;
-        const useLens1 = !own && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
+        const teleOwn = !own && this._cam.lens === 1;
+        const useLens1 = !own && !teleOwn && !this._lensSplit(this._cam) && this._playQ === "tele" && lens1;
         let node = await this._browse((own || (useLens1 ? lens1 : camNode)).media_content_id);
         let kids = node.children || [];
         let res = null;
         if (kids.length && kids.every((k) => k.can_expand) && !kids.some((k) => this._dayOf(k))) {
           res = this._resNodes(kids);
-          if (own || this._lensSplit(this._cam)) {
+          if (teleOwn) {
+            if (!res.tele) throw new Error(this._t("cam_not_found"));
+            res = { low: res.tele, high: res.teleHigh || null, tele: null };
+          } else if (own || this._lensSplit(this._cam)) {
             res.tele = null;
             res.teleFolder = false;
           } else if (lens1) res.tele = lens1;
           else if (res.tele) res.teleFolder = true;
-          const teleOwn = this._cam.lens && !own && res.tele;
-          const pick = teleOwn ? res.tele : useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
+          const pick = useLens1 ? res.low || res.high || kids[0] : this._playQ !== "tele" && res[this._playQ] || this._playQ === "tele" && res.tele || res.low || res.high || kids[0];
           res.used = useLens1 || pick === res.tele ? "tele" : pick === res.high ? "high" : "low";
           node = await this._browse(pick.media_content_id);
           kids = node.children || [];
@@ -4262,6 +4288,7 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
             delete v.media_name;
             delete v.entity;
           }
+          if ((hit || other) && v.prefix !== cam.prefix) delete v.lens;
           if (v.lens !== void 0 && v.lens !== "") {
             const want = +v.lens || 0;
             if (want === lensOf(v.entity)) delete v.lens;
@@ -4332,9 +4359,10 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         cams.appendChild(box);
       });
       this.shadowRoot.getElementById("add").onclick = () => {
-        const used = this._config.cameras.map((c) => c.prefix);
+        const pre = (c) => c.prefix || (c.entity ? prefixOf(c.entity) : "");
+        const used = this._config.cameras.map(pre);
         const next = detected.find((d) => !used.includes(d.prefix));
-        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => c.prefix === d.prefix && effLens(c) === 1));
+        const lens2 = !next && detected.find((d) => hasSecondLens(this._hass, d) && !this._config.cameras.some((c) => pre(c) === d.prefix && effLens(c) === 1));
         const cam = next ? { name: next.name, prefix: next.prefix, media_name: next.name, ...needsEntity(next.entity) ? { entity: next.entity } : {} } : lens2 ? { prefix: lens2.prefix, media_name: lens2.name, ...needsEntity(lens2.entity) ? { entity: lens2.entity } : {}, ...lensOf(lens2.entity) === 1 ? {} : { lens: 1 } } : { prefix: "" };
         this._openCams.add(this._config.cameras.length);
         this._changed({ ...this._config, cameras: [...this._config.cameras, cam] });
