@@ -39,7 +39,8 @@ export default {
 
   _setQuality(q) {
     this._qOpen = false;
-    if (q !== this._quality) { this._quality = q; if (this._live) this._makePic(); }
+    // Im Raster nur die gewählte Kachel neu aufbauen, nicht alle Streams
+    if (q !== this._quality) { this._quality = q; if (this._live) { if (this._grid) this._swapCell(this._idx); else this._makePic(); } }
     try { localStorage.setItem(Q_STORE, q); } catch (_) { /* privater Modus o. ä. */ }
     this._update();
   },
@@ -144,12 +145,30 @@ export default {
   /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
   _gridSelect(i) {
     if (i === this._idx) return;
+    const old = this._idx, qBefore = this._quality;
     this._idx = i;
     this._ptzOpen = false; this._qOpen = false;
     this._ensureQ();
     this._loadSnap(i);
-    // Die gewählte Kamera läuft in der gewählten Qualität, die übrigen flüssig
-    if (this._live && this._quality !== 'fluent') this._makePic(); else this._update();
+    // Aufnahmen und Ereignisse gehören zur gewählten Kamera
+    this._days = null; this._files = null; this._dayIdx = 0;
+    if (this._eventsShown()) this._loadDays();
+    // Die gewählte Kamera läuft in der gewählten Qualität, die übrigen flüssig: nur alte und neue Kachel tauschen
+    if (this._live && (qBefore !== 'fluent' || this._quality !== 'fluent')) { this._swapCell(old); this._swapCell(i); }
+    this._update();
+  },
+
+  /* Livebild einer Rasterkachel neu aufbauen (z. B. andere Qualität), die übrigen Kacheln laufen weiter */
+  async _swapCell(i) {
+    if (!this._grid || !this._live || !this._cams[i]) return;
+    const token = this._picToken;
+    const el = await this._liveEl(this._cams[i]);
+    if (token !== this._picToken || !this._grid) return;
+    const pic = this.$('grid').querySelector(`.cell[data-i="${i}"] .pic`);
+    if (!pic) return;
+    pic.innerHTML = '';
+    pic.appendChild(el);
+    this._pics[i] = el;
   },
 
   _renderGrid(liveEls) {
@@ -161,12 +180,16 @@ export default {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.i = i;
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-label', c.name);
       const snap = this._snaps[i];
       cell.innerHTML = `<img class="prev${snap ? ' ok' : ''}" alt="" ${snap ? `src="${esc(snap.url)}"` : ''}><div class="pic"></div>
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
       if (liveEls[i]) cell.querySelector('.pic').appendChild(liveEls[i]);
       // Erster Tipp wählt die Kachel (Tasten wirken auf sie), ein weiterer Tipp auf die gewählte öffnet sie gross
       cell.onclick = () => { if (i === this._idx) { this._setGrid(false); this._rebuildCamera(); } else this._gridSelect(i); };
+      cell.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cell.onclick(); } };
       grid.appendChild(cell);
     });
     this._update();

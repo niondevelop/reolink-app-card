@@ -2138,7 +2138,10 @@
       this._qOpen = false;
       if (q !== this._quality) {
         this._quality = q;
-        if (this._live) this._makePic();
+        if (this._live) {
+          if (this._grid) this._swapCell(this._idx);
+          else this._makePic();
+        }
       }
       try {
         localStorage.setItem(Q_STORE, q);
@@ -2249,13 +2252,33 @@
     /* Kachel im Raster wählen: Livebild bleibt, Tasten, PTZ und Qualität gelten für diese Kamera */
     _gridSelect(i) {
       if (i === this._idx) return;
+      const old = this._idx, qBefore = this._quality;
       this._idx = i;
       this._ptzOpen = false;
       this._qOpen = false;
       this._ensureQ();
       this._loadSnap(i);
-      if (this._live && this._quality !== "fluent") this._makePic();
-      else this._update();
+      this._days = null;
+      this._files = null;
+      this._dayIdx = 0;
+      if (this._eventsShown()) this._loadDays();
+      if (this._live && (qBefore !== "fluent" || this._quality !== "fluent")) {
+        this._swapCell(old);
+        this._swapCell(i);
+      }
+      this._update();
+    },
+    /* Livebild einer Rasterkachel neu aufbauen (z. B. andere Qualität), die übrigen Kacheln laufen weiter */
+    async _swapCell(i) {
+      if (!this._grid || !this._live || !this._cams[i]) return;
+      const token = this._picToken;
+      const el = await this._liveEl(this._cams[i]);
+      if (token !== this._picToken || !this._grid) return;
+      const pic = this.$("grid").querySelector(`.cell[data-i="${i}"] .pic`);
+      if (!pic) return;
+      pic.innerHTML = "";
+      pic.appendChild(el);
+      this._pics[i] = el;
     },
     _renderGrid(liveEls) {
       const grid = this.$("grid");
@@ -2266,6 +2289,9 @@
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.dataset.i = i;
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute("aria-label", c.name);
         const snap = this._snaps[i];
         cell.innerHTML = `<img class="prev${snap ? " ok" : ""}" alt="" ${snap ? `src="${esc(snap.url)}"` : ""}><div class="pic"></div>
         <span class="cl"><span class="dot"></span>${esc(c.name)}<span class="cb"></span></span>`;
@@ -2275,6 +2301,13 @@
             this._setGrid(false);
             this._rebuildCamera();
           } else this._gridSelect(i);
+        };
+        cell.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            cell.onclick();
+          }
         };
         grid.appendChild(cell);
       });
@@ -3777,7 +3810,9 @@ ha-card.lay-bottom .list { display: grid; grid-template-columns: 1fr 1fr; column
         cell.querySelector(".cb").textContent = bat ? ` · ${bat.v}%` : "";
         cell.querySelector(".dot").className = `dot ${this._camDot(cam)}`;
         cell.classList.toggle("alert", this._alerting(cam));
-        cell.classList.toggle("sel", this._cams.length > 1 && +cell.dataset.i === this._idx);
+        const sel = this._cams.length > 1 && +cell.dataset.i === this._idx;
+        cell.classList.toggle("sel", sel);
+        cell.setAttribute("aria-pressed", String(sel));
       });
       this._updateTimer();
       $("stop").style.display = this._live || playing ? "" : "none";

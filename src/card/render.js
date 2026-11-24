@@ -348,7 +348,9 @@ export default {
       cell.querySelector('.cb').textContent = bat ? ` · ${bat.v}%` : '';
       cell.querySelector('.dot').className = `dot ${this._camDot(cam)}`;
       cell.classList.toggle('alert', this._alerting(cam));
-      cell.classList.toggle('sel', this._cams.length > 1 && +cell.dataset.i === this._idx);
+      const sel = this._cams.length > 1 && +cell.dataset.i === this._idx;
+      cell.classList.toggle('sel', sel);
+      cell.setAttribute('aria-pressed', String(sel));
     });
 
     this._updateTimer();
