@@ -109,3 +109,20 @@ test('Raster: Auswahlwechsel baut nur alte und neue Kachel neu auf; Tastatur und
   assert.deepEqual(c.errors, []);
   await c.close();
 });
+
+test('Raster: Leertaste auf einer Kachel wählt nur aus und startet keinen Clip', async () => {
+  const c = await openCard(browser, server, { config: { ...CFG, layout: 'right', cameras: [{ ...CFG.cameras[0], media_name: 'Garten' }, { ...CFG.cameras[1], media_name: 'Eingang' }] }, hass: { states: STATES, mediaCameras: ['Garten', 'Eingang'], files: ['08:00:00 0:00:40 Person'] } });
+  await c.page.setViewportSize({ width: 1140, height: 900 });
+  await c.run(() => { document.getElementById('wrap').style.width = '1100px'; });
+  await wait(300);
+  await c.run(() => window.__card._setGrid(true));
+  await wait(600);
+  const pre = await c.run(() => ({ ev: window.__card._eventsShown(), files: (window.__card._visibleFiles || []).length }));
+  assert.deepEqual(pre, { ev: true, files: 1 });
+  await c.run(() => window.__card.shadowRoot.querySelectorAll('#grid .cell')[1].focus());
+  await c.page.keyboard.press('Space');
+  await wait(300);
+  const r = await c.run(() => ({ idx: window.__card._idx, grid: window.__card._grid, playing: !!window.__card._playing }));
+  assert.deepEqual(r, { idx: 1, grid: true, playing: false });
+  await c.close();
+});

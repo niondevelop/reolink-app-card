@@ -177,7 +177,7 @@ export default {
       if (liveEls[i]) cell.querySelector('.pic').appendChild(liveEls[i]);
       // Erster Tipp wählt die Kachel (Tasten wirken auf sie), ein weiterer Tipp auf die gewählte öffnet sie gross
       cell.onclick = () => { if (i === this._idx) { this._setGrid(false); this._rebuildCamera(); } else this._gridSelect(i); };
-      cell.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cell.onclick(); } };
+      cell.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cell.onclick(); } };
       grid.appendChild(cell);
     });
     this._update();
