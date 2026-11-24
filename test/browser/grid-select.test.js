@@ -59,15 +59,53 @@ test('Raster: Tipp wählt Kachel mit Rahmen, Tasten inkl. PTZ und Qualität gelt
   await c.close();
 });
 
-test('Raster: Erkennung wählt die Kachel, statt das Raster zu verlassen', async () => {
-  const c = await openCard(browser, server, { config: { ...CFG, cameras: [CFG.cameras[1], CFG.cameras[0]] }, hass: { states: STATES } });
+test('Raster: Erkennung markiert die Kachel rot, Auswahl bleibt', async () => {
+  const c = await openCard(browser, server, { config: { ...CFG, cameras: [CFG.cameras[1], CFG.cameras[0]], auto_switch: true }, hass: { states: STATES } });
   await c.run(() => window.__card._setGrid(true));
   await wait(100);
   await c.run(() => window.setState('binary_sensor.garten_person', 'on'));
   await wait(100);
   const s = await state(c);
   assert.equal(s.grid, true);
-  assert.equal(s.cam, 'Garten');
-  assert.deepEqual(s.sel, [false, true]);
+  assert.equal(s.cam, 'Eingang');
+  assert.deepEqual(s.sel, [true, false]);
+  assert.equal(await c.run(() => window.__card.shadowRoot.querySelectorAll('#grid .cell')[1].classList.contains('alert')), true);
+  await c.close();
+});
+
+test('Raster: Auswahl lädt Aufnahmen der gewählten Kamera; Verlassen per Knopf behält sie', async () => {
+  const c = await openCard(browser, server, { config: { ...CFG, cameras: [{ ...CFG.cameras[0], media_name: 'Garten' }, { ...CFG.cameras[1], media_name: 'Eingang' }] }, hass: { states: STATES, mediaCameras: ['Garten', 'Eingang'], files: ['08:00:00 0:00:40 Person'] } });
+  await c.click('#m-play');
+  await wait(400);
+  await c.click('#m-live');
+  await c.run(() => window.__card._setGrid(true));
+  await wait(100);
+  await tapCell(c, 1);
+  await c.run(() => window.__card._setGrid(false));
+  await c.click('#m-play');
+  await wait(400);
+  await c.run(() => window.__card.shadowRoot.querySelector('#list .item').click());
+  await wait(200);
+  assert.match((await c.rec()).resolved.at(-1), /^R\|1\|/);
+  await c.close();
+});
+
+test('Raster: Auswahlwechsel baut nur alte und neue Kachel neu auf; Tastatur und aria-pressed', async () => {
+  const c = await openCard(browser, server, { config: { ...CFG, cameras: [...CFG.cameras, { name: 'Hof', prefix: 'garten' }] }, hass: { states: STATES } });
+  await c.run(() => { const k = window.__card; k._quality = 'clear'; k._setGrid(true); k._startLive(); });
+  await wait(400);
+  const r = await c.run(async () => {
+    const k = window.__card, before = [...k.shadowRoot.querySelectorAll('#grid .cell .pic > *')];
+    const cells = k.shadowRoot.querySelectorAll('#grid .cell');
+    cells[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await new Promise((res) => setTimeout(res, 400));
+    const after = [...k.shadowRoot.querySelectorAll('#grid .cell .pic > *')];
+    return { kept: after.map((el, i) => el === before[i]), idx: k._idx, pressed: [...k.shadowRoot.querySelectorAll('#grid .cell')].map((x) => x.getAttribute('aria-pressed')), tab: cells[0].tabIndex };
+  });
+  assert.equal(r.idx, 1);
+  assert.deepEqual(r.kept, [false, false, true]);
+  assert.deepEqual(r.pressed, ['false', 'true', 'false']);
+  assert.equal(r.tab, 0);
+  assert.deepEqual(c.errors, []);
   await c.close();
 });
