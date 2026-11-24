@@ -293,12 +293,17 @@ export default {
       } else {
         this._removeHls();
         const v = this.$('video');
-        v.src = this._playUrl;
+        // iPhone/iPad: Die Wiedergabe-URL der Reolink-Integration beantwortet keine Range-Anfragen, ohne die iOS
+        // kein MP4 abspielt. Dann den Clip erst ganz laden und aus dem Speicher abspielen (Option playback_preload).
+        const src = this._preloadClips() ? await this._preload(this._playUrl, file) : this._playUrl;
+        if (this._playing !== file) return;
+        v.src = src;
         v.playbackRate = this._speed;
         const p = v.play();
         if (p && p.catch) p.catch(() => {});
       }
     } catch (e) {
+      if (this._playing !== file) return; // inzwischen anderer Clip oder beendet (Laden abgebrochen)
       this._playing = null;
       this._toast({ text: `${this._t('play_error')}: ${e.message || e}`, color: '#636366', icon: 'mdi:alert-circle-outline', wrap: true });
     }
@@ -359,9 +364,58 @@ export default {
     this._openLink(this._playUrl, `${this._cam.name}_${d}_${this._playing.time.replace(/:/g, '-')}.mp4`);
   },
 
+  /* Clips vorab ganz laden? Option playback_preload: true/false, sonst automatisch auf iPhone/iPad */
+  _preloadClips() {
+    const o = this._config.playback_preload;
+    if (o === true || o === false) return o;
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  },
+
+  /* Clip ganz herunterladen (mit Fortschritt) und als Blob-URL zurückgeben; ein Wechsel des Clips bricht ab */
+  async _preload(url, file) {
+    this._dropBlob();
+    const ac = new AbortController();
+    this._dlAbort = ac;
+    const box = this.$('preload'), bar = this.$('preload-b'), txt = this.$('preload-t');
+    const show = (done, total) => {
+      box.hidden = false;
+      txt.textContent = total ? `${this._t('loading_clip')} ${Math.round((done / total) * 100)} %` : `${this._t('loading_clip')} ${(done / 1048576).toFixed(1)} MB`;
+      bar.style.width = total ? `${Math.min(100, (done / total) * 100)}%` : '30%';
+    };
+    try {
+      show(0, 0);
+      const resp = await fetch(url, { signal: ac.signal, credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const total = +resp.headers.get('content-length') || 0;
+      const parts = [];
+      let done = 0;
+      if (resp.body && resp.body.getReader) {
+        const rd = resp.body.getReader();
+        for (;;) {
+          const { value, done: end } = await rd.read();
+          if (end) break;
+          parts.push(value); done += value.length; show(done, total);
+        }
+      } else parts.push(new Uint8Array(await resp.arrayBuffer()));
+      if (this._playing !== file) return '';
+      this._blobUrl = URL.createObjectURL(new Blob(parts, { type: resp.headers.get('content-type') || 'video/mp4' }));
+      return this._blobUrl;
+    } finally {
+      if (this._dlAbort === ac) { this._dlAbort = null; box.hidden = true; }
+    }
+  },
+
+  _dropBlob() {
+    if (this._dlAbort) { this._dlAbort.abort(); this._dlAbort = null; }
+    if (this._blobUrl) { URL.revokeObjectURL(this._blobUrl); this._blobUrl = null; }
+  },
+
   _stopPlayback(silent) {
     const v = this.$ && this._vid();
     if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) { /* ignorieren */ } }
+    this._dropBlob();
+    if (this.$) this.$('preload').hidden = true;
     this._removeHls();
     if (!this._playing) return;
     this._playing = null; this._playUrl = null;

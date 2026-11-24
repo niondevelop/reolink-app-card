@@ -118,6 +118,7 @@ cameras:
 | `auto_live`               | `true`        | Start the live view automatically when the card becomes visible |
 | `auto_switch`             | `true`        | Jump to the camera that detected something |
 | `alert_seconds`           | `8`           | How long the detection notice stays visible |
+| `playback_preload`        | automatic     | Download recordings completely before playing. Default: only on iPhone/iPad, because iOS can't play the Reolink integration's playback URL otherwise (it doesn't support range requests). `true`/`false` forces it |
 | `autoplay_next`           | `true`        | Play the next clip when a clip ends |
 | `battery_warning`         | `20`          | Battery warning at or below this charge (%). `0` = off |
 | `temperature_warning`     | `45`          | Warning at or above this battery temperature (°C). `false` = off |

@@ -116,6 +116,7 @@ cameras:
 | `auto_live`               | `true`        | Livebild automatisch starten, sobald die Karte sichtbar ist |
 | `auto_switch`             | `true`        | Bei einer Erkennung automatisch zur betroffenen Kamera springen |
 | `alert_seconds`           | `8`           | Wie lange der Erkennungs-Hinweis sichtbar bleibt |
+| `playback_preload`        | automatisch   | Aufnahmen vor dem Abspielen ganz laden. Standard: nur auf iPhone/iPad, weil iOS die Wiedergabe-URL der Reolink-Integration sonst nicht abspielt (sie unterstützt keine Range-Anfragen). `true`/`false` erzwingt es |
 | `autoplay_next`           | `true`        | Nach dem Ende eines Clips den nächsten abspielen |
 | `battery_warning`         | `20`          | Akku-Warnung ab diesem Ladestand (%). `0` = aus |
 | `temperature_warning`     | `45`          | Warnung bei Batterietemperatur ab (°C). `false` = aus |

@@ -68,6 +68,7 @@
     "error": "Erreur",
     "cam_not_found": "Caméra introuvable dans la source multimédia",
     "play_error": "Impossible de charger l’enregistrement",
+    "loading_clip": "Chargement du clip …",
     "speed": "Vitesse",
     "next": "Clip suivant",
     "download": "Télécharger",
